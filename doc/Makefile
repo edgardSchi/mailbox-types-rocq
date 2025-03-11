@@ -21,6 +21,9 @@ else
 	cp -R $(EXTRA_DIR)/resources html
 endif
 
-doc: remove-old coqdoc
+create-index:
+	cp html/toc.html html/index.html
+
+doc: remove-old coqdoc create-index
 
 .PHONY: remove-old coqdoc
