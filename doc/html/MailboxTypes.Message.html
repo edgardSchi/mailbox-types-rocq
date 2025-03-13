@@ -1,0 +1,195 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<link href="resources/coqdoc.css" rel="stylesheet" type="text/css" />
+<link href="resources/coqdocjs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="resources/config.js"></script>
+<script type="text/javascript" src="resources/coqdocjs.js"></script>
+</head>
+
+<body onload="document.getElementById('content').focus()">
+  <div id="header">
+    <span class="left">
+      <span class="modulename"> <script> document.write(document.title) </script> </span>
+    </span>
+
+    <span class="button" id="toggle-proofs"></span>
+
+    <span class="right">
+      <a href="../">Project Page</a>
+      <a href="./indexpage.html"> Index </a>
+      <a href="./toc.html"> Table of Contents </a>
+    </span>
+</div>
+    <div id="content" tabindex="-1" onblur="document.getElementById('content').focus()">
+    <div id="main">
+<h1 class="libtitle">MailboxTypes.Message</h1>
+
+<div class="code">
+</div>
+
+<div class="doc">
+<a id="lab2"></a><h1 class="section">Definition of messages</h1>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Setoids.Setoid.html#"><span class="id" title="library">Setoid</span></a>.<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Sets.Multiset.html#"><span class="id" title="library">Sets.Multiset</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Section</span> <a id="Message_def" class="idref" href="#Message_def"><span class="id" title="section">Message_def</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+A message is a type with decidable equality 
+</div>
+<div class="code">
+<span class="id" title="keyword">Class</span> <a id="IMessage" class="idref" href="#IMessage"><span class="id" title="record">IMessage</span></a> <a id="Message:1" class="idref" href="#Message:1"><span class="id" title="binder">Message</span></a> : <span class="id" title="keyword">Type</span> :=<br/>
+&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a id="message_eq" class="idref" href="#message_eq"><span class="id" title="projection">message_eq</span></a>: <a class="idref" href="MailboxTypes.Message.html#Message:1"><span class="id" title="variable">Message</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="MailboxTypes.Message.html#Message:1"><span class="id" title="variable">Message</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="keyword">Prop</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a id="message_eq_equiv" class="idref" href="#message_eq_equiv"><span class="id" title="projection">message_eq_equiv</span></a> : <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Classes.RelationClasses.html#Equivalence"><span class="id" title="class">Equivalence</span></a> <a class="idref" href="MailboxTypes.Message.html#message_eq:3"><span class="id" title="method">message_eq</span></a>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a id="message_eq_dec" class="idref" href="#message_eq_dec"><span class="id" title="projection">message_eq_dec</span></a> : <span class="id" title="keyword">forall</span> <a id="m:5" class="idref" href="#m:5"><span class="id" title="binder">m</span></a> <a id="n:6" class="idref" href="#n:6"><span class="id" title="binder">n</span></a>, <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Specif.html#87727981cdc1579fef00b9d9c1d3b9da"><span class="id" title="notation">{</span></a><a class="idref" href="MailboxTypes.Message.html#message_eq:3"><span class="id" title="method">message_eq</span></a> <a class="idref" href="MailboxTypes.Message.html#m:5"><span class="id" title="variable">m</span></a> <a class="idref" href="MailboxTypes.Message.html#n:6"><span class="id" title="variable">n</span></a><a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Specif.html#87727981cdc1579fef00b9d9c1d3b9da"><span class="id" title="notation">}</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Specif.html#87727981cdc1579fef00b9d9c1d3b9da"><span class="id" title="notation">+</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Specif.html#87727981cdc1579fef00b9d9c1d3b9da"><span class="id" title="notation">{</span></a><a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#63a68285c81db8f9bc456233bb9ed181"><span class="id" title="notation">~</span></a> <a class="idref" href="MailboxTypes.Message.html#message_eq:3"><span class="id" title="method">message_eq</span></a> <a class="idref" href="MailboxTypes.Message.html#m:5"><span class="id" title="variable">m</span></a> <a class="idref" href="MailboxTypes.Message.html#n:6"><span class="id" title="variable">n</span></a><a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Specif.html#87727981cdc1579fef00b9d9c1d3b9da"><span class="id" title="notation">}</span></a>;<br/>
+&nbsp;&nbsp;}.<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="MailboxTypes.Message.html#Message_def"><span class="id" title="section">Message_def</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Section</span> <a id="MessageConfig_def" class="idref" href="#MessageConfig_def"><span class="id" title="section">MessageConfig_def</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Generalizable All Variables</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Context</span> `{<a id="IM:9" class="idref" href="#IM:9"><span class="id" title="binder">IM</span></a> : <a class="idref" href="MailboxTypes.Message.html#IMessage"><span class="id" title="class">IMessage</span></a> <a id="Message:8" class="idref" href="#Message:8"><span class="id" title="binder">Message</span></a>}.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+A mailbox configuration is a multiset of messages 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="MailboxConfig" class="idref" href="#MailboxConfig"><span class="id" title="definition">MailboxConfig</span></a> := <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Sets.Multiset.html#multiset"><span class="id" title="inductive">multiset</span></a> <a class="idref" href="MailboxTypes.Message.html#MessageConfig_def.Message"><span class="id" title="variable">Message</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="EmptyMailbox" class="idref" href="#EmptyMailbox"><span class="id" title="definition">EmptyMailbox</span></a> := <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Sets.Multiset.html#EmptyBag"><span class="id" title="definition">EmptyBag</span></a> <a class="idref" href="MailboxTypes.Message.html#MessageConfig_def.Message"><span class="id" title="variable">Message</span></a>.<br/>
+<span class="id" title="keyword">Definition</span> <a id="SingletonMailbox" class="idref" href="#SingletonMailbox"><span class="id" title="definition">SingletonMailbox</span></a> (<a id="m:10" class="idref" href="#m:10"><span class="id" title="binder">m</span></a> : <a class="idref" href="MailboxTypes.Message.html#MessageConfig_def.Message"><span class="id" title="variable">Message</span></a>) := <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Sets.Multiset.html#SingletonBag"><span class="id" title="definition">SingletonBag</span></a> <a class="idref" href="MailboxTypes.Message.html#message_eq"><span class="id" title="method">message_eq</span></a> <a class="idref" href="MailboxTypes.Message.html#message_eq_dec"><span class="id" title="method">message_eq_dec</span></a> <a class="idref" href="MailboxTypes.Message.html#m:10"><span class="id" title="variable">m</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="mailbox_union" class="idref" href="#mailbox_union"><span class="id" title="definition">mailbox_union</span></a> (<a id="m1:11" class="idref" href="#m1:11"><span class="id" title="binder">m1</span></a> <a id="m2:12" class="idref" href="#m2:12"><span class="id" title="binder">m2</span></a> : <a class="idref" href="MailboxTypes.Message.html#MailboxConfig"><span class="id" title="definition">MailboxConfig</span></a>) := <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Sets.Multiset.html#munion"><span class="id" title="definition">munion</span></a> <a class="idref" href="MailboxTypes.Message.html#m1:11"><span class="id" title="variable">m1</span></a> <a class="idref" href="MailboxTypes.Message.html#m2:12"><span class="id" title="variable">m2</span></a>.<br/>
+<span class="id" title="keyword">Definition</span> <a id="mailbox_eq" class="idref" href="#mailbox_eq"><span class="id" title="definition">mailbox_eq</span></a> (<a id="m1:13" class="idref" href="#m1:13"><span class="id" title="binder">m1</span></a> <a id="m2:14" class="idref" href="#m2:14"><span class="id" title="binder">m2</span></a> : <a class="idref" href="MailboxTypes.Message.html#MailboxConfig"><span class="id" title="definition">MailboxConfig</span></a>) := <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Sets.Multiset.html#meq"><span class="id" title="definition">meq</span></a> <a class="idref" href="MailboxTypes.Message.html#m1:13"><span class="id" title="variable">m1</span></a> <a class="idref" href="MailboxTypes.Message.html#m2:14"><span class="id" title="variable">m2</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Global Instance</span> <a id="mailbox_eq_Equiv" class="idref" href="#mailbox_eq_Equiv"><span class="id" title="instance">mailbox_eq_Equiv</span></a> : <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Classes.RelationClasses.html#Equivalence"><span class="id" title="class">Equivalence</span></a> <a class="idref" href="MailboxTypes.Message.html#mailbox_eq"><span class="id" title="definition">mailbox_eq</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">constructor</span>.<br/>
+&nbsp;&nbsp;- <span class="id" title="tactic">unfold</span> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Classes.RelationClasses.html#Reflexive"><span class="id" title="class">Reflexive</span></a>; <span class="id" title="tactic">apply</span> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Sets.Multiset.html#meq_refl"><span class="id" title="lemma">meq_refl</span></a>.<br/>
+&nbsp;&nbsp;- <span class="id" title="tactic">unfold</span> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Classes.RelationClasses.html#Symmetric"><span class="id" title="class">Symmetric</span></a>; <span class="id" title="tactic">apply</span> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Sets.Multiset.html#meq_sym"><span class="id" title="lemma">meq_sym</span></a>.<br/>
+&nbsp;&nbsp;- <span class="id" title="tactic">unfold</span> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Classes.RelationClasses.html#Transitive"><span class="id" title="class">Transitive</span></a>; <span class="id" title="tactic">apply</span> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Sets.Multiset.html#meq_trans"><span class="id" title="lemma">meq_trans</span></a>.<br/>
+<span class="id" title="keyword">Defined</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="mailbox_union_comm" class="idref" href="#mailbox_union_comm"><span class="id" title="lemma">mailbox_union_comm</span></a> : <span class="id" title="keyword">forall</span> <a id="m1:15" class="idref" href="#m1:15"><span class="id" title="binder">m1</span></a> <a id="m2:16" class="idref" href="#m2:16"><span class="id" title="binder">m2</span></a>, <a class="idref" href="MailboxTypes.Message.html#mailbox_eq"><span class="id" title="definition">mailbox_eq</span></a> (<a class="idref" href="MailboxTypes.Message.html#mailbox_union"><span class="id" title="definition">mailbox_union</span></a> <a class="idref" href="MailboxTypes.Message.html#m1:15"><span class="id" title="variable">m1</span></a> <a class="idref" href="MailboxTypes.Message.html#m2:16"><span class="id" title="variable">m2</span></a>) (<a class="idref" href="MailboxTypes.Message.html#mailbox_union"><span class="id" title="definition">mailbox_union</span></a> <a class="idref" href="MailboxTypes.Message.html#m2:16"><span class="id" title="variable">m2</span></a> <a class="idref" href="MailboxTypes.Message.html#m1:15"><span class="id" title="variable">m1</span></a>).<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">unfold</span> <a class="idref" href="MailboxTypes.Message.html#mailbox_union"><span class="id" title="definition">mailbox_union</span></a>; <span class="id" title="tactic">unfold</span> <a class="idref" href="MailboxTypes.Message.html#mailbox_eq"><span class="id" title="definition">mailbox_eq</span></a>; <span class="id" title="tactic">apply</span> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Sets.Multiset.html#munion_comm"><span class="id" title="lemma">munion_comm</span></a>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="MailboxTypes.Message.html#MessageConfig_def"><span class="id" title="section">MessageConfig_def</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Declare Scope</span> <span class="id" title="var">mailbox_config_scope</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Infix</span> <a id="c393371fa180e994a60ebb6e05b292f2" class="idref" href="#c393371fa180e994a60ebb6e05b292f2"><span class="id" title="notation">&quot;</span></a>=ᵐᵇ" := <a class="idref" href="MailboxTypes.Message.html#mailbox_eq"><span class="id" title="definition">mailbox_eq</span></a> (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 71, <span class="id" title="tactic">left</span> <span class="id" title="keyword">associativity</span>) : <span class="id" title="var">mailbox_config_scope</span>.<br/>
+<span class="id" title="keyword">Infix</span> <a id="0c09f012d1f54b1d5a327a6f9b76b4ee" class="idref" href="#0c09f012d1f54b1d5a327a6f9b76b4ee"><span class="id" title="notation">&quot;</span></a>⊎" := <a class="idref" href="MailboxTypes.Message.html#mailbox_union"><span class="id" title="definition">mailbox_union</span></a> (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 68, <span class="id" title="tactic">left</span> <span class="id" title="keyword">associativity</span>) : <span class="id" title="var">mailbox_config_scope</span>.<br/>
+<span class="id" title="keyword">Notation</span> <a id="a96f04efa7a46f6b08e0b1ae08b9f152" class="idref" href="#a96f04efa7a46f6b08e0b1ae08b9f152"><span class="id" title="notation">&quot;</span></a>⟨ M ⟩" := (<a class="idref" href="MailboxTypes.Message.html#SingletonMailbox"><span class="id" title="definition">SingletonMailbox</span></a> <span class="id" title="var">M</span>).<br/>
+<span class="id" title="keyword">Notation</span> <a id="5cdb0b2f4bfef77dcbd9182ec18ea9f0" class="idref" href="#5cdb0b2f4bfef77dcbd9182ec18ea9f0"><span class="id" title="notation">&quot;</span></a>⟨⟩" := (<a class="idref" href="MailboxTypes.Message.html#EmptyMailbox"><span class="id" title="definition">EmptyMailbox</span></a>).<br/>
+
+<br/>
+<span class="id" title="keyword">Open</span> <span class="id" title="keyword">Scope</span> <span class="id" title="var">mailbox_config_scope</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab3"></a><h2 class="section">Strings as messages</h2>
+
+</div>
+<div class="code">
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Strings.String.html#"><span class="id" title="library">String</span></a>.<br/>
+<span class="id" title="keyword">Section</span> <a id="StringMessages" class="idref" href="#StringMessages"><span class="id" title="section">StringMessages</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Global Instance</span> <a id="StringMessage" class="idref" href="#StringMessage"><span class="id" title="instance">StringMessage</span></a> : <a class="idref" href="MailboxTypes.Message.html#IMessage"><span class="id" title="class">IMessage</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Strings.String.html#string"><span class="id" title="inductive">string</span></a> :=<br/>
+{<br/>
+&nbsp;&nbsp;<a class="idref" href="MailboxTypes.Message.html#message_eq_dec"><span class="id" title="method">message_eq_dec</span></a> := <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Strings.String.html#string_dec"><span class="id" title="definition">string_dec</span></a><br/>
+}.<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="MailboxTypes.Message.html#StringMessages"><span class="id" title="section">StringMessages</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab4"></a><h2 class="section">Example finite message set</h2>
+
+</div>
+<div class="code">
+<span class="id" title="keyword">Section</span> <a id="SendReceiveMessages" class="idref" href="#SendReceiveMessages"><span class="id" title="section">SendReceiveMessages</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Inductive</span> <a id="SendReceive" class="idref" href="#SendReceive"><span class="id" title="definition, inductive"><span id="SendReceive_rect" class="id"><span id="SendReceive_ind" class="id"><span id="SendReceive_rec" class="id"><span id="SendReceive_sind" class="id">SendReceive</span></span></span></span></span></a> : <span class="id" title="keyword">Type</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a id="Send" class="idref" href="#Send"><span class="id" title="constructor">Send</span></a> : <a class="idref" href="MailboxTypes.Message.html#SendReceive:17"><span class="id" title="inductive">SendReceive</span></a><br/>
+&nbsp;&nbsp;| <a id="Receive" class="idref" href="#Receive"><span class="id" title="constructor">Receive</span></a> : <a class="idref" href="MailboxTypes.Message.html#SendReceive:17"><span class="id" title="inductive">SendReceive</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="SendReceive_eq" class="idref" href="#SendReceive_eq"><span class="id" title="definition">SendReceive_eq</span></a> (<a id="m1:19" class="idref" href="#m1:19"><span class="id" title="binder">m1</span></a> <a id="m2:20" class="idref" href="#m2:20"><span class="id" title="binder">m2</span></a> : <a class="idref" href="MailboxTypes.Message.html#SendReceive"><span class="id" title="inductive">SendReceive</span></a>) : <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="MailboxTypes.Message.html#m1:19"><span class="id" title="variable">m1</span></a>, <a class="idref" href="MailboxTypes.Message.html#m2:20"><span class="id" title="variable">m2</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;| <a class="idref" href="MailboxTypes.Message.html#Send"><span class="id" title="constructor">Send</span></a>, <a class="idref" href="MailboxTypes.Message.html#Send"><span class="id" title="constructor">Send</span></a> =&gt; <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#True"><span class="id" title="inductive">True</span></a><br/>
+&nbsp;&nbsp;| <a class="idref" href="MailboxTypes.Message.html#Receive"><span class="id" title="constructor">Receive</span></a>, <a class="idref" href="MailboxTypes.Message.html#Receive"><span class="id" title="constructor">Receive</span></a> =&gt; <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#True"><span class="id" title="inductive">True</span></a><br/>
+&nbsp;&nbsp;| <span class="id" title="var">_</span>, <span class="id" title="var">_</span> =&gt; <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#False"><span class="id" title="inductive">False</span></a><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Instance</span> <a id="SendReceive_eq_equiv" class="idref" href="#SendReceive_eq_equiv"><span class="id" title="instance">SendReceive_eq_equiv</span></a> : <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Classes.RelationClasses.html#Equivalence"><span class="id" title="class">Equivalence</span></a> <a class="idref" href="MailboxTypes.Message.html#SendReceive_eq"><span class="id" title="definition">SendReceive_eq</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">constructor</span>.<br/>
+&nbsp;&nbsp;- <span class="id" title="tactic">unfold</span> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Classes.RelationClasses.html#Reflexive"><span class="id" title="class">Reflexive</span></a>; <span class="id" title="tactic">intros</span> <span class="id" title="var">x</span>; <span class="id" title="tactic">destruct</span> <span class="id" title="var">x</span>; <span class="id" title="var">now</span> <span class="id" title="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;- <span class="id" title="tactic">unfold</span> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Classes.RelationClasses.html#Symmetric"><span class="id" title="class">Symmetric</span></a>; <span class="id" title="tactic">intros</span> <span class="id" title="var">x</span> <span class="id" title="var">y</span> <span class="id" title="var">Eq</span>. <span class="id" title="tactic">destruct</span> <span class="id" title="var">x</span>; <span class="id" title="tactic">destruct</span> <span class="id" title="var">y</span>; <span class="id" title="tactic">simpl</span>; <span class="id" title="tactic">simpl</span> <span class="id" title="tactic">in</span> <span class="id" title="var">Eq</span>; <span class="id" title="tactic">auto</span>.<br/>
+&nbsp;&nbsp;- <span class="id" title="tactic">unfold</span> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Classes.RelationClasses.html#Transitive"><span class="id" title="class">Transitive</span></a>; <span class="id" title="tactic">intros</span> <span class="id" title="var">x</span> <span class="id" title="var">y</span> <span class="id" title="var">Eq1</span> <span class="id" title="var">Eq2</span>; <span class="id" title="tactic">destruct</span> <span class="id" title="var">x</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> <span class="id" title="var">y</span>; <span class="id" title="tactic">destruct</span> <span class="id" title="var">Eq1</span>; <span class="id" title="tactic">destruct</span> <span class="id" title="var">Eq2</span>; <span class="id" title="tactic">auto</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="SendReceive_eq_dec" class="idref" href="#SendReceive_eq_dec"><span class="id" title="lemma">SendReceive_eq_dec</span></a> : <span class="id" title="keyword">forall</span> <a id="m:23" class="idref" href="#m:23"><span class="id" title="binder">m</span></a> <a id="n:24" class="idref" href="#n:24"><span class="id" title="binder">n</span></a>, <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Specif.html#87727981cdc1579fef00b9d9c1d3b9da"><span class="id" title="notation">{</span></a><a class="idref" href="MailboxTypes.Message.html#SendReceive_eq"><span class="id" title="definition">SendReceive_eq</span></a> <a class="idref" href="MailboxTypes.Message.html#m:23"><span class="id" title="variable">m</span></a> <a class="idref" href="MailboxTypes.Message.html#n:24"><span class="id" title="variable">n</span></a><a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Specif.html#87727981cdc1579fef00b9d9c1d3b9da"><span class="id" title="notation">}</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Specif.html#87727981cdc1579fef00b9d9c1d3b9da"><span class="id" title="notation">+</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Specif.html#87727981cdc1579fef00b9d9c1d3b9da"><span class="id" title="notation">{</span></a><a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#63a68285c81db8f9bc456233bb9ed181"><span class="id" title="notation">~</span></a> <a class="idref" href="MailboxTypes.Message.html#SendReceive_eq"><span class="id" title="definition">SendReceive_eq</span></a> <a class="idref" href="MailboxTypes.Message.html#m:23"><span class="id" title="variable">m</span></a> <a class="idref" href="MailboxTypes.Message.html#n:24"><span class="id" title="variable">n</span></a><a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Specif.html#87727981cdc1579fef00b9d9c1d3b9da"><span class="id" title="notation">}</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intros</span> <span class="id" title="var">m</span> <span class="id" title="var">n</span>; <span class="id" title="tactic">destruct</span> <span class="id" title="var">m</span>; <span class="id" title="tactic">destruct</span> <span class="id" title="var">n</span>; <span class="id" title="tactic">simpl</span>; <span class="id" title="tactic">auto</span>.<br/>
+<span class="id" title="keyword">Defined</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Global Instance</span> <a id="SendReceiveMessage" class="idref" href="#SendReceiveMessage"><span class="id" title="instance">SendReceiveMessage</span></a> : <a class="idref" href="MailboxTypes.Message.html#IMessage"><span class="id" title="class">IMessage</span></a> <a class="idref" href="MailboxTypes.Message.html#SendReceive"><span class="id" title="inductive">SendReceive</span></a> :=<br/>
+{<br/>
+&nbsp;&nbsp;<a class="idref" href="MailboxTypes.Message.html#message_eq"><span class="id" title="method">message_eq</span></a> := <a class="idref" href="MailboxTypes.Message.html#SendReceive_eq"><span class="id" title="definition">SendReceive_eq</span></a>;<br/>
+&nbsp;&nbsp;<a class="idref" href="MailboxTypes.Message.html#message_eq_dec"><span class="id" title="method">message_eq_dec</span></a> := <a class="idref" href="MailboxTypes.Message.html#SendReceive_eq_dec"><span class="id" title="lemma">SendReceive_eq_dec</span></a><br/>
+}.<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="MailboxTypes.Message.html#SendReceiveMessages"><span class="id" title="section">SendReceiveMessages</span></a>.<br/>
+</div>
+</div>
+<div id="footer">
+  Generated by <a href="http://coq.inria.fr/">coqdoc</a> and improved with <a href="https://github.com/coq-community/coqdocjs">CoqdocJS</a>
+</div>
+</div>
+</body>
+
+</html>
