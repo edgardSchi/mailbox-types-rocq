@@ -1,96 +1,90 @@
-(** * Definition of messages *)
-
-Require Import Setoid.
-Require Import Sets.Multiset.
-Require Import Classes.Morphisms.
-Require Import List.
-Require Import Permutation.
-
-Generalizable All Variables.
-
 Section Message_def.
 
-(** A message is a type with decidable Leibniz equality *)
+(** A message is a type with decidable equality *)
 Class IMessage Message : Type :=
   {
-    eq_dec : forall m n, {@eq Message m n} + {~ @eq Message m n}
+    message_eq: Message -> Message -> Prop;
+    message_eq_equiv : Equivalence message_eq;
+    message_eq_dec : forall m n, {message_eq m n} + {~ message_eq m n};
   }.
 
 End Message_def.
 
 Section MessageConfig_def.
 
-Context `{IM : IMessage Message}.
-
-Definition MailboxConfig := list Message.
-Definition EmptyMailbox : MailboxConfig := nil.
-Definition SingletonMailbox (m : Message) : MailboxConfig := m :: nil.
-
-Definition mailbox_eq (m1 m2 : MailboxConfig) : Prop := Permutation m1 m2.
-Definition mailbox_union (m1 m2 : MailboxConfig) : MailboxConfig := app m1 m2.
-
-End MessageConfig_def.
-
-Section MessageConfig_props.
+Generalizable All Variables.
 
 Context `{IM : IMessage Message}.
-Implicit Types m : @MailboxConfig Message.
+
+(** A mailbox configuration is a multiset of messages *)
+Definition MailboxConfig := multiset Message.
+
+Definition EmptyMailbox := EmptyBag Message.
+Definition SingletonMailbox (m : Message) := SingletonBag message_eq message_eq_dec m.
+
+Definition mailbox_union (m1 m2 : MailboxConfig) := munion m1 m2.
+Definition mailbox_eq (m1 m2 : MailboxConfig) := meq m1 m2.
+
+Global Instance mailbox_eq_Equiv : Equivalence mailbox_eq.
+Proof.
+  constructor.
+  - unfold Reflexive; apply meq_refl.
+  - unfold Symmetric; apply meq_sym.
+  - unfold Transitive; apply meq_trans.
+Defined.
 
 Lemma mailbox_union_comm : forall m1 m2, mailbox_eq (mailbox_union m1 m2) (mailbox_union m2 m1).
 Proof.
-  intros.
-  unfold mailbox_union.
-  unfold mailbox_eq.
-  apply Permutation_app_comm.
+  unfold mailbox_union; unfold mailbox_eq; apply munion_comm.
 Qed.
 
 Lemma mailbox_union_empty_right : forall m, mailbox_eq m (mailbox_union m EmptyMailbox).
 Proof.
-  intros.
   unfold mailbox_union.
   unfold mailbox_eq.
   unfold EmptyMailbox.
-  now rewrite app_nil_r.
+  apply munion_empty_right.
 Qed.
 
 Lemma mailbox_union_empty_left : forall m, mailbox_eq m (mailbox_union EmptyMailbox m).
 Proof.
-  intros.
   unfold mailbox_union.
   unfold mailbox_eq.
   unfold EmptyMailbox.
-  now rewrite app_nil_l.
+  apply munion_empty_left.
 Qed.
 
-Lemma SingletonMailbox_eq : forall e m, mailbox_eq (SingletonMailbox e) m -> m = SingletonMailbox e.
-Proof.
-  intros e m mbEq.
-  unfold SingletonMailbox in *.
-  unfold mailbox_eq in *.
-  generalize (Permutation_length mbEq).
-  simpl.
-  intros l.
-  induction m.
-  - easy.
-  - simpl in *. inversion l.
-    generalize (length_zero_iff_nil m).
-    intros mNil.
-    destruct mNil as [lM mNil].
-    symmetry in H0.
-    apply lM in H0.
-    subst.
-    apply Permutation_length_1 in mbEq. now subst.
-Qed.
-
-Global Instance mailbox_eq_Proper : Proper (@mailbox_eq Message ==> @mailbox_eq Message ==> @mailbox_eq Message) mailbox_union.
+Global Instance mailbox_eq_Proper : Proper (mailbox_eq ==> mailbox_eq ==> mailbox_eq) mailbox_union.
 Proof.
   intros a b Eq1 c d Eq2.
   unfold mailbox_eq in *.
   unfold mailbox_union in *.
-  now apply Permutation_app.
+  unfold meq in *.
+  unfold munion in *.
+  simpl.
+  intros m.
+  rewrite (Eq1 m).
+  rewrite (Eq2 m).
+  auto.
 Defined.
 
-End MessageConfig_props.
+Lemma mailbox_empty_EmptyMailbox : forall m, mailbox_eq m EmptyMailbox -> m = EmptyMailbox.
+Proof.
+  intros m mEq.
+  unfold mailbox_eq in mEq.
+  unfold meq in mEq.
+  unfold multiplicity in mEq.
+  simpl in *.
+  unfold EmptyMailbox.
+  unfold EmptyBag.
+  destruct m.
+  simpl in *.
+  f_equal.
+
+  rewrite mEq.
+
+  
+End MessageConfig_def.
 
 Declare Scope mailbox_config_scope.
 
@@ -107,7 +101,7 @@ Section StringMessages.
 
 Global Instance StringMessage : IMessage string :=
 {
-  eq_dec := string_dec
+  message_eq_dec := string_dec
 }.
 
 End StringMessages.
@@ -135,17 +129,15 @@ Proof.
     destruct y; destruct Eq1; destruct Eq2; auto.
 Qed.
 
-Lemma SendReceive_eq_dec : forall m n : SendReceive, {m = n} + {m <> n}.
+Lemma SendReceive_eq_dec : forall m n, {SendReceive_eq m n} + {~ SendReceive_eq m n}.
 Proof.
-  intros m n; destruct m; destruct n;
-  try (auto);
-  right; unfold not; intros; discriminate H.
+  intros m n; destruct m; destruct n; simpl; auto.
 Defined.
 
 Global Instance SendReceiveMessage : IMessage SendReceive :=
 {
-  eq_dec := SendReceive_eq_dec
+  message_eq := SendReceive_eq;
+  message_eq_dec := SendReceive_eq_dec
 }.
 
 End SendReceiveMessages.
-
