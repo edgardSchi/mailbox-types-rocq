@@ -1,0 +1,235 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<link href="resources/coqdoc.css" rel="stylesheet" type="text/css" />
+<link href="resources/coqdocjs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="resources/config.js"></script>
+<script type="text/javascript" src="resources/coqdocjs.js"></script>
+</head>
+
+<body onload="document.getElementById('content').focus()">
+  <div id="header">
+    <span class="left">
+      <span class="modulename"> <script> document.write(document.title) </script> </span>
+    </span>
+
+    <span class="button" id="toggle-proofs"></span>
+
+    <span class="right">
+      <a href="../">Project Page</a>
+      <a href="./indexpage.html"> Index </a>
+      <a href="./toc.html"> Table of Contents </a>
+    </span>
+</div>
+    <div id="content" tabindex="-1" onblur="document.getElementById('content').focus()">
+    <div id="main">
+<h1 class="libtitle">MailboxTypes.Types</h1>
+
+<div class="code">
+</div>
+
+<div class="doc">
+<a id="lab5"></a><h1 class="section">Syntax of types</h1>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">MailboxTypes</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <a class="idref" href="MailboxTypes.Message.html#"><span class="id" title="library">Message</span></a>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">MailboxTypes</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <a class="idref" href="MailboxTypes.MailboxPatterns.html#"><span class="id" title="library">MailboxPatterns</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Generalizable All Variables</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Section</span> <a id="type_def" class="idref" href="#type_def"><span class="id" title="section">type_def</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Context</span> `{<a id="M:2" class="idref" href="#M:2"><span class="id" title="binder">M</span></a> : <a class="idref" href="MailboxTypes.Message.html#IMessage"><span class="id" title="class">IMessage</span></a> <a id="Message:1" class="idref" href="#Message:1"><span class="id" title="binder">Message</span></a>}.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Mailbox type definition 
+</div>
+<div class="code">
+<span class="id" title="keyword">Inductive</span> <a id="MType" class="idref" href="#MType"><span class="id" title="definition, inductive"><span id="MType_rect" class="id"><span id="MType_ind" class="id"><span id="MType_rec" class="id"><span id="MType_sind" class="id">MType</span></span></span></span></span></a> `{<a id="H:3" class="idref" href="#H:3"><span class="id" title="binder">IMessage</span></a> <a id="H:3" class="idref" href="#H:3"><span class="id" title="binder">Message</span></a>} : <span class="id" title="keyword">Type</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a id="MTOutput" class="idref" href="#MTOutput"><span class="id" title="constructor">MTOutput</span></a> : <a class="idref" href="MailboxTypes.MailboxPatterns.html#MPattern"><span class="id" title="inductive">MPattern</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="MailboxTypes.Types.html#MType:4"><span class="id" title="inductive">MType</span></a><br/>
+&nbsp;&nbsp;| <a id="MTInput" class="idref" href="#MTInput"><span class="id" title="constructor">MTInput</span></a>  : <a class="idref" href="MailboxTypes.MailboxPatterns.html#MPattern"><span class="id" title="inductive">MPattern</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="MailboxTypes.Types.html#MType:4"><span class="id" title="inductive">MType</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Base type definition. For now only unit type and booleans 
+</div>
+<div class="code">
+<span class="id" title="keyword">Inductive</span> <a id="BType" class="idref" href="#BType"><span class="id" title="definition, inductive"><span id="BType_rect" class="id"><span id="BType_ind" class="id"><span id="BType_rec" class="id"><span id="BType_sind" class="id">BType</span></span></span></span></span></a> : <span class="id" title="keyword">Type</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a id="BTUnit" class="idref" href="#BTUnit"><span class="id" title="constructor">BTUnit</span></a> : <a class="idref" href="MailboxTypes.Types.html#BType:6"><span class="id" title="inductive">BType</span></a><br/>
+&nbsp;&nbsp;| <a id="BTBool" class="idref" href="#BTBool"><span class="id" title="constructor">BTBool</span></a> : <a class="idref" href="MailboxTypes.Types.html#BType:6"><span class="id" title="inductive">BType</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Type definition. A type is either a base type or a mailbox type 
+</div>
+<div class="code">
+<span class="id" title="keyword">Inductive</span> <a id="TType" class="idref" href="#TType"><span class="id" title="definition, inductive"><span id="TType_rect" class="id"><span id="TType_ind" class="id"><span id="TType_rec" class="id"><span id="TType_sind" class="id">TType</span></span></span></span></span></a> : <span class="id" title="keyword">Type</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a id="TTBase" class="idref" href="#TTBase"><span class="id" title="constructor">TTBase</span></a> : <a class="idref" href="MailboxTypes.Types.html#BType"><span class="id" title="inductive">BType</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="MailboxTypes.Types.html#TType:8"><span class="id" title="inductive">TType</span></a><br/>
+&nbsp;&nbsp;| <a id="TTMailbox" class="idref" href="#TTMailbox"><span class="id" title="constructor">TTMailbox</span></a> : <a class="idref" href="MailboxTypes.Types.html#MType"><span class="id" title="inductive">MType</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="MailboxTypes.Types.html#TType:8"><span class="id" title="inductive">TType</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Usage annotation for quasi-linear typing 
+</div>
+<div class="code">
+<span class="id" title="keyword">Inductive</span> <a id="UsageAnnotation" class="idref" href="#UsageAnnotation"><span class="id" title="definition, inductive"><span id="UsageAnnotation_rect" class="id"><span id="UsageAnnotation_ind" class="id"><span id="UsageAnnotation_rec" class="id"><span id="UsageAnnotation_sind" class="id">UsageAnnotation</span></span></span></span></span></a> : <span class="id" title="keyword">Type</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a id="SecondClass" class="idref" href="#SecondClass"><span class="id" title="constructor">SecondClass</span></a><br/>
+&nbsp;&nbsp;| <a id="Returnable" class="idref" href="#Returnable"><span class="id" title="constructor">Returnable</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Quasi-linear types are types equipped with a usage annotation.
+    Base types have no restrictions. Mailbox types are either second class
+   or returnable.
+
+</div>
+<div class="code">
+<span class="id" title="keyword">Inductive</span> <a id="TUsage" class="idref" href="#TUsage"><span class="id" title="definition, inductive"><span id="TUsage_rect" class="id"><span id="TUsage_ind" class="id"><span id="TUsage_rec" class="id"><span id="TUsage_sind" class="id">TUsage</span></span></span></span></span></a> : <span class="id" title="keyword">Type</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a id="TUBase" class="idref" href="#TUBase"><span class="id" title="constructor">TUBase</span></a> : <a class="idref" href="MailboxTypes.Types.html#BType"><span class="id" title="inductive">BType</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="MailboxTypes.Types.html#TUsage:12"><span class="id" title="inductive">TUsage</span></a><br/>
+&nbsp;&nbsp;| <a id="TUUsage" class="idref" href="#TUUsage"><span class="id" title="constructor">TUUsage</span></a> : <a class="idref" href="MailboxTypes.Types.html#UsageAnnotation"><span class="id" title="inductive">UsageAnnotation</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="MailboxTypes.Types.html#MType"><span class="id" title="inductive">MType</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="MailboxTypes.Types.html#TUsage:12"><span class="id" title="inductive">TUsage</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="returnType" class="idref" href="#returnType"><span class="id" title="definition">returnType</span></a> (<a id="t:14" class="idref" href="#t:14"><span class="id" title="binder">t</span></a> : <a class="idref" href="MailboxTypes.Types.html#TType"><span class="id" title="inductive">TType</span></a>) : <a class="idref" href="MailboxTypes.Types.html#TUsage"><span class="id" title="inductive">TUsage</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="MailboxTypes.Types.html#t:14"><span class="id" title="variable">t</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;| <a class="idref" href="MailboxTypes.Types.html#TTBase"><span class="id" title="constructor">TTBase</span></a> <span class="id" title="var">b</span> =&gt; <a class="idref" href="MailboxTypes.Types.html#TUBase"><span class="id" title="constructor">TUBase</span></a> <span class="id" title="var">b</span><br/>
+&nbsp;&nbsp;| <a class="idref" href="MailboxTypes.Types.html#TTMailbox"><span class="id" title="constructor">TTMailbox</span></a> <span class="id" title="var">m</span> =&gt; <a class="idref" href="MailboxTypes.Types.html#TUUsage"><span class="id" title="constructor">TUUsage</span></a> <a class="idref" href="MailboxTypes.Types.html#Returnable"><span class="id" title="constructor">Returnable</span></a> <span class="id" title="var">m</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="returnUsage" class="idref" href="#returnUsage"><span class="id" title="definition">returnUsage</span></a> (<a id="t:16" class="idref" href="#t:16"><span class="id" title="binder">t</span></a> : <a class="idref" href="MailboxTypes.Types.html#TUsage"><span class="id" title="inductive">TUsage</span></a>) : <a class="idref" href="MailboxTypes.Types.html#TUsage"><span class="id" title="inductive">TUsage</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="MailboxTypes.Types.html#t:16"><span class="id" title="variable">t</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;| <a class="idref" href="MailboxTypes.Types.html#TUBase"><span class="id" title="constructor">TUBase</span></a> <span class="id" title="var">b</span> =&gt; <a class="idref" href="MailboxTypes.Types.html#TUBase"><span class="id" title="constructor">TUBase</span></a> <span class="id" title="var">b</span><br/>
+&nbsp;&nbsp;| <a class="idref" href="MailboxTypes.Types.html#TUUsage"><span class="id" title="constructor">TUUsage</span></a> <span class="id" title="var">_</span> <span class="id" title="var">m</span> =&gt; <a class="idref" href="MailboxTypes.Types.html#TUUsage"><span class="id" title="constructor">TUUsage</span></a> <a class="idref" href="MailboxTypes.Types.html#Returnable"><span class="id" title="constructor">Returnable</span></a> <span class="id" title="var">m</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="secondType" class="idref" href="#secondType"><span class="id" title="definition">secondType</span></a> (<a id="t:18" class="idref" href="#t:18"><span class="id" title="binder">t</span></a> : <a class="idref" href="MailboxTypes.Types.html#TType"><span class="id" title="inductive">TType</span></a>) : <a class="idref" href="MailboxTypes.Types.html#TUsage"><span class="id" title="inductive">TUsage</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="MailboxTypes.Types.html#t:18"><span class="id" title="variable">t</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;| <a class="idref" href="MailboxTypes.Types.html#TTBase"><span class="id" title="constructor">TTBase</span></a> <span class="id" title="var">b</span> =&gt; <a class="idref" href="MailboxTypes.Types.html#TUBase"><span class="id" title="constructor">TUBase</span></a> <span class="id" title="var">b</span><br/>
+&nbsp;&nbsp;| <a class="idref" href="MailboxTypes.Types.html#TTMailbox"><span class="id" title="constructor">TTMailbox</span></a> <span class="id" title="var">m</span> =&gt; <a class="idref" href="MailboxTypes.Types.html#TUUsage"><span class="id" title="constructor">TUUsage</span></a> <a class="idref" href="MailboxTypes.Types.html#SecondClass"><span class="id" title="constructor">SecondClass</span></a> <span class="id" title="var">m</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="secondUsage" class="idref" href="#secondUsage"><span class="id" title="definition">secondUsage</span></a> (<a id="t:20" class="idref" href="#t:20"><span class="id" title="binder">t</span></a> : <a class="idref" href="MailboxTypes.Types.html#TUsage"><span class="id" title="inductive">TUsage</span></a>) : <a class="idref" href="MailboxTypes.Types.html#TUsage"><span class="id" title="inductive">TUsage</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="MailboxTypes.Types.html#t:20"><span class="id" title="variable">t</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;| <a class="idref" href="MailboxTypes.Types.html#TUBase"><span class="id" title="constructor">TUBase</span></a> <span class="id" title="var">b</span> =&gt; <a class="idref" href="MailboxTypes.Types.html#TUBase"><span class="id" title="constructor">TUBase</span></a> <span class="id" title="var">b</span><br/>
+&nbsp;&nbsp;| <a class="idref" href="MailboxTypes.Types.html#TUUsage"><span class="id" title="constructor">TUUsage</span></a> <span class="id" title="var">_</span> <span class="id" title="var">m</span> =&gt; <a class="idref" href="MailboxTypes.Types.html#TUUsage"><span class="id" title="constructor">TUUsage</span></a> <a class="idref" href="MailboxTypes.Types.html#SecondClass"><span class="id" title="constructor">SecondClass</span></a> <span class="id" title="var">m</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+<span class="comment">(*&nbsp;TODO:&nbsp;Define&nbsp;return&nbsp;and&nbsp;second&nbsp;for&nbsp;type&nbsp;environments&nbsp;*)</span><br/>
+
+<br/>
+<span class="id" title="keyword">Inductive</span> <a id="UsageSubtype" class="idref" href="#UsageSubtype"><span class="id" title="definition, inductive"><span id="UsageSubtype_ind" class="id"><span id="UsageSubtype_sind" class="id">UsageSubtype</span></span></span></a> : <a class="idref" href="MailboxTypes.Types.html#UsageAnnotation"><span class="id" title="inductive">UsageAnnotation</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="MailboxTypes.Types.html#UsageAnnotation"><span class="id" title="inductive">UsageAnnotation</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a id="usageSubtype_refl" class="idref" href="#usageSubtype_refl"><span class="id" title="constructor">usageSubtype_refl</span></a> : <span class="id" title="keyword">forall</span> <a id="n:24" class="idref" href="#n:24"><span class="id" title="binder">n</span></a>, <a class="idref" href="MailboxTypes.Types.html#UsageSubtype:22"><span class="id" title="inductive">UsageSubtype</span></a> <a class="idref" href="MailboxTypes.Types.html#n:24"><span class="id" title="variable">n</span></a> <a class="idref" href="MailboxTypes.Types.html#n:24"><span class="id" title="variable">n</span></a><br/>
+&nbsp;&nbsp;| <a id="usageSubtype_le" class="idref" href="#usageSubtype_le"><span class="id" title="constructor">usageSubtype_le</span></a>   : <a class="idref" href="MailboxTypes.Types.html#UsageSubtype:22"><span class="id" title="inductive">UsageSubtype</span></a> <a class="idref" href="MailboxTypes.Types.html#Returnable"><span class="id" title="constructor">Returnable</span></a> <a class="idref" href="MailboxTypes.Types.html#SecondClass"><span class="id" title="constructor">SecondClass</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Inductive</span> <a id="Subtype" class="idref" href="#Subtype"><span class="id" title="definition, inductive"><span id="Subtype_ind" class="id"><span id="Subtype_sind" class="id">Subtype</span></span></span></a> : <a class="idref" href="MailboxTypes.Types.html#TUsage"><span class="id" title="inductive">TUsage</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="MailboxTypes.Types.html#TUsage"><span class="id" title="inductive">TUsage</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a id="subtype_base" class="idref" href="#subtype_base"><span class="id" title="constructor">subtype_base</span></a> : <span class="id" title="keyword">forall</span> <a id="c:27" class="idref" href="#c:27"><span class="id" title="binder">c</span></a>, <a class="idref" href="MailboxTypes.Types.html#Subtype:25"><span class="id" title="inductive">Subtype</span></a> (<a class="idref" href="MailboxTypes.Types.html#TUBase"><span class="id" title="constructor">TUBase</span></a> <a class="idref" href="MailboxTypes.Types.html#c:27"><span class="id" title="variable">c</span></a>) (<a class="idref" href="MailboxTypes.Types.html#TUBase"><span class="id" title="constructor">TUBase</span></a> <a class="idref" href="MailboxTypes.Types.html#c:27"><span class="id" title="variable">c</span></a>)<br/>
+&nbsp;&nbsp;| <a id="subtype_input" class="idref" href="#subtype_input"><span class="id" title="constructor">subtype_input</span></a> : <span class="id" title="keyword">forall</span> <a id="e:28" class="idref" href="#e:28"><span class="id" title="binder">e</span></a> <a id="f:29" class="idref" href="#f:29"><span class="id" title="binder">f</span></a> <a id="n1:30" class="idref" href="#n1:30"><span class="id" title="binder">n1</span></a> <a id="n2:31" class="idref" href="#n2:31"><span class="id" title="binder">n2</span></a>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="MailboxTypes.MailboxPatterns.html#MPInclusion"><span class="id" title="definition">MPInclusion</span></a> <a class="idref" href="MailboxTypes.Types.html#e:28"><span class="id" title="variable">e</span></a> <a class="idref" href="MailboxTypes.Types.html#f:29"><span class="id" title="variable">f</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="MailboxTypes.Types.html#UsageSubtype"><span class="id" title="inductive">UsageSubtype</span></a> <a class="idref" href="MailboxTypes.Types.html#n1:30"><span class="id" title="variable">n1</span></a> <a class="idref" href="MailboxTypes.Types.html#n2:31"><span class="id" title="variable">n2</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="MailboxTypes.Types.html#Subtype:25"><span class="id" title="inductive">Subtype</span></a> (<a class="idref" href="MailboxTypes.Types.html#TUUsage"><span class="id" title="constructor">TUUsage</span></a> <a class="idref" href="MailboxTypes.Types.html#n1:30"><span class="id" title="variable">n1</span></a> (<a class="idref" href="MailboxTypes.Types.html#MTInput"><span class="id" title="constructor">MTInput</span></a> <a class="idref" href="MailboxTypes.Types.html#e:28"><span class="id" title="variable">e</span></a>)) (<a class="idref" href="MailboxTypes.Types.html#TUUsage"><span class="id" title="constructor">TUUsage</span></a> <a class="idref" href="MailboxTypes.Types.html#n2:31"><span class="id" title="variable">n2</span></a> (<a class="idref" href="MailboxTypes.Types.html#MTInput"><span class="id" title="constructor">MTInput</span></a> <a class="idref" href="MailboxTypes.Types.html#f:29"><span class="id" title="variable">f</span></a>))<br/>
+&nbsp;&nbsp;| <a id="subtype_output" class="idref" href="#subtype_output"><span class="id" title="constructor">subtype_output</span></a> : <span class="id" title="keyword">forall</span> <a id="e:32" class="idref" href="#e:32"><span class="id" title="binder">e</span></a> <a id="f:33" class="idref" href="#f:33"><span class="id" title="binder">f</span></a> <a id="n1:34" class="idref" href="#n1:34"><span class="id" title="binder">n1</span></a> <a id="n2:35" class="idref" href="#n2:35"><span class="id" title="binder">n2</span></a>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="MailboxTypes.MailboxPatterns.html#MPInclusion"><span class="id" title="definition">MPInclusion</span></a> <a class="idref" href="MailboxTypes.Types.html#f:33"><span class="id" title="variable">f</span></a> <a class="idref" href="MailboxTypes.Types.html#e:32"><span class="id" title="variable">e</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="MailboxTypes.Types.html#UsageSubtype"><span class="id" title="inductive">UsageSubtype</span></a> <a class="idref" href="MailboxTypes.Types.html#n1:34"><span class="id" title="variable">n1</span></a> <a class="idref" href="MailboxTypes.Types.html#n2:35"><span class="id" title="variable">n2</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="MailboxTypes.Types.html#Subtype:25"><span class="id" title="inductive">Subtype</span></a> (<a class="idref" href="MailboxTypes.Types.html#TUUsage"><span class="id" title="constructor">TUUsage</span></a> <a class="idref" href="MailboxTypes.Types.html#n1:34"><span class="id" title="variable">n1</span></a> (<a class="idref" href="MailboxTypes.Types.html#MTOutput"><span class="id" title="constructor">MTOutput</span></a> <a class="idref" href="MailboxTypes.Types.html#e:32"><span class="id" title="variable">e</span></a>)) (<a class="idref" href="MailboxTypes.Types.html#TUUsage"><span class="id" title="constructor">TUUsage</span></a> <a class="idref" href="MailboxTypes.Types.html#n2:35"><span class="id" title="variable">n2</span></a> (<a class="idref" href="MailboxTypes.Types.html#MTOutput"><span class="id" title="constructor">MTOutput</span></a> <a class="idref" href="MailboxTypes.Types.html#f:33"><span class="id" title="variable">f</span></a>)).<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="TypeEqual" class="idref" href="#TypeEqual"><span class="id" title="definition">TypeEqual</span></a> (<a id="a:36" class="idref" href="#a:36"><span class="id" title="binder">a</span></a> <a id="b:37" class="idref" href="#b:37"><span class="id" title="binder">b</span></a> : <a class="idref" href="MailboxTypes.Types.html#TUsage"><span class="id" title="inductive">TUsage</span></a>) : <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;<a class="idref" href="MailboxTypes.Types.html#Subtype"><span class="id" title="inductive">Subtype</span></a> <a class="idref" href="MailboxTypes.Types.html#a:36"><span class="id" title="variable">a</span></a> <a class="idref" href="MailboxTypes.Types.html#b:37"><span class="id" title="variable">b</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#ba2b0e492d2b4675a0acf3ea92aabadd"><span class="id" title="notation">/\</span></a> <a class="idref" href="MailboxTypes.Types.html#Subtype"><span class="id" title="inductive">Subtype</span></a> <a class="idref" href="MailboxTypes.Types.html#b:37"><span class="id" title="variable">b</span></a> <a class="idref" href="MailboxTypes.Types.html#a:36"><span class="id" title="variable">a</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="MailboxTypes.Types.html#type_def"><span class="id" title="section">type_def</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab6"></a><h2 class="section">Notation for types</h2>
+
+</div>
+<div class="code">
+<span class="id" title="keyword">Declare Scope</span> <span class="id" title="var">types_scope</span>.<br/>
+<span class="id" title="keyword">Open</span> <span class="id" title="keyword">Scope</span> <span class="id" title="var">types_scope</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Notation</span> <a id="43e60fd6f3507e84dad3f71c3b5b235a" class="idref" href="#43e60fd6f3507e84dad3f71c3b5b235a"><span class="id" title="notation">&quot;</span></a>! E" := (<a class="idref" href="MailboxTypes.Types.html#MTOutput"><span class="id" title="constructor">MTOutput</span></a> <span class="id" title="var">E</span>) (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 73) : <span class="id" title="var">types_scope</span>.<br/>
+<span class="id" title="keyword">Notation</span> <a id="65fe139398fbcf205794e24a8b220bcc" class="idref" href="#65fe139398fbcf205794e24a8b220bcc"><span class="id" title="notation">&quot;</span></a>? E" := (<a class="idref" href="MailboxTypes.Types.html#MTInput"><span class="id" title="constructor">MTInput</span></a> <span class="id" title="var">E</span>) (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 73) : <span class="id" title="var">types_scope</span>.<br/>
+<span class="id" title="keyword">Notation</span> <a id="efa4560199ee1b7c75ae12ae2c5e67b8" class="idref" href="#efa4560199ee1b7c75ae12ae2c5e67b8"><span class="id" title="notation">&quot;</span></a>◦" := (<a class="idref" href="MailboxTypes.Types.html#SecondClass"><span class="id" title="constructor">SecondClass</span></a>) : <span class="id" title="var">types_scope</span>.<br/>
+<span class="id" title="keyword">Notation</span> <a id="7f30a7c0b48757bf856a6005e8f3891e" class="idref" href="#7f30a7c0b48757bf856a6005e8f3891e"><span class="id" title="notation">&quot;</span></a>T ◦" := (<a class="idref" href="MailboxTypes.Types.html#TUUsage"><span class="id" title="constructor">TUUsage</span></a> <a class="idref" href="MailboxTypes.Types.html#SecondClass"><span class="id" title="constructor">SecondClass</span></a> <span class="id" title="var">T</span>) (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 75): <span class="id" title="var">types_scope</span>.<br/>
+<span class="id" title="keyword">Notation</span> <a id="d6e23384ae5ab5f4c7aff284d56ce436" class="idref" href="#d6e23384ae5ab5f4c7aff284d56ce436"><span class="id" title="notation">&quot;</span></a>•" := (<a class="idref" href="MailboxTypes.Types.html#Returnable"><span class="id" title="constructor">Returnable</span></a>) : <span class="id" title="var">types_scope</span>.<br/>
+<span class="id" title="keyword">Notation</span> <a id="8156d106e35953f807fe5a93dabc8116" class="idref" href="#8156d106e35953f807fe5a93dabc8116"><span class="id" title="notation">&quot;</span></a>T •" := (<a class="idref" href="MailboxTypes.Types.html#TUUsage"><span class="id" title="constructor">TUUsage</span></a> <a class="idref" href="MailboxTypes.Types.html#Returnable"><span class="id" title="constructor">Returnable</span></a> <span class="id" title="var">T</span>) (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 75): <span class="id" title="var">types_scope</span>.<br/>
+<span class="id" title="keyword">Notation</span> <a id="641f176fd2291a0b7a46cb75f37bb2e7" class="idref" href="#641f176fd2291a0b7a46cb75f37bb2e7"><span class="id" title="notation">&quot;</span></a>⌊ T ⌋" := (<a class="idref" href="MailboxTypes.Types.html#returnType"><span class="id" title="definition">returnType</span></a> <span class="id" title="var">T</span>) : <span class="id" title="var">types_scope</span>.<br/>
+<span class="id" title="keyword">Notation</span> <a id="5ea4176f8e954d8b580b3231e039d825" class="idref" href="#5ea4176f8e954d8b580b3231e039d825"><span class="id" title="notation">&quot;</span></a>⌊ T ⌋ⁿ" := (<a class="idref" href="MailboxTypes.Types.html#returnUsage"><span class="id" title="definition">returnUsage</span></a> <span class="id" title="var">T</span>) : <span class="id" title="var">types_scope</span>.<br/>
+<span class="id" title="keyword">Notation</span> <a id="a51f3d3e1eb00ae709bc12037d202115" class="idref" href="#a51f3d3e1eb00ae709bc12037d202115"><span class="id" title="notation">&quot;</span></a>⌈ T ⌉" := (<a class="idref" href="MailboxTypes.Types.html#secondType"><span class="id" title="definition">secondType</span></a> <span class="id" title="var">T</span>) : <span class="id" title="var">types_scope</span>.<br/>
+<span class="id" title="keyword">Notation</span> <a id="d95d6dcac2e02333213ccce92307e62e" class="idref" href="#d95d6dcac2e02333213ccce92307e62e"><span class="id" title="notation">&quot;</span></a>⌈ T ⌉ⁿ" := (<a class="idref" href="MailboxTypes.Types.html#secondUsage"><span class="id" title="definition">secondUsage</span></a> <span class="id" title="var">T</span>) : <span class="id" title="var">types_scope</span>.<br/>
+<span class="id" title="keyword">Notation</span> <a id="28ab6a286dd7f6022810c099dbf26903" class="idref" href="#28ab6a286dd7f6022810c099dbf26903"><span class="id" title="notation">&quot;</span></a>n1 ≤ⁿ n2" := (<a class="idref" href="MailboxTypes.Types.html#UsageSubtype"><span class="id" title="inductive">UsageSubtype</span></a> <span class="id" title="var">n1</span> <span class="id" title="var">n2</span>) (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 80) : <span class="id" title="var">types_scope</span>.<br/>
+<span class="id" title="keyword">Notation</span> <a id="131af33f01ef889df697fc663d016c9f" class="idref" href="#131af33f01ef889df697fc663d016c9f"><span class="id" title="notation">&quot;</span></a>A ≤ B" := (<a class="idref" href="MailboxTypes.Types.html#Subtype"><span class="id" title="inductive">Subtype</span></a> <span class="id" title="var">A</span> <span class="id" title="var">B</span>) (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 80) : <span class="id" title="var">types_scope</span>.<br/>
+<span class="id" title="keyword">Notation</span> <a id="f8b8b0e175a08207ccafce2832c1169f" class="idref" href="#f8b8b0e175a08207ccafce2832c1169f"><span class="id" title="notation">&quot;</span></a>A ≃ B" := (<a class="idref" href="MailboxTypes.Types.html#TypeEqual"><span class="id" title="definition">TypeEqual</span></a> <span class="id" title="var">A</span> <span class="id" title="var">B</span>) (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 80) : <span class="id" title="var">types_scope</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Section</span> <a id="mailbox_types_classes" class="idref" href="#mailbox_types_classes"><span class="id" title="section">mailbox_types_classes</span></a>.<br/>
+
+<br/>
+<span class="comment">(*&nbsp;TODO:&nbsp;Check&nbsp;if&nbsp;this&nbsp;is&nbsp;correct&nbsp;*)</span><br/>
+<span class="id" title="keyword">Definition</span> <a id="Relevant" class="idref" href="#Relevant"><span class="id" title="definition">Relevant</span></a> (<a id="m:38" class="idref" href="#m:38"><span class="id" title="binder">m</span></a> : <a class="idref" href="MailboxTypes.Types.html#MType"><span class="id" title="inductive">MType</span></a>) : <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">forall</span> <a id="n:39" class="idref" href="#n:39"><span class="id" title="binder">n</span></a>, <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#63a68285c81db8f9bc456233bb9ed181"><span class="id" title="notation">~</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#63a68285c81db8f9bc456233bb9ed181"><span class="id" title="notation">(</span></a><a class="idref" href="MailboxTypes.Types.html#131af33f01ef889df697fc663d016c9f"><span class="id" title="notation">(</span></a><a class="idref" href="MailboxTypes.Types.html#TUUsage"><span class="id" title="constructor">TUUsage</span></a> <a class="idref" href="MailboxTypes.Types.html#n:39"><span class="id" title="variable">n</span></a> <a class="idref" href="MailboxTypes.Types.html#m:38"><span class="id" title="variable">m</span></a><a class="idref" href="MailboxTypes.Types.html#131af33f01ef889df697fc663d016c9f"><span class="id" title="notation">)</span></a> <a class="idref" href="MailboxTypes.Types.html#131af33f01ef889df697fc663d016c9f"><span class="id" title="notation">≤</span></a> <a class="idref" href="MailboxTypes.Types.html#131af33f01ef889df697fc663d016c9f"><span class="id" title="notation">(</span></a><a class="idref" href="MailboxTypes.Types.html#TUUsage"><span class="id" title="constructor">TUUsage</span></a> <a class="idref" href="MailboxTypes.Types.html#n:39"><span class="id" title="variable">n</span></a> (<a class="idref" href="MailboxTypes.Types.html#43e60fd6f3507e84dad3f71c3b5b235a"><span class="id" title="notation">!</span></a> <a class="idref" href="MailboxTypes.MailboxPatterns.html#22d1fdaa693003b765e03173ae770621"><span class="id" title="notation">𝟙</span></a>)<a class="idref" href="MailboxTypes.Types.html#131af33f01ef889df697fc663d016c9f"><span class="id" title="notation">)</span></a><a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#63a68285c81db8f9bc456233bb9ed181"><span class="id" title="notation">)</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="Irrelevant" class="idref" href="#Irrelevant"><span class="id" title="definition">Irrelevant</span></a> (<a id="m:40" class="idref" href="#m:40"><span class="id" title="binder">m</span></a> : <a class="idref" href="MailboxTypes.Types.html#MType"><span class="id" title="inductive">MType</span></a>) : <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#63a68285c81db8f9bc456233bb9ed181"><span class="id" title="notation">~</span></a> <a class="idref" href="MailboxTypes.Types.html#Relevant"><span class="id" title="definition">Relevant</span></a> <a class="idref" href="MailboxTypes.Types.html#m:40"><span class="id" title="variable">m</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="Reliable" class="idref" href="#Reliable"><span class="id" title="definition">Reliable</span></a> (<a id="m:41" class="idref" href="#m:41"><span class="id" title="binder">m</span></a> : <a class="idref" href="MailboxTypes.Types.html#MType"><span class="id" title="inductive">MType</span></a>) : <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">forall</span> <a id="n:42" class="idref" href="#n:42"><span class="id" title="binder">n</span></a>, <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#63a68285c81db8f9bc456233bb9ed181"><span class="id" title="notation">~</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#63a68285c81db8f9bc456233bb9ed181"><span class="id" title="notation">(</span></a><a class="idref" href="MailboxTypes.Types.html#131af33f01ef889df697fc663d016c9f"><span class="id" title="notation">(</span></a><a class="idref" href="MailboxTypes.Types.html#TUUsage"><span class="id" title="constructor">TUUsage</span></a> <a class="idref" href="MailboxTypes.Types.html#n:42"><span class="id" title="variable">n</span></a> <a class="idref" href="MailboxTypes.Types.html#m:41"><span class="id" title="variable">m</span></a><a class="idref" href="MailboxTypes.Types.html#131af33f01ef889df697fc663d016c9f"><span class="id" title="notation">)</span></a> <a class="idref" href="MailboxTypes.Types.html#131af33f01ef889df697fc663d016c9f"><span class="id" title="notation">≤</span></a> <a class="idref" href="MailboxTypes.Types.html#131af33f01ef889df697fc663d016c9f"><span class="id" title="notation">(</span></a><a class="idref" href="MailboxTypes.Types.html#TUUsage"><span class="id" title="constructor">TUUsage</span></a> <a class="idref" href="MailboxTypes.Types.html#n:42"><span class="id" title="variable">n</span></a> (<a class="idref" href="MailboxTypes.Types.html#65fe139398fbcf205794e24a8b220bcc"><span class="id" title="notation">?</span></a> <a class="idref" href="MailboxTypes.MailboxPatterns.html#a921dba4fdf3082008d59c1c1e42b4bc"><span class="id" title="notation">𝟘</span></a>)<a class="idref" href="MailboxTypes.Types.html#131af33f01ef889df697fc663d016c9f"><span class="id" title="notation">)</span></a><a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#63a68285c81db8f9bc456233bb9ed181"><span class="id" title="notation">)</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="Unreliable" class="idref" href="#Unreliable"><span class="id" title="definition">Unreliable</span></a> (<a id="m:43" class="idref" href="#m:43"><span class="id" title="binder">m</span></a> : <a class="idref" href="MailboxTypes.Types.html#MType"><span class="id" title="inductive">MType</span></a>) : <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#63a68285c81db8f9bc456233bb9ed181"><span class="id" title="notation">~</span></a> <a class="idref" href="MailboxTypes.Types.html#Reliable"><span class="id" title="definition">Reliable</span></a> <a class="idref" href="MailboxTypes.Types.html#m:43"><span class="id" title="variable">m</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="Usable" class="idref" href="#Usable"><span class="id" title="definition">Usable</span></a> (<a id="m:44" class="idref" href="#m:44"><span class="id" title="binder">m</span></a> : <a class="idref" href="MailboxTypes.Types.html#MType"><span class="id" title="inductive">MType</span></a>) : <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">forall</span> <a id="n:45" class="idref" href="#n:45"><span class="id" title="binder">n</span></a>, <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#63a68285c81db8f9bc456233bb9ed181"><span class="id" title="notation">~</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#63a68285c81db8f9bc456233bb9ed181"><span class="id" title="notation">(</span></a><a class="idref" href="MailboxTypes.Types.html#131af33f01ef889df697fc663d016c9f"><span class="id" title="notation">(</span></a><a class="idref" href="MailboxTypes.Types.html#TUUsage"><span class="id" title="constructor">TUUsage</span></a> <a class="idref" href="MailboxTypes.Types.html#n:45"><span class="id" title="variable">n</span></a> <a class="idref" href="MailboxTypes.Types.html#m:44"><span class="id" title="variable">m</span></a><a class="idref" href="MailboxTypes.Types.html#131af33f01ef889df697fc663d016c9f"><span class="id" title="notation">)</span></a> <a class="idref" href="MailboxTypes.Types.html#131af33f01ef889df697fc663d016c9f"><span class="id" title="notation">≤</span></a> <a class="idref" href="MailboxTypes.Types.html#131af33f01ef889df697fc663d016c9f"><span class="id" title="notation">(</span></a><a class="idref" href="MailboxTypes.Types.html#TUUsage"><span class="id" title="constructor">TUUsage</span></a> <a class="idref" href="MailboxTypes.Types.html#n:45"><span class="id" title="variable">n</span></a> (<a class="idref" href="MailboxTypes.Types.html#43e60fd6f3507e84dad3f71c3b5b235a"><span class="id" title="notation">!</span></a> <a class="idref" href="MailboxTypes.MailboxPatterns.html#a921dba4fdf3082008d59c1c1e42b4bc"><span class="id" title="notation">𝟘</span></a>)<a class="idref" href="MailboxTypes.Types.html#131af33f01ef889df697fc663d016c9f"><span class="id" title="notation">)</span></a><a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#63a68285c81db8f9bc456233bb9ed181"><span class="id" title="notation">)</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="Unusable" class="idref" href="#Unusable"><span class="id" title="definition">Unusable</span></a> (<a id="m:46" class="idref" href="#m:46"><span class="id" title="binder">m</span></a> : <a class="idref" href="MailboxTypes.Types.html#MType"><span class="id" title="inductive">MType</span></a>) : <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#63a68285c81db8f9bc456233bb9ed181"><span class="id" title="notation">~</span></a> <a class="idref" href="MailboxTypes.Types.html#Usable"><span class="id" title="definition">Usable</span></a> <a class="idref" href="MailboxTypes.Types.html#m:46"><span class="id" title="variable">m</span></a>.<br/>
+
+<br/>
+<span class="comment">(*&nbsp;TODO:&nbsp;Check&nbsp;if&nbsp;this&nbsp;is&nbsp;correct&nbsp;*)</span><br/>
+<span class="id" title="keyword">Inductive</span> <a id="Unrestricted" class="idref" href="#Unrestricted"><span class="id" title="definition, inductive"><span id="Unrestricted_ind" class="id"><span id="Unrestricted_sind" class="id">Unrestricted</span></span></span></a> : <a class="idref" href="MailboxTypes.Types.html#TUsage"><span class="id" title="inductive">TUsage</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a id="unBase" class="idref" href="#unBase"><span class="id" title="constructor">unBase</span></a> : <span class="id" title="keyword">forall</span> <a id="c:49" class="idref" href="#c:49"><span class="id" title="binder">c</span></a> : <a class="idref" href="MailboxTypes.Types.html#BType"><span class="id" title="inductive">BType</span></a>, <a class="idref" href="MailboxTypes.Types.html#Unrestricted:47"><span class="id" title="inductive">Unrestricted</span></a> (<a class="idref" href="MailboxTypes.Types.html#TUBase"><span class="id" title="constructor">TUBase</span></a> <a class="idref" href="MailboxTypes.Types.html#c:49"><span class="id" title="variable">c</span></a>)<br/>
+&nbsp;&nbsp;| <a id="unOne" class="idref" href="#unOne"><span class="id" title="constructor">unOne</span></a> : <a class="idref" href="MailboxTypes.Types.html#Unrestricted:47"><span class="id" title="inductive">Unrestricted</span></a> (<a class="idref" href="MailboxTypes.Types.html#TUUsage"><span class="id" title="constructor">TUUsage</span></a> <a class="idref" href="MailboxTypes.Types.html#SecondClass"><span class="id" title="constructor">SecondClass</span></a> (<a class="idref" href="MailboxTypes.Types.html#43e60fd6f3507e84dad3f71c3b5b235a"><span class="id" title="notation">!</span></a> <a class="idref" href="MailboxTypes.MailboxPatterns.html#22d1fdaa693003b765e03173ae770621"><span class="id" title="notation">𝟙</span></a>)).<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="Linear" class="idref" href="#Linear"><span class="id" title="definition">Linear</span></a> (<a id="m:50" class="idref" href="#m:50"><span class="id" title="binder">m</span></a> : <a class="idref" href="MailboxTypes.Types.html#TUsage"><span class="id" title="inductive">TUsage</span></a>) : <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#63a68285c81db8f9bc456233bb9ed181"><span class="id" title="notation">~</span></a> <a class="idref" href="MailboxTypes.Types.html#Unrestricted"><span class="id" title="inductive">Unrestricted</span></a> <a class="idref" href="MailboxTypes.Types.html#m:50"><span class="id" title="variable">m</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="MailboxTypes.Types.html#mailbox_types_classes"><span class="id" title="section">mailbox_types_classes</span></a>.<br/>
+</div>
+</div>
+<div id="footer">
+  Generated by <a href="http://coq.inria.fr/">coqdoc</a> and improved with <a href="https://github.com/coq-community/coqdocjs">CoqdocJS</a>
+</div>
+</div>
+</body>
+
+</html>

@@ -1,3 +1,4 @@
 -R . MailboxTypes
-TypeSyntax.v
 Message.v
+MailboxPatterns.v
+Types.v

@@ -1,4 +1,4 @@
-(** * Type syntax of mailbox types *)
+(** * Syntax and semantics of mailbox patterns *)
 
 Require Import Classes.RelationClasses.
 Require Import Classes.Morphisms.
@@ -74,7 +74,8 @@ Infix "⊙" := MPComp (at level 65, left associativity) : mailbox_pattern_scope.
 Notation "⋆ E" := (MPStar E) (at level 64) : mailbox_pattern_scope.
 Notation "« M »" := (MPMessage M) : mailbox_pattern_scope.
 Infix "∈" := valueOf (at level 67, left associativity) : mailbox_pattern_scope.
-Infix "≈" := MPEqual (at level 71, left associativity) : mailbox_pattern_scope.
+Infix "⊑" := MPInclusion (at level 71, left associativity) : mailbox_pattern_scope.
+Infix "≈" := MPEqual (at level 72, left associativity) : mailbox_pattern_scope.
 
 Section MPattern_props.
 
@@ -350,14 +351,3 @@ Example Test2 : MPEqual (𝟙 ⊕ 𝟘 ⊕ (« "m" » ⊙ « "n" »)) (𝟙 ⊕ 
 Proof.
 Admitted.
 *)
-
-Section mailbox_type_def.
-
-Context `{M : IMessage Message}.
-
-(** Mailbox type definition *)
-Inductive MType `{IMessage Message} : Type :=
-    MTOutput : MPattern -> MType
-  | MTInput  : MPattern -> MType.
-
-End mailbox_type_def.
