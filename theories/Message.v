@@ -62,6 +62,15 @@ Proof.
   now rewrite app_nil_l.
 Qed.
 
+Lemma mailbox_union_assoc : forall m n o,
+  mailbox_eq (mailbox_union m (mailbox_union n o)) (mailbox_union (mailbox_union m n) o).
+Proof.
+  unfold mailbox_eq.
+  unfold mailbox_union.
+  intros.
+  now rewrite <- app_assoc.
+Qed.
+
 Lemma SingletonMailbox_eq : forall e m, mailbox_eq (SingletonMailbox e) m -> m = SingletonMailbox e.
 Proof.
   intros e m mbEq.

@@ -80,6 +80,8 @@ Section MPattern_props.
 
 Context `{MessageInterface : IMessage Message}.
 
+(** Properties of mailbox patterns showing that they are a commutative Klenee algebra. *)
+
 Example Example1 : ⟨⟩ ∈ (𝟙 ⊕ 𝟘).
 Proof.
   apply MPValueChoiceLeft.
@@ -185,6 +187,50 @@ Proof.
   - now constructor.
 Qed.
 
+Lemma MPChoice_idem : forall e, e ⊕ e ≈ e.
+Proof.
+  intro e.
+  unfold MPEqual.
+  split.
+  - unfold MPInclusion.
+    intros m mIn.
+    now inversion mIn.
+  - unfold MPInclusion.
+    intros m mIn.
+    now constructor.
+Qed.
+
+Lemma MPChoice_comm : forall e f, e ⊕ f ≈ f ⊕ e.
+Proof.
+  intros e f.
+  unfold MPEqual.
+  split; unfold MPInclusion; intros m mIn;
+  inversion mIn; subst;
+  try (now apply MPValueChoiceLeft);
+  try (now apply MPValueChoiceRight).
+Qed.
+
+Lemma MPChoice_assoc : forall e f g, e ⊕ (f ⊕ g) ≈ (e ⊕ f) ⊕ g.
+Proof.
+  intros e f g.
+  unfold MPEqual.
+  split; unfold MPInclusion; intros m mIn.
+  - inversion mIn as [ | | e' f' m' mIn' | e' f' m' mIn' | | ];
+    subst.
+    + now repeat apply MPValueChoiceLeft.
+    + inversion mIn' as [ | | e' f' m' mIn'' | e' f' m' mIn'' | | ];
+      subst.
+      * apply MPValueChoiceLeft; now apply MPValueChoiceRight.
+      * now apply MPValueChoiceRight.
+  - inversion mIn as [ | | e' f' m' mIn' | e' f' m' mIn' | | ];
+    subst.
+    + inversion mIn' as [ | | e' f' m' mIn'' | e' f' m' mIn'' | | ];
+      subst.
+      * now apply MPValueChoiceLeft.
+      * apply MPValueChoiceRight; now apply MPValueChoiceLeft.
+    + now repeat apply MPValueChoiceRight.
+Qed.
+
 Lemma MPComp_unit : forall e, e ⊙ 𝟙 ≈ e.
 Proof.
   intros e.
@@ -204,8 +250,42 @@ Proof.
     ).
 Qed.
 
-(* TODO *)
-(*
+Lemma MPComp_zero_left : forall e, 𝟘 ⊙ e ≈ 𝟘.
+Proof.
+  intros e.
+  unfold MPEqual.
+  split.
+  - unfold MPInclusion.
+    intros m mIn.
+    inversion mIn. subst. inversion H1.
+  - unfold MPInclusion.
+    intros m mIn.
+    inversion mIn.
+Qed.
+
+Lemma MPComp_zero_right : forall e, e ⊙ 𝟘 ≈ 𝟘.
+Proof.
+  intros e.
+  unfold MPEqual.
+  split.
+  - unfold MPInclusion.
+    intros m mIn.
+    inversion mIn. subst. inversion H3.
+  - unfold MPInclusion.
+    intros m mIn.
+    inversion mIn.
+Qed.
+
+Lemma MPComp_comm : forall e f, e ⊙ f ≈ f ⊙ e.
+Proof.
+  intros.
+  unfold MPEqual;
+  split;
+  unfold MPInclusion; intros m mIn;
+  inversion mIn as [ | | | | ? ? ? ? ? aIn bIn Eq |]; subst;
+  econstructor; (apply bIn || apply aIn || rewrite Eq; apply mailbox_union_comm).
+Qed.
+
 Lemma MPComp_assoc : forall e f g, e ⊙ (f ⊙ g) ≈ (e ⊙ f) ⊙ g.
 Proof.
   intros e f g.
@@ -213,22 +293,51 @@ Proof.
   split.
   - unfold MPInclusion.
     intros m mIn.
-    destruct e; destruct f; destruct g.
-    + simpl.
-*)
+    inversion mIn as [ | | | | ? ? ? ? ? aIn bIn Eq |]; subst.
+    inversion bIn as [ | | | | ? ? ? ? ? aIn' bIn' Eq' |]; subst.
+    econstructor.
+    + econstructor. apply aIn. apply aIn'. easy.
+    + apply bIn'.
+    + rewrite Eq. rewrite Eq'. now rewrite mailbox_union_assoc.
+  - unfold MPInclusion.
+    intros m mIn.
+    inversion mIn as [ | | | | ? ? ? ? ? aIn bIn Eq |]; subst.
+    inversion aIn as [ | | | | ? ? ? ? ? aIn' bIn' Eq' |]; subst.
+    econstructor.
+    + apply aIn'.
+    + econstructor. apply bIn'. apply bIn. easy.
+    + rewrite Eq. rewrite Eq'. now rewrite mailbox_union_assoc.
+Qed.
+
+Lemma MPComp_MPChoice_distr : forall e f g, e ⊙ (f ⊕ g) ≈ (e ⊙ f) ⊕ (e ⊙ g).
+Proof.
+  intros.
+  unfold MPEqual.
+  split; unfold MPInclusion; intros m mIn.
+  - inversion mIn as [ | | | | ? ? ? ? ? aIn bIn Eq |]; subst;
+    inversion bIn as [ | | e' f' m' mIn' | e' f' m' mIn' | | ]; subst.
+    + apply MPValueChoiceLeft. econstructor. apply aIn. apply mIn'. apply Eq.
+    + apply MPValueChoiceRight. econstructor. apply aIn. apply mIn'. apply Eq.
+  - inversion mIn as [ | | e' f' m' mIn' | e' f' m' mIn' | | ]; subst;
+    inversion mIn' as [ | | | | ? ? ? ? ? aIn bIn Eq |]; subst.
+    + econstructor. apply aIn. apply MPValueChoiceLeft. apply bIn. apply Eq.
+    + econstructor. apply aIn. apply MPValueChoiceRight. apply bIn. apply Eq.
+Qed.
 
 End MPattern_props.
 
 Require Import String.
 Open Scope string_scope.
 
-Lemma Test : ⟨⟩ ∈ (𝟙 ⊕ 𝟘).
+(** Some examples *)
+
+Example Test : ⟨⟩ ∈ (𝟙 ⊕ 𝟘).
 Proof.
   apply MPValueChoiceLeft.
   apply MPValueOne.
 Qed.
 
-Lemma Test1 : (⟨ "m" ⟩ ⊎ ⟨ "n" ⟩) ∈ (« "n" » ⊙ « "m" »).
+Example Test1 : (⟨ "m" ⟩ ⊎ ⟨ "n" ⟩) ∈ (« "n" » ⊙ « "m" »).
 Proof.
   eapply MPValueComp.
   - apply MPValueMessage.
@@ -236,13 +345,10 @@ Proof.
   - now rewrite mailbox_union_comm.
 Qed.
 
-(* TODO
-Lemma Test2 : MPEqual (𝟙 ⊕ 𝟘 ⊕ (« "m" » ⊙ « "n" »)) (𝟙 ⊕ (« "n" » ⊙ « "m" »)).
+(* TODO: Some proper relation proof is missing to prove this 
+Example Test2 : MPEqual (𝟙 ⊕ 𝟘 ⊕ (« "m" » ⊙ « "n" »)) (𝟙 ⊕ (« "n" » ⊙ « "m" »)).
 Proof.
-  unfold MPEqual.
-  split.
-  - unfold MPInclusion.
-    intros m E.
+Admitted.
 *)
 
 Section mailbox_type_def.
