@@ -1,5 +1,7 @@
 (** * Syntax of types *)
 
+Require Import Lia.
+
 From MailboxTypes Require Import Message.
 From MailboxTypes Require Import MailboxPatterns.
 
@@ -37,6 +39,12 @@ Inductive TUsage : Type :=
     TUBase : BType -> TUsage
   | TUUsage : UsageAnnotation -> MType -> TUsage.
 
+(** Type environments are list of usage-annotated types because
+    de Bruijn indices are used to represent variables.
+*)
+(* TODO: Maybe move to own section or file *)
+Definition Env := list TUsage.
+
 Definition returnType (t : TType) : TUsage :=
   match t with
   | TTBase b => TUBase b
@@ -64,14 +72,14 @@ Definition secondUsage (t : TUsage) : TUsage :=
 (* TODO: Define return and second for type environments *)
 
 Inductive UsageSubtype : UsageAnnotation -> UsageAnnotation -> Prop :=
-    usageSubtype_refl : forall n, UsageSubtype n n
-  | usageSubtype_le   : UsageSubtype Returnable SecondClass.
+    UsageSubtypeRefl : forall n, UsageSubtype n n
+  | UsageSubtypeLe   : UsageSubtype Returnable SecondClass.
 
 Inductive Subtype : TUsage -> TUsage -> Prop :=
-    subtype_base : forall c, Subtype (TUBase c) (TUBase c)
-  | subtype_input : forall e f n1 n2,
+    SubtypeBase : forall c, Subtype (TUBase c) (TUBase c)
+  | SubtypeInput : forall e f n1 n2,
       MPInclusion e f -> UsageSubtype n1 n2 -> Subtype (TUUsage n1 (MTInput e)) (TUUsage n2 (MTInput f))
-  | subtype_output : forall e f n1 n2,
+  | SubtypeOutput : forall e f n1 n2,
       MPInclusion f e -> UsageSubtype n1 n2 -> Subtype (TUUsage n1 (MTOutput e)) (TUUsage n2 (MTOutput f)).
 
 Definition TypeEqual (a b : TUsage) : Prop :=
@@ -86,9 +94,8 @@ Open Scope types_scope.
 Notation "! E" := (MTOutput E) (at level 73) : types_scope.
 Notation "? E" := (MTInput E) (at level 73) : types_scope.
 Notation "◦" := (SecondClass) : types_scope.
-Notation "T ◦" := (TUUsage SecondClass T) (at level 75): types_scope.
 Notation "•" := (Returnable) : types_scope.
-Notation "T •" := (TUUsage Returnable T) (at level 75): types_scope.
+Notation "T ^^ n" := (TUUsage n T) (at level 75) : types_scope.
 Notation "⌊ T ⌋" := (returnType T) : types_scope.
 Notation "⌊ T ⌋ⁿ" := (returnUsage T) : types_scope.
 Notation "⌈ T ⌉" := (secondType T) : types_scope.
@@ -127,3 +134,100 @@ Definition Linear (m : TUsage) : Prop :=
   ~ Unrestricted m.
 
 End mailbox_types_classes.
+
+Section mailbox_combinations.
+  (* TODO: Type environments *)
+(** 
+   Definition 3.5 of type combiniations. Instead of defining it as a partial function,
+   we define it as a relation between three types.
+*)
+  Inductive TypeCombination : TType -> TType -> TType -> Prop :=
+      TCombBase : forall c, TypeCombination (TTBase c) (TTBase c) (TTBase c)
+    | TCombOut : forall e f, TypeCombination (TTMailbox (! e)) (TTMailbox (! f)) (TTMailbox (! (e ⊙ f)))
+    | TCombInOut : forall e f, TypeCombination (TTMailbox (! e)) (TTMailbox (? (e ⊙ f))) (TTMailbox (? f))
+    | TCombOutIn : forall e f, TypeCombination (TTMailbox (? (e ⊙ f))) (TTMailbox (! e)) (TTMailbox (? f)).
+
+(** 
+   Definition 3.6 of usage combiniations. Again, instead of defining it as a partial function,
+   we define it as a relation between three usage annotations.
+*)
+  Inductive UsageCombination : UsageAnnotation -> UsageAnnotation -> UsageAnnotation -> Prop :=
+      UCombSecond : UsageCombination SecondClass SecondClass SecondClass
+    | UCombSecRet : UsageCombination SecondClass Returnable Returnable.
+
+(** 
+   Definition 3.7 of usage-annotated type combiniations.
+   Again, instead of defining it as a partial function,
+   we define it as a relation between three types.
+*)
+  Inductive TypeUsageCombination : TUsage -> TUsage -> TUsage -> Prop :=
+      TUsageCombBase : forall c, TypeUsageCombination (TUBase c) (TUBase c) (TUBase c)
+    | TUsageCombUsage : forall j k n1 n2 n t,
+        UsageCombination n1 n2 n ->
+        TypeCombination (TTMailbox j) (TTMailbox k) (TTMailbox t) ->
+        TypeUsageCombination (TUUsage n1 j) (TUUsage n2 k) (TUUsage n t).
+End mailbox_combinations.
+
+Notation "T ⊞ U ~= V" := (TypeCombination T U V) (at level 80) : types_scope.
+Notation "n1 ▷ⁿ n2 ~= n" := (UsageCombination n1 n2 n) (at level 80) : types_scope.
+Notation "J ▷ K ~= L" := (TypeUsageCombination K J L) (at level 80) : types_scope.
+
+Section mailbox_types_environment.
+
+Definition Environment := list TUsage.
+
+Inductive Member : TUsage -> Environment -> Prop :=
+    Z : forall env t, Member t (cons t env)
+  | S : forall env t s, Member t env -> Member t (cons s env).
+
+Fixpoint lookup {env : Environment} {n : nat} (p : n < length env) : TUsage.
+Proof.
+  induction n.
+  - destruct env eqn:E.
+    + simpl in *; now apply PeanoNat.Nat.nlt_0_r in p.
+    + simpl in *. apply t.
+  - destruct env eqn:E.
+    + simpl in *; now apply PeanoNat.Nat.nlt_0_r in p.
+    + simpl in *. apply IHn. lia.
+Defined.
+
+Fixpoint count {env : Environment} {n : nat} (p : n < length env) : Member (lookup p) env.
+Proof.
+  induction n; destruct env eqn:E; simpl in *.
+  - inversion p.
+  - apply Z.
+  - inversion p.
+  - apply IHn.
+Qed.
+
+(** Definition 3.4 of environment subtyping.
+    For now we ignore the premise about variables not being in the domain
+*)
+Inductive EnvironmentSubtype : Env -> Env -> Prop :=
+    EnvSubtypeEmpty : EnvironmentSubtype nil nil
+  | EnvSubtypeUn : forall T env1 env2, Unrestricted T -> EnvironmentSubtype env1 env2 -> EnvironmentSubtype (cons T env1) env2
+  | EnvSubtypeSub : forall T1 T2 env1 env2, Subtype T1 T2 -> EnvironmentSubtype env1 env2 -> EnvironmentSubtype (cons T2 env1) (cons T2 env2).
+
+(** Definition 3.8 of environment combination.
+    For now we ignore the premise about variables not being in the domain
+*)
+Inductive EnvironmentCombination : Env -> Env -> Env -> Prop :=
+    EnvCombEmpty : EnvironmentCombination nil nil nil
+  | EnvCombLeft : forall T env1 env2 env, EnvironmentCombination env1 env2 env -> EnvironmentCombination (cons T env1) env2 (cons T env)
+  | EnvCombRight : forall T env1 env2 env, EnvironmentCombination env1 env2 env -> EnvironmentCombination env1 (cons T env2) (cons T env)
+  | EnvCombBoth : forall T T1 T2 env1 env2 env, EnvironmentCombination env1 env2 env -> T1 ▷ T2 ~= T -> EnvironmentCombination (cons T1 env1) (cons T2 env2) (cons T env).
+
+(** Definition 3.9 of disjoint environment combination.
+    For now we ignore the premise about variables not being in the domain
+*)
+Inductive EnvironmentDisjointCombination : Env -> Env -> Env -> Prop :=
+    EnvDisCombEmpty : EnvironmentDisjointCombination nil nil nil
+  | EnvDisCombLeft : forall T env1 env2 env, EnvironmentDisjointCombination env1 env2 env -> EnvironmentDisjointCombination (cons T env1) env2 (cons T env)
+  | EnvDisCombRight : forall T env1 env2 env, EnvironmentDisjointCombination env1 env2 env -> EnvironmentDisjointCombination env1 (cons T env2) (cons T env)
+  | EnvDisCombBoth : forall T env1 env2 env, EnvironmentDisjointCombination env1 env2 env -> EnvironmentDisjointCombination (cons T env1) (cons T env2) (cons T env).
+
+End mailbox_types_environment.
+
+Notation "Env1 ≤ₑ Env2" := (EnvironmentSubtype Env1 Env2) (at level 80) : types_scope.
+Notation "Env1 ▷ₑ Env2 ~= Env" := (EnvironmentCombination Env1 Env2 Env) (at level 80) : types_scope.
+Notation "Env1 +ₑ Env2 ~= Env" := (EnvironmentDisjointCombination Env1 Env2 Env) (at level 80) : types_scope.

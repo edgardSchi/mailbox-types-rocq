@@ -77,6 +77,44 @@ Infix "∈" := valueOf (at level 67, left associativity) : mailbox_pattern_scope
 Infix "⊑" := MPInclusion (at level 71, left associativity) : mailbox_pattern_scope.
 Infix "≈" := MPEqual (at level 72, left associativity) : mailbox_pattern_scope.
 
+Section MPattern_residuals.
+
+(** Definition from Fig. 5 of mailbox pattern residiuals.
+    Calculates the pattern after a message is consumed
+*)
+Inductive PatternResidual : MPattern -> MPattern -> MPattern -> Prop :=
+    MPResZero : forall m, PatternResidual 𝟘 (« m ») 𝟘
+  | MPResOne : forall m, PatternResidual 𝟙 (« m ») 𝟘
+  | MPResMessageCorrect : forall m, PatternResidual (« m ») (« m ») 𝟙
+  | MPResMessageWrong : forall m n, ~ (m = n) -> PatternResidual (« m ») (« n ») 𝟘
+  | MPResChoice : forall e e' f f' m,
+      PatternResidual e (« m ») e' ->
+      PatternResidual f (« m ») f' ->
+      PatternResidual (e ⊕ f) (« m ») (e' ⊕ f')
+  | MPResComp : forall e e' f f' m,
+      PatternResidual e (« m ») e' ->
+      PatternResidual f (« m ») f' ->
+      PatternResidual (e ⊙ f) (« m ») ((e' ⊙ f) ⊕ (e ⊙ f')).
+
+(** Definition from Fig. 5 of pattern normal form for literals *)
+Inductive PNFLit : MPattern -> MPattern -> Prop :=
+    PNFLitZero : forall e, PNFLit e 𝟘
+  | PNFLitOne : forall e, PNFLit e 𝟙
+  | PNFLitComp : forall e f m e',
+      PatternResidual e (« m ») e' ->
+      f ≈ e' ->
+      PNFLit e ((« m ») ⊙ f)
+  | PNFLitChoice : forall e f1 f2,
+      PNFLit e f1 ->
+      PNFLit e f2 ->
+      PNFLit e (f1 ⊕ f2).
+
+(** Definition from Fig. 5 of pattern normal form *)
+Inductive PNF : MPattern -> MPattern -> Prop :=
+  PNFCon : forall e f, PNFLit e f -> PNF e f.
+
+End MPattern_residuals.
+
 Section MPattern_props.
 
 Context `{MessageInterface : IMessage Message}.
