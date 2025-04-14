@@ -79,6 +79,8 @@ Infix "≈" := MPEqual (at level 72, left associativity) : mailbox_pattern_scope
 
 Section MPattern_residuals.
 
+Context `{MessageInterface : IMessage Message}.
+
 (** Definition from Fig. 5 of mailbox pattern residiuals.
     Calculates the pattern after a message is consumed
 *)
@@ -114,6 +116,8 @@ Inductive PNF : MPattern -> MPattern -> Prop :=
   PNFCon : forall e f, PNFLit e f -> PNF e f.
 
 End MPattern_residuals.
+
+Notation "E ⊧ F" := (PNF E F) (at level 98) : mailbox_pattern_scope.
 
 Section MPattern_props.
 

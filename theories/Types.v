@@ -3,7 +3,10 @@
 Require Import Lia.
 
 From MailboxTypes Require Import Message.
-From MailboxTypes Require Import MailboxPatterns.
+From MailboxTypes Require Export MailboxPatterns.
+
+Require Import List.
+Import ListNotations.
 
 Generalizable All Variables.
 
@@ -39,12 +42,6 @@ Inductive TUsage : Type :=
     TUBase : BType -> TUsage
   | TUUsage : UsageAnnotation -> MType -> TUsage.
 
-(** Type environments are list of usage-annotated types because
-    de Bruijn indices are used to represent variables.
-*)
-(* TODO: Maybe move to own section or file *)
-Definition Env := list TUsage.
-
 Definition returnType (t : TType) : TUsage :=
   match t with
   | TTBase b => TUBase b
@@ -69,7 +66,14 @@ Definition secondUsage (t : TUsage) : TUsage :=
   | TUUsage _ m => TUUsage SecondClass m
   end.
 
-(* TODO: Define return and second for type environments *)
+
+(** A list of only base types *)
+Fixpoint BaseTypes (e : list TType) : Prop :=
+  match e with
+  | nil => True
+  | (TTBase _ :: e') => BaseTypes e'
+  | _ => False
+  end.
 
 Inductive UsageSubtype : UsageAnnotation -> UsageAnnotation -> Prop :=
     UsageSubtypeRefl : forall n, UsageSubtype n n
@@ -106,6 +110,8 @@ Notation "A ≃ B" := (TypeEqual A B) (at level 80) : types_scope.
 
 Section mailbox_types_classes.
 
+Context `{M : IMessage Message}.
+
 (* TODO: Check if this is correct *)
 Definition Relevant (m : MType) : Prop :=
   forall n, ~ ((TUUsage n m) ≤ (TUUsage n (! 𝟙))).
@@ -136,7 +142,8 @@ Definition Linear (m : TUsage) : Prop :=
 End mailbox_types_classes.
 
 Section mailbox_combinations.
-  (* TODO: Type environments *)
+
+  Context `{M : IMessage Message}.
 (** 
    Definition 3.5 of type combiniations. Instead of defining it as a partial function,
    we define it as a relation between three types.
@@ -174,12 +181,19 @@ Notation "J ▷ K ~= L" := (TypeUsageCombination K J L) (at level 80) : types_sc
 
 Section mailbox_types_environment.
 
-Definition Environment := list TUsage.
+Context `{M : IMessage Message}.
 
-Inductive Member : TUsage -> Environment -> Prop :=
+(** Type environments are list of usage-annotated types because
+    de Bruijn indices are used to represent variables.
+*)
+(* TODO: Maybe move to own section or file *)
+Definition Env := list TUsage.
+
+Inductive Member : TUsage -> Env -> Prop :=
     Z : forall env t, Member t (cons t env)
   | S : forall env t s, Member t env -> Member t (cons s env).
 
+(*
 Fixpoint lookup {env : Environment} {n : nat} (p : n < length env) : TUsage.
 Proof.
   induction n.
@@ -199,7 +213,7 @@ Proof.
   - inversion p.
   - apply IHn.
 Qed.
-
+*)
 (** Definition 3.4 of environment subtyping.
     For now we ignore the premise about variables not being in the domain
 *)
@@ -226,8 +240,35 @@ Inductive EnvironmentDisjointCombination : Env -> Env -> Env -> Prop :=
   | EnvDisCombRight : forall T env1 env2 env, EnvironmentDisjointCombination env1 env2 env -> EnvironmentDisjointCombination env1 (cons T env2) (cons T env)
   | EnvDisCombBoth : forall T env1 env2 env, EnvironmentDisjointCombination env1 env2 env -> EnvironmentDisjointCombination (cons T env1) (cons T env2) (cons T env).
 
+(** 
+  Definition of splitting an environment into n environments.
+  A list is used to keep track of the environments
+*)
+Inductive EnvironmentDisjointCombinationN : list Env -> Env -> Prop :=
+    EnvDisComb2 : forall env env1 env2,
+      EnvironmentDisjointCombination env1 env2 env ->
+      EnvironmentDisjointCombinationN [env1 ; env2] env
+  | EnvDisCombN : forall env env1 env2 env3 envList,
+      EnvironmentDisjointCombination env1 env2 env3 ->
+      EnvironmentDisjointCombinationN (env3 :: envList) env ->
+      EnvironmentDisjointCombinationN (env1 :: env2 :: envList) env.
+
+Fixpoint returnEnvironment (env : Env) : Env := map returnUsage env.
+Fixpoint secondEnvironment (env : Env) : Env := map secondUsage env.
+
+(** An environment is Base if it only contains base types *)
+Fixpoint BaseEnv (e : Env) : Prop :=
+  match e with
+  | nil => True
+  | (TUBase _ :: env') => BaseEnv env'
+  | _ => False
+  end.
+
 End mailbox_types_environment.
 
 Notation "Env1 ≤ₑ Env2" := (EnvironmentSubtype Env1 Env2) (at level 80) : types_scope.
 Notation "Env1 ▷ₑ Env2 ~= Env" := (EnvironmentCombination Env1 Env2 Env) (at level 80) : types_scope.
 Notation "Env1 +ₑ Env2 ~= Env" := (EnvironmentDisjointCombination Env1 Env2 Env) (at level 80) : types_scope.
+Notation "[ Env1 ]+ₑ ~= Env" := (EnvironmentDisjointCombinationN Env1 Env) (at level 80) : types_scope.
+Notation "⌊ Env ⌋ₑ" := (returnEnvironment Env) : types_scope.
+Notation "⌈ Env ⌉ₑ" := (secondEnvironment Env) : types_scope.
