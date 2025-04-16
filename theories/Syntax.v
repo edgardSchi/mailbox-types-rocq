@@ -1,10 +1,12 @@
 (** * Syntax of the Pat programming language *)
 
 From MailboxTypes Require Import Types.
+From MailboxTypes Require Import Environment.
 From MailboxTypes Require Import Message.
 From MailboxTypes Require Import Util.
 
 Require Import Lists.List.
+Import ListNotations.
 
 Generalizable All Variables.
 
@@ -33,7 +35,7 @@ Inductive VarName : Type := Var : nat -> VarName.
 Inductive Value : Type :=
     ValueBool : bool -> Value
   | ValueUnit : Value
-  | ValueVar  : forall T env, Member T env -> Value.
+  | ValueVar  : VarName -> Value.
 
 Inductive Term : Type :=
     TValue : Value -> Term
@@ -42,25 +44,39 @@ Inductive Term : Type :=
   | TSpawn : Term -> Term
   | TNew   : Term
   | TSend  : Value -> Message -> list Value -> Term
-  | TGuard : Value -> list Guard -> Term
+  | TGuard : Value -> MPattern -> list Guard -> Term
 with Guard : Type :=
     GFail : Guard
   | GFree : Term -> Guard
   | GReceive : Message -> list VarName -> VarName -> Term -> Guard.
 
+Inductive FunctionDefinition : Type :=
+  | FunDef : DefinitionName -> list TUsage -> TUsage -> Term -> FunctionDefinition.
 
+Type EnvironmentDisjointCombinationN.
 
-Inductive WellTypedTerm {f : Message -> list TType} : Env -> Term -> TUsage -> Prop :=
+(* TODO: Put f and g into a typeclass? *)
+(* TODO: Include body term in g *)
+Inductive WellTypedTerm {f : Message -> list TType} {g : DefinitionName -> (list TUsage) * TUsage} : Env -> Term -> TUsage -> Prop :=
   (* Var *)
+  | VAR   : forall v env T,
+      lookup v env = Some T ->
+      WellTypedTerm env (TValue (ValueVar (Var v))) T
   (* Consts *)
   | TRUE  : WellTypedTerm nil (TValue (ValueBool true)) (TUBase BTBool)
   | FALSE : WellTypedTerm nil (TValue (ValueBool false)) (TUBase BTBool)
   | UNIT  : WellTypedTerm nil (TValue ValueUnit) (TUBase BTUnit)
   (* App *)
+  | APP : forall env envList vList definition bodyType argumentTypes,
+      g definition = (argumentTypes, bodyType) ->
+      [ envList ]+ₑ ~= env ->
+      Forall3 WellTypedTerm envList (map TValue vList) (argumentTypes) ->
+      WellTypedTerm env (TApp definition vList) bodyType
+  (* Let *)
   | LET   : forall env env1 env2 T1 T2 t1 t2, 
       env1 ▷ₑ env2 ~= env ->
       WellTypedTerm env1 t1 ⌊ T1 ⌋ ->
-      WellTypedTerm (cons ⌊ T1 ⌋ env2) t2 T2 ->
+      WellTypedTerm (Some ⌊ T1 ⌋ :: env2) t2 T2 ->
       WellTypedTerm env (TLet t1 t2) T2
   (* Spawn *)
   | SPAWN : forall env t,
@@ -84,14 +100,14 @@ Inductive WellTypedTerm {f : Message -> list TType} : Env -> Term -> TUsage -> P
       e ⊑ f ->
       (* TODO: Check if this is correct *)
       f ⊧ f ->
-      WellTypedTerm env (TGuard v guards) T
+      WellTypedTerm env (TGuard v e guards) T
   (* Sub *)
   | SUB : forall t env1 env2 T1 T2,
       env1 ≤ₑ env2 ->
       T1 ≤ T2 ->
       WellTypedTerm env2 t T1 ->
       WellTypedTerm env1 t T2
-with WellTypedGuards {f : Message -> list TType} : Env -> list Guard -> TUsage -> MPattern -> Prop :=
+with WellTypedGuards {f : Message -> list TType} {g : DefinitionName -> (list TUsage) * TUsage} : Env -> list Guard -> TUsage -> MPattern -> Prop :=
   | SINGLE : forall T e env g,
       WellTypedGuard env g T e ->
       WellTypedGuards env (g :: nil) T e
@@ -99,7 +115,7 @@ with WellTypedGuards {f : Message -> list TType} : Env -> list Guard -> TUsage -
       WellTypedGuard env g T e ->
       WellTypedGuards env guards T es ->
       WellTypedGuards env (g :: guards) T (e ⊕ es)
-with WellTypedGuard {f : Message -> list TType} : Env -> Guard -> TUsage -> MPattern -> Prop :=
+with WellTypedGuard {f : Message -> list TType} {g : DefinitionName -> (list TUsage) * TUsage} : Env -> Guard -> TUsage -> MPattern -> Prop :=
   (* Fail *)
   | FAIL : forall t env, WellTypedGuard env GFail t 𝟘
   (* Free *)
@@ -108,9 +124,14 @@ with WellTypedGuard {f : Message -> list TType} : Env -> Guard -> TUsage -> MPat
   | RECEIVE : forall t m env T tList vList e mailbox,
       f m = tList ->
       BaseTypes tList \/ BaseEnv env ->
-      WellTypedTerm ((? e ^^ •) :: (map secondType tList) ++ env) t T ->
+      WellTypedTerm (Some (? e ^^ •) :: (map (fun x => Some (secondType x)) tList) ++ env) t T ->
       (* TODO: Check if this makes sense with environments and variables *)
       WellTypedGuard env (GReceive m vList mailbox t) T (« m » ⊙ e).
+
+Inductive WellTypedDefinition {f : Message -> list TType} {g : DefinitionName -> (list TUsage) * TUsage} : FunctionDefinition -> Prop :=
+  | FUNDEF : forall defName argumentTypes body bodyType,
+      @WellTypedTerm f g (map Some argumentTypes) body bodyType ->
+      WellTypedDefinition (FunDef defName argumentTypes bodyType body).
 
 
 (* Attempt at intrinsic typing. Kinda hard to work with *)
@@ -151,6 +172,103 @@ End syntax_def.
 
 Section Examples.
 
-(* TODO: Add example from paper about future variable *)
+Inductive Future : Type :=
+  | Put   : Future
+  | Get   : Future
+  | Reply : Future.
+
+Instance FutureMessage : IMessage Future.
+Proof.
+  constructor;
+  destruct m; destruct n;
+  try (now left);
+  try (now right).
+Defined.
+
+Inductive FutureDefinition : Type :=
+  | EmptyFutureDef : FutureDefinition
+  | FullFutureDef  : FutureDefinition
+  | ClientDef      : FutureDefinition.
+
+Instance FutureDefinitionName : IDefinitionName FutureDefinition.
+Proof.
+  constructor; destruct m; destruct n;
+  try (now left);
+  try (now right).
+Defined.
+
+Definition ClientSendType : @MType Future FutureMessage :=
+  ! « Reply ».
+
+Definition ClientReceiveType : @MType Future FutureMessage :=
+  ? « Reply ».
+
+Definition EmptyFutureType : @MType Future FutureMessage :=
+  ? (« Put » ⊙ (⋆ « Get »)).
+
+Definition FullFutureType : @MType Future FutureMessage :=
+  ? ⋆ « Get ».
+
+Definition FutureDefinitions (d : FutureDefinition) : (list TUsage) * TUsage :=
+  match d with
+  | EmptyFutureDef => (((EmptyFutureType ^^ •) :: nil), (TUBase BTUnit))
+  | FullFutureDef => (((FullFutureType ^^ •) :: (TUBase BTBool) :: nil), (TUBase BTUnit))
+  | ClientDef => (nil, (TUBase BTUnit))
+  end.
+
+Definition FutureMessageTypes (m : Future) : list TType :=
+  match m with
+  | Reply => TTBase BTBool :: nil
+  | Put   => TTBase BTBool :: nil
+  | Get   => TTMailbox (! « Reply ») :: nil
+  end.
+
+(** Definition of the function emptyFuture from the paper
+    emptyFuture : EmptyFutureType -> 1
+*)
+Definition EmptyFuture : @FunctionDefinition Future FutureMessage FutureDefinition :=
+  FunDef EmptyFutureDef [ EmptyFutureType ^^ • ] (TUBase BTUnit)
+    (TGuard (ValueVar (Var 0)) (« Put » ⊙ (⋆ « Get »)) [
+      GReceive Put [ Var 1 ] (Var 0) (TApp FullFutureDef [ValueVar (Var 0) ; ValueVar (Var 1)])
+    ]).
+
+(** Function emptyFuture is well-typed
+    |- emptyFuture
+*)
+Lemma EmptyFutureWellTyped :
+  @WellTypedDefinition Future FutureMessage FutureDefinition
+    FutureMessageTypes FutureDefinitions EmptyFuture.
+Proof.
+  constructor.
+  eapply GUARD with (env2 := (None :: nil)) (env1 := (Some (EmptyFutureType ^^ •)) :: nil) (f := (« Put » ⊙ (⋆ « Get »))).
+  - simpl. repeat constructor.
+  - constructor. simpl. f_equal.
+  - constructor. apply RECEIVE with (tList := FutureMessageTypes Put).
+    + easy.
+    + right. constructor.
+    + simpl.
+      eapply APP
+      with (argumentTypes := fst (FutureDefinitions FullFutureDef))
+           (envList := ((Some (FullFutureType ^^ •) :: None :: None :: nil) :: (None :: Some (TUBase BTBool) :: None :: nil) :: nil)).
+      * easy.
+      * repeat constructor.
+      * simpl. constructor.
+        -- constructor. now simpl.
+        -- constructor.
+           ++ constructor. now simpl.
+           ++ constructor.
+  - apply MPInclusion_refl.
+  - constructor.
+    eapply PNFLitComp.
+    + apply MPResComp.
+      * constructor.
+      * constructor. constructor. easy.
+    + rewrite MPComp_zero_left.
+      rewrite MPComp_zero_right.
+      rewrite MPComp_comm.
+      rewrite MPComp_unit.
+      now rewrite MPChoice_unit.
+Qed.
+
 
 End Examples.

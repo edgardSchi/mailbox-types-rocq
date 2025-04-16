@@ -24,3 +24,19 @@ Lemma Forall3_refl : Forall3 nil nil nil.
 Proof. constructor. Qed.
 
 End Forall3.
+
+Section MapMaybe.
+
+Variables A B : Type.
+Variable f : A -> B.
+
+Definition f_maybe (e : option A) : option B :=
+  match e with
+  | None => None
+  | Some e' => Some (f e')
+  end.
+
+Fixpoint map_maybe (l : list (option A)) : list (option B) :=
+  map f_maybe l.
+
+End MapMaybe.

@@ -2,7 +2,7 @@
 
 Require Import Lia.
 
-From MailboxTypes Require Import Message.
+From MailboxTypes Require Export Message.
 From MailboxTypes Require Export MailboxPatterns.
 
 Require Import List.
@@ -179,6 +179,7 @@ Notation "T ⊞ U ~= V" := (TypeCombination T U V) (at level 80) : types_scope.
 Notation "n1 ▷ⁿ n2 ~= n" := (UsageCombination n1 n2 n) (at level 80) : types_scope.
 Notation "J ▷ K ~= L" := (TypeUsageCombination K J L) (at level 80) : types_scope.
 
+(*
 Section mailbox_types_environment.
 
 Context `{M : IMessage Message}.
@@ -189,9 +190,18 @@ Context `{M : IMessage Message}.
 (* TODO: Maybe move to own section or file *)
 Definition Env := list TUsage.
 
+(*
 Inductive Member : TUsage -> Env -> Prop :=
     Z : forall env t, Member t (cons t env)
   | S : forall env t s, Member t env -> Member t (cons s env).
+*)
+
+Fixpoint lookup (n : nat) (env : Env) : option TUsage :=
+  match n, env with
+  | _, nil => None
+  | 0, (T :: env') => Some T
+  | S n', (_ :: env') => lookup n' env'
+  end.
 
 (*
 Fixpoint lookup {env : Environment} {n : nat} (p : n < length env) : TUsage.
@@ -272,3 +282,4 @@ Notation "Env1 +ₑ Env2 ~= Env" := (EnvironmentDisjointCombination Env1 Env2 En
 Notation "[ Env1 ]+ₑ ~= Env" := (EnvironmentDisjointCombinationN Env1 Env) (at level 80) : types_scope.
 Notation "⌊ Env ⌋ₑ" := (returnEnvironment Env) : types_scope.
 Notation "⌈ Env ⌉ₑ" := (secondEnvironment Env) : types_scope.
+*)

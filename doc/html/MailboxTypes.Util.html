@@ -71,6 +71,27 @@ Predicate for stating that three lists are componentwise related
 
 <br/>
 <span class="id" title="keyword">End</span> <a class="idref" href="MailboxTypes.Util.html#Forall3"><span class="id" title="section">Forall3</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Section</span> <a id="MapMaybe" class="idref" href="#MapMaybe"><span class="id" title="section">MapMaybe</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Variables</span> <a id="MapMaybe.A" class="idref" href="#MapMaybe.A"><span class="id" title="variable">A</span></a> <a id="MapMaybe.B" class="idref" href="#MapMaybe.B"><span class="id" title="variable">B</span></a> : <span class="id" title="keyword">Type</span>.<br/>
+<span class="id" title="keyword">Variable</span> <a id="MapMaybe.f" class="idref" href="#MapMaybe.f"><span class="id" title="variable">f</span></a> : <a class="idref" href="MailboxTypes.Util.html#MapMaybe.A"><span class="id" title="variable">A</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="MailboxTypes.Util.html#MapMaybe.B"><span class="id" title="variable">B</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="f_maybe" class="idref" href="#f_maybe"><span class="id" title="definition">f_maybe</span></a> (<a id="e:16" class="idref" href="#e:16"><span class="id" title="binder">e</span></a> : <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Datatypes.html#option"><span class="id" title="inductive">option</span></a> <a class="idref" href="MailboxTypes.Util.html#MapMaybe.A"><span class="id" title="variable">A</span></a>) : <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Datatypes.html#option"><span class="id" title="inductive">option</span></a> <a class="idref" href="MailboxTypes.Util.html#MapMaybe.B"><span class="id" title="variable">B</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="MailboxTypes.Util.html#e:16"><span class="id" title="variable">e</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Datatypes.html#None"><span class="id" title="constructor">None</span></a> =&gt; <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Datatypes.html#None"><span class="id" title="constructor">None</span></a><br/>
+&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> <span class="id" title="var">e'</span> =&gt; <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Datatypes.html#Some"><span class="id" title="constructor">Some</span></a> (<a class="idref" href="MailboxTypes.Util.html#MapMaybe.f"><span class="id" title="variable">f</span></a> <span class="id" title="var">e'</span>)<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Fixpoint</span> <a id="map_maybe" class="idref" href="#map_maybe"><span class="id" title="definition">map_maybe</span></a> (<a id="l:18" class="idref" href="#l:18"><span class="id" title="binder">l</span></a> : <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> (<a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Datatypes.html#option"><span class="id" title="inductive">option</span></a> <a class="idref" href="MailboxTypes.Util.html#MapMaybe.A"><span class="id" title="variable">A</span></a>)) : <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> (<a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Datatypes.html#option"><span class="id" title="inductive">option</span></a> <a class="idref" href="MailboxTypes.Util.html#MapMaybe.B"><span class="id" title="variable">B</span></a>) :=<br/>
+&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Lists.List.html#map"><span class="id" title="definition">map</span></a> <a class="idref" href="MailboxTypes.Util.html#f_maybe"><span class="id" title="definition">f_maybe</span></a> <a class="idref" href="MailboxTypes.Util.html#l:18"><span class="id" title="variable">l</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="MailboxTypes.Util.html#MapMaybe"><span class="id" title="section">MapMaybe</span></a>.<br/>
 </div>
 </div>
 <div id="footer">

@@ -96,7 +96,16 @@ Inductive PatternResidual : MPattern -> MPattern -> MPattern -> Prop :=
   | MPResComp : forall e e' f f' m,
       PatternResidual e (« m ») e' ->
       PatternResidual f (« m ») f' ->
-      PatternResidual (e ⊙ f) (« m ») ((e' ⊙ f) ⊕ (e ⊙ f')).
+      PatternResidual (e ⊙ f) (« m ») ((e' ⊙ f) ⊕ (e ⊙ f'))
+  (* This rule is not included in the paper, but otherwise we can't
+     use the ⋆-operator.
+     Also, this definition is included in the original paper from
+     2018.
+     TODO: Check if this rule breaks something
+  *)
+  | MPResStar : forall e m e',
+      PatternResidual e (« m ») e' ->
+      PatternResidual (⋆ e) (« m ») (e' ⊙ ⋆ e).
 
 (** Definition from Fig. 5 of pattern normal form for literals *)
 Inductive PNFLit : MPattern -> MPattern -> Prop :=
@@ -131,11 +140,16 @@ Proof.
   apply MPValueOne.
 Qed.
 
-Lemma MPInclusion_trans : forall e f g, MPInclusion e f -> MPInclusion f g -> MPInclusion e g.
+Lemma MPInclusion_trans : forall e f g, e ⊑ f -> f ⊑ g -> e ⊑ g.
 Proof.
-  intros e f g Inc1 Inc2.
-  unfold MPInclusion in *.
+  intros e f g Inc1 Inc2;
+  unfold MPInclusion in *;
   intuition.
+Qed.
+
+Lemma MPInclusion_refl : forall e, e ⊑ e.
+Proof.
+  intro e; unfold MPInclusion in *; intuition.
 Qed.
 
 Lemma MPEqual_refl : forall e, e ≈ e.
@@ -207,6 +221,9 @@ Proof.
       etransitivity. symmetry. apply mbEq. apply mbEq2.
 Qed.
 
+
+(** Proper instances to allow setoid rewrites under different contexts *)
+
 Global Instance mailbox_eq_valueOf_Proper : Proper (mailbox_eq ==> MPEqual ==> iff) valueOf.
 Proof.
   intros m1 m2 mbEq mp1 mp2 mpEq.
@@ -221,6 +238,87 @@ Proof.
     apply mbEq.
     now setoid_rewrite mpEq.
 Qed.
+
+Global Instance MPEqual_Proper : Proper (MPEqual ==> MPEqual ==> iff) MPEqual.
+Proof.
+  intros e1 f1 Eq1 e2 f2 Eq2.
+  split.
+  - intros Eq3.
+    rewrite <- Eq1.
+    rewrite <- Eq2.
+    apply Eq3.
+  - intros Eq3.
+    rewrite Eq1.
+    rewrite Eq2.
+    apply Eq3.
+Qed.
+
+Global Instance MPComp_Proper : Proper (MPEqual ==> MPEqual ==> MPEqual) MPComp.
+Proof.
+  intros e1 f1 Eq1 e2 f2 Eq2.
+  unfold "≈".
+  unfold "⊑".
+  split; intros m mIn; inversion mIn; subst.
+  - eapply MPValueComp with (a := a) (b := b).
+    now rewrite <- Eq1.
+    now rewrite <- Eq2.
+    easy.
+  - eapply MPValueComp with (a := a) (b := b).
+    now rewrite Eq1.
+    now rewrite Eq2.
+    easy.
+Defined.
+
+Global Instance MPChoice_Proper : Proper (MPEqual ==> MPEqual ==> MPEqual) MPChoice.
+Proof.
+  intros e1 f1 Eq1 e2 f2 Eq2.
+  unfold "≈".
+  unfold "⊑".
+  split; intros m mIn; inversion mIn; subst.
+  - apply MPValueChoiceLeft.
+    now rewrite <- Eq1.
+  - apply MPValueChoiceRight.
+    now rewrite <- Eq2.
+  - apply MPValueChoiceLeft.
+    now rewrite Eq1.
+  - apply MPValueChoiceRight.
+    now rewrite Eq2.
+Defined.
+
+Global Instance Pow_Proper : Proper (MPEqual ==> eq ==> MPEqual) Pow.
+Proof.
+  intros e f Eq x y EqN.
+  subst.
+  induction y.
+  - simpl. reflexivity.
+  - simpl.
+    unfold "≈".
+    unfold "⊑" in *.
+    split; intros m mIn; inversion mIn; subst.
+    + apply MPValueComp with (a := a) (b := b).
+      now rewrite <- Eq.
+      now rewrite <- IHy.
+      easy.
+    + apply MPValueComp with (a := a) (b := b).
+      now rewrite Eq.
+      now rewrite IHy.
+      easy.
+Defined.
+
+Global Instance MPStar_Proper : Proper (MPEqual ==> MPEqual) MPStar.
+Proof.
+  intros e f Eq.
+  unfold "≈".
+  unfold "⊑".
+  split; intros m mIn; inversion mIn; subst.
+  - destruct H1. rewrite Eq in H.
+    apply MPValueStar.
+    now exists x.
+  - destruct H1. rewrite <- Eq in H.
+    apply MPValueStar.
+    now exists x.
+Defined.
+
 
 Lemma MPChoice_unit : forall e, e ⊕ 𝟘 ≈ e.
 Proof.
