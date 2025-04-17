@@ -465,6 +465,76 @@ Proof.
     + econstructor. apply aIn. apply MPValueChoiceRight. apply bIn. apply Eq.
 Qed.
 
+Lemma valueOf_One : forall m, m ∈ 𝟙 -> m = ⟨⟩.
+Proof.
+  intro m; unfold not; intros mIn; inversion mIn;
+  subst; reflexivity.
+Qed.
+
+Lemma MPChoice_MPInclusion_One : forall e, e ⊑ 𝟙 ⊕ e.
+Proof.
+  unfold "⊑".
+  intros e m mIn.
+  now apply MPValueChoiceRight.
+Qed.
+
+Lemma MPComp_MPInclusion_One : forall e, e ⊑ e ⊙ 𝟙.
+Proof.
+  unfold "⊑".
+  intros e m mIn.
+  eapply MPValueComp.
+  apply mIn.
+  apply MPValueOne.
+  now rewrite <- mailbox_union_empty_right.
+Qed.
+
+Lemma MPStar_MPInclusion_rec : forall e, ⋆ e ⊑ 𝟙 ⊕ (e ⊙ ⋆ e).
+Proof.
+  unfold "⊑".
+  intros e m mIn.
+  inversion mIn; subst.
+  destruct H1 as [n pow].
+  induction n; simpl in pow.
+  - now apply MPValueChoiceLeft.
+  - apply MPValueChoiceRight;
+    inversion pow; subst;
+    apply MPValueComp with (a := a) (b := b);
+    try (easy);
+    constructor; now exists n.
+Qed.
+
+Lemma MPStar_union : forall m a b e,
+  m =ᵐᵇ a ⊎ b -> a ∈ e -> b ∈ ⋆ e -> m ∈ ⋆ e.
+Proof.
+  intros m a b e Eq aIn bIn.
+  inversion bIn; subst.
+  rename H1 into pow.
+  destruct pow as [n pow].
+  constructor.
+  exists (S n). simpl.
+  now apply MPValueComp with (a := a) (b := b).
+Qed.
+
+Lemma MPStar_valueOf_inv : forall m e, m ∈ e ⊙ ⋆ e -> m ∈ ⋆ e.
+Proof.
+  intros m e mIn.
+  inversion mIn; subst.
+  now apply MPStar_union with (a := a) (b := b).
+Qed.
+
+Lemma MPStar_rec : forall e, ⋆ e ≈ ⋆ e ⊕ e ⊙ ⋆ e.
+Proof.
+  intros e.
+  unfold "≈".
+  unfold "⊑".
+  split.
+  - now apply MPValueChoiceLeft.
+  - intros m mIn.
+    inversion mIn; subst.
+    + easy.
+    + now apply MPStar_valueOf_inv.
+Qed.
+
 End MPattern_props.
 
 Require Import String.

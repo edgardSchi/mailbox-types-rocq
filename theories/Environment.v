@@ -35,6 +35,10 @@ Fixpoint lookup (n : nat) (env : Env) : option TUsage :=
   | S n', (_ :: env') => lookup n' env'
   end.
 
+(** Convert a list of types to an environment. This reverses the list. *)
+Definition toEnv (l : list TUsage) : Env :=
+  map Some (rev l).
+
 (** Definition 3.4 of environment subtyping.
     Subtyping of environments includes weakening for unrestricted types.
     This representation relates two environments of equal length, but
@@ -42,6 +46,9 @@ Fixpoint lookup (n : nat) (env : Env) : option TUsage :=
 *)
 Inductive EnvironmentSubtype : Env -> Env -> Prop :=
     EnvSubtypeEmpty : EnvironmentSubtype nil nil
+  | EnvSubtypeNone : forall env1 env2,
+      EnvironmentSubtype env1 env2 ->
+      EnvironmentSubtype (None :: env1) (None :: env2)
   | EnvSubtypeUn : forall env1 env2 T,
       Unrestricted T ->
       EnvironmentSubtype env1 env2 ->
@@ -57,6 +64,11 @@ Inductive EnvironmentSubtype : Env -> Env -> Prop :=
 *)
 Inductive EnvironmentCombination : Env -> Env -> Env -> Prop :=
     EnvCombEmpty : EnvironmentCombination nil nil nil
+  (* Special constructor for our representation of environments *)
+  (* TODO: Check if this is correct *)
+  | EnvCombNone : forall env1 env2 env,
+      EnvironmentCombination env1 env2 env ->
+      EnvironmentCombination (None :: env1) (None :: env2) (None :: env)
   | EnvCombLeft : forall env1 env2 env T,
       EnvironmentCombination env1 env2 env ->
       EnvironmentCombination (Some T :: env1) (None :: env2) (Some T :: env)
@@ -109,6 +121,17 @@ Fixpoint BaseEnv (e : Env) : Prop :=
   | (Some (TUBase _) :: env') => BaseEnv env'
   | (None :: env') => BaseEnv env'
   | _ => False
+  end.
+
+(** An empty environment contains only None as entries *)
+Definition EmptyEnv (e : Env) : Prop := Forall (fun x => x = None) e.
+
+(** A singleton environment contains only a single type *)
+Fixpoint SingletonEnv (e : Env) : Prop :=
+  match e with
+  | nil => False
+  | None :: e' => SingletonEnv e'
+  | (Some _) :: e' => EmptyEnv e'
   end.
 
 End environment_def.
