@@ -52,94 +52,121 @@ with Guard : Type :=
   | GReceive : Message -> list VarName -> VarName -> Term -> Guard.
 
 Inductive FunctionDefinition : Type :=
-  | FunDef : DefinitionName -> list TUsage -> TUsage -> Term -> FunctionDefinition.
+  | FunDef : DefinitionName ->
+             list TUsage ->
+             TUsage ->
+             Term ->
+             FunctionDefinition.
+
+Record Prog : Type :=
+  {
+    signature : Message -> list TType
+  ; definitions : DefinitionName -> (list TUsage) * TUsage * Term
+  ; initialTerm : Term
+  }.
 
 (* TODO: Put f and g into a typeclass? *)
 (* TODO: Include body term in g *)
-Inductive WellTypedTerm {f : Message -> list TType} {g : DefinitionName -> (list TUsage) * TUsage} : Env -> Term -> TUsage -> Prop :=
+Inductive WellTypedTerm (prog : Prog) :
+  Env ->
+  Term ->
+  TUsage -> Prop :=
   (* Var *)
   | VAR   : forall v env T,
       SingletonEnv env ->
       lookup v env = Some T ->
-      WellTypedTerm env (TValue (ValueVar (Var v))) T
+      WellTypedTerm prog env (TValue (ValueVar (Var v))) T
   (* Consts *)
   | TRUE  : forall env,
       EmptyEnv env ->
-      WellTypedTerm env (TValue (ValueBool true)) (TUBase BTBool)
+      WellTypedTerm prog env (TValue (ValueBool true)) (TUBase BTBool)
   | FALSE : forall env,
       EmptyEnv env ->
-      WellTypedTerm env (TValue (ValueBool false)) (TUBase BTBool)
+      WellTypedTerm prog env (TValue (ValueBool false)) (TUBase BTBool)
   | UNIT  : forall env,
       EmptyEnv env ->
-      WellTypedTerm env (TValue ValueUnit) (TUBase BTUnit)
+      WellTypedTerm prog env (TValue ValueUnit) (TUBase BTUnit)
   (* App *)
-  | APP : forall env envList vList definition bodyType argumentTypes,
-      g definition = (argumentTypes, bodyType) ->
+  | APP : forall env envList vList definition bodyType argumentTypes term,
+      definitions prog definition = (argumentTypes, bodyType, term) ->
       [ envList ]+ₑ ~= env ->
-      Forall3 WellTypedTerm envList (map TValue vList) (argumentTypes) ->
-      WellTypedTerm env (TApp definition vList) bodyType
+      Forall3 (WellTypedTerm prog) envList (map TValue vList) (argumentTypes) ->
+      WellTypedTerm prog env (TApp definition vList) bodyType
   (* Let *)
   | LET   : forall env env1 env2 T1 T2 t1 t2, 
       env1 ▷ₑ env2 ~= env ->
-      WellTypedTerm env1 t1 ⌊ T1 ⌋ ->
-      WellTypedTerm (Some ⌊ T1 ⌋ :: env2) t2 T2 ->
-      WellTypedTerm env (TLet t1 t2) T2
+      WellTypedTerm prog env1 t1 ⌊ T1 ⌋ ->
+      WellTypedTerm prog (Some ⌊ T1 ⌋ :: env2) t2 T2 ->
+      WellTypedTerm prog env (TLet t1 t2) T2
   (* Spawn *)
   | SPAWN : forall env t,
-      WellTypedTerm env t (TUBase BTUnit) ->
-      WellTypedTerm ⌈ env ⌉ₑ (TSpawn t) (TUBase BTUnit)
+      WellTypedTerm prog env t (TUBase BTUnit) ->
+      WellTypedTerm prog ⌈ env ⌉ₑ (TSpawn t) (TUBase BTUnit)
   (* New *)
   | NEW : forall env,
       EmptyEnv env ->
-      WellTypedTerm env TNew (? 𝟙 ^^ •)
+      WellTypedTerm prog env TNew (? 𝟙 ^^ •)
   (* Send *)
   (* TODO: Maybe try a recursive approach with this rule *)
   | SEND : forall env env' envList tList vList m v,
-      WellTypedTerm env' (TValue v) (! « m » ^^ ◦) ->
-      f m = tList ->
+      WellTypedTerm prog env' (TValue v) (! « m » ^^ ◦) ->
+      signature prog m = tList ->
       [ (env' :: envList) ]+ₑ ~= env ->
-      Forall3 WellTypedTerm envList (map TValue vList) (map secondType tList) ->
-      WellTypedTerm env (TSend v m vList) (TUBase BTUnit)
+      Forall3 (WellTypedTerm prog) envList (map TValue vList) (map secondType tList) ->
+      WellTypedTerm prog env (TSend v m vList) (TUBase BTUnit)
   (* Guard TODO *)
   | GUARD : forall env env1 env2 guards v T e f,
       env1 +ₑ env2 ~= env ->
-      WellTypedTerm env1 (TValue v) (? f ^^ •) ->
-      WellTypedGuards env2 guards T f ->
+      WellTypedTerm prog env1 (TValue v) (? f ^^ •) ->
+      WellTypedGuards prog env2 guards T f ->
       e ⊑ f ->
       (* TODO: Check if this is correct *)
       f ⊧ f ->
-      WellTypedTerm env (TGuard v e guards) T
+      WellTypedTerm prog env (TGuard v e guards) T
   (* Sub *)
   | SUB : forall t env1 env2 T1 T2,
       env1 ≤ₑ env2 ->
       T1 ≤ T2 ->
-      WellTypedTerm env2 t T1 ->
-      WellTypedTerm env1 t T2
-with WellTypedGuards {f : Message -> list TType} {g : DefinitionName -> (list TUsage) * TUsage} : Env -> list Guard -> TUsage -> MPattern -> Prop :=
+      WellTypedTerm prog env2 t T1 ->
+      WellTypedTerm prog env1 t T2
+with WellTypedGuards (prog : Prog) :
+  Env ->
+  list Guard ->
+  TUsage ->
+  MPattern -> Prop :=
   | SINGLE : forall T e env g,
-      WellTypedGuard env g T e ->
-      WellTypedGuards env (g :: nil) T e
+      WellTypedGuard prog env g T e ->
+      WellTypedGuards prog env (g :: nil) T e
   | SEQ : forall T e es env guards g,
-      WellTypedGuard env g T e ->
-      WellTypedGuards env guards T es ->
-      WellTypedGuards env (g :: guards) T (e ⊕ es)
-with WellTypedGuard {f : Message -> list TType} {g : DefinitionName -> (list TUsage) * TUsage} : Env -> Guard -> TUsage -> MPattern -> Prop :=
+      WellTypedGuard prog env g T e ->
+      WellTypedGuards prog env guards T es ->
+      WellTypedGuards prog env (g :: guards) T (e ⊕ es)
+with WellTypedGuard (prog : Prog) :
+  Env ->
+  Guard ->
+  TUsage ->
+  MPattern -> Prop :=
   (* Fail *)
-  | FAIL : forall t env, WellTypedGuard env GFail t 𝟘
+  | FAIL : forall t env, WellTypedGuard prog env GFail t 𝟘
   (* Free *)
-  | FREE : forall t env T, WellTypedTerm env t T -> WellTypedGuard env (GFree t) T 𝟙
+  | FREE : forall t env T,
+      WellTypedTerm prog env t T ->
+      WellTypedGuard prog env (GFree t) T 𝟙
   (* Receive *)
   | RECEIVE : forall t m env T tList vList e mailbox,
-      f m = tList ->
+      signature prog m = tList ->
       BaseTypes tList \/ BaseEnv env ->
-      WellTypedTerm ((toEnv (map secondType tList)) ++ [Some (? e ^^ •)] ++ env) t T ->
+      WellTypedTerm prog ((toEnv (map secondType tList)) ++ [Some (? e ^^ •)] ++ env) t T ->
       (* TODO: Check if this makes sense with environments and variables *)
-      WellTypedGuard env (GReceive m vList mailbox t) T (« m » ⊙ e).
+      WellTypedGuard prog env (GReceive m vList mailbox t) T (« m » ⊙ e).
 
-Inductive WellTypedDefinition {f : Message -> list TType} {g : DefinitionName -> (list TUsage) * TUsage} : FunctionDefinition -> Prop :=
+Inductive WellTypedDefinition (prog : Prog) : FunctionDefinition -> Prop :=
   | FUNDEF : forall defName argumentTypes body bodyType,
-      @WellTypedTerm f g (toEnv argumentTypes) body bodyType ->
-      WellTypedDefinition (FunDef defName argumentTypes bodyType body).
+      WellTypedTerm prog (toEnv argumentTypes) body bodyType ->
+      WellTypedDefinition prog (FunDef defName argumentTypes bodyType body).
+
+Inductive WellTypedProgram (prog : Prog) : Prop :=
+  PROG : WellTypedTerm prog nil (initialTerm prog) (TUBase BTUnit) -> WellTypedProgram prog.
 
 End syntax_def.
 
@@ -182,13 +209,7 @@ Definition EmptyFutureType : @MType Future FutureMessage :=
 Definition FullFutureType : @MType Future FutureMessage :=
   ? ⋆ « Get ».
 
-Definition FutureDefinitions (d : FutureDefinition) : (list TUsage) * TUsage :=
-  match d with
-  | EmptyFutureDef => (((EmptyFutureType ^^ •) :: nil), (TUBase BTUnit))
-  | FullFutureDef => (((FullFutureType ^^ •) :: (TUBase BTBool) :: nil), (TUBase BTUnit))
-  | ClientDef => (nil, (TUBase BTUnit))
-  end.
-
+(** Defining the signature of messages *)
 Definition FutureMessageTypes (m : Future) : list TType :=
   match m with
   | Reply => TTBase BTBool :: nil
@@ -199,20 +220,83 @@ Definition FutureMessageTypes (m : Future) : list TType :=
 (** Definition of the function emptyFuture from the paper
     emptyFuture : EmptyFutureType -> 1
 *)
-Definition EmptyFuture : @FunctionDefinition Future FutureMessage FutureDefinition :=
-  FunDef EmptyFutureDef [ EmptyFutureType ^^ • ] (TUBase BTUnit)
-    (TGuard (ValueVar (Var 0)) (« Put » ⊙ (⋆ « Get »)) [
-      GReceive Put [ Var 0 ] (Var 1) (TApp FullFutureDef [ValueVar (Var 1) ; ValueVar (Var 0)])
-    ]).
+Definition EmptyFutureBody : Term :=
+  TGuard (ValueVar (Var 0)) (« Put » ⊙ (⋆ « Get »)) [
+    GReceive Put [ Var 0 ] (Var 1) (TApp FullFutureDef [ValueVar (Var 1) ; ValueVar (Var 0)])
+  ].
+
+Definition EmptyFuture : FunctionDefinition :=
+  FunDef EmptyFutureDef [ EmptyFutureType ^^ • ] (TUBase BTUnit) EmptyFutureBody.
+
+(** Definition of the function fullFuture from the paper
+    fullFuture : FullFutureType -> 1
+*)
+Definition FullFutureBody : Term :=
+  TGuard (ValueVar (Var 1)) (⋆ « Get ») [
+    GFree (TValue ValueUnit) ;
+    GReceive Get [ Var 0 ] (Var 1)
+      (TLet
+        (TSend (ValueVar (Var 0)) Reply [(ValueVar (Var 2))])
+        (TApp FullFutureDef [ValueVar (Var 2) ; ValueVar (Var 3)])
+      )
+  ].
+
+Definition FullFuture : FunctionDefinition :=
+  FunDef FullFutureDef [ FullFutureType ^^ • ; (TUBase BTBool) ] (TUBase BTUnit) FullFutureBody.
+
+(** Definition of the function client from the paper
+    client : 1
+*)
+Definition ClientBody : Term :=
+  TLet
+    (TNew)
+    (TLet
+      (TSpawn (TApp EmptyFutureDef [ValueVar (Var 0)]))
+      (TLet
+        (TNew)
+        (TLet
+          (TSend (ValueVar (Var 2)) Put [ValueBool true])
+          (TLet
+            (TSend (ValueVar (Var 3)) Get [ValueVar (Var 1)])
+            (TGuard (ValueVar (Var 2)) (« Reply ») [
+              GReceive Reply [Var 0] (Var 2) (
+                (TLet
+                  (TGuard (ValueVar (Var 1)) 𝟙 [(GFree (TValue ValueUnit))])
+                  (TValue ValueUnit)
+                )
+              )]
+            )
+          )
+        )
+      )
+    ).
+
+Definition Client : FunctionDefinition :=
+  FunDef ClientDef [] (TUBase BTUnit) ClientBody.
+
+(** Defining the function returning function definitons *)
+Definition FutureDefinitions (d : FutureDefinition) : (list TUsage) * TUsage * Term :=
+  match d with
+  | EmptyFutureDef => (((EmptyFutureType ^^ •) :: nil), (TUBase BTUnit), EmptyFutureBody)
+  | FullFutureDef => (((FullFutureType ^^ •) :: (TUBase BTBool) :: nil), (TUBase BTUnit), FullFutureBody)
+  | ClientDef => (nil, (TUBase BTUnit), ClientBody)
+  end.
+
+Definition FutureProgram :=
+  {|
+    signature := FutureMessageTypes
+  ; definitions := FutureDefinitions
+  ; initialTerm := ClientBody
+  |}.
 
 (** Function emptyFuture is well-typed
     |- emptyFuture
 *)
 Lemma EmptyFutureWellTyped :
-  @WellTypedDefinition Future FutureMessage FutureDefinition
-    FutureMessageTypes FutureDefinitions EmptyFuture.
+  WellTypedDefinition FutureProgram EmptyFuture.
 Proof.
-  constructor.
+  unfold EmptyFuture. unfold EmptyFutureBody.
+  eapply FUNDEF; simpl.
   eapply GUARD with (env2 := (None :: nil)) (env1 := (Some (EmptyFutureType ^^ •)) :: nil) (f := (« Put » ⊙ (⋆ « Get »))).
   - simpl. repeat constructor.
   - constructor; simpl. constructor. f_equal.
@@ -221,7 +305,7 @@ Proof.
     + right. constructor.
     + simpl.
       eapply APP
-      with (argumentTypes := fst (FutureDefinitions FullFutureDef))
+      with (argumentTypes := fst (fst (FutureDefinitions FullFutureDef)))
            (envList := ((None :: Some (FullFutureType ^^ •) :: None :: nil) :: (Some (TUBase BTBool) :: None :: None :: nil) :: nil)).
       * easy.
       * repeat constructor.
@@ -243,26 +327,11 @@ Proof.
       now rewrite MPChoice_unit.
 Qed.
 
-(** Definition of the function fullFuture from the paper
-    fullFuture : FullFutureType -> 1
-*)
-Definition FullFuture : @FunctionDefinition Future FutureMessage FutureDefinition :=
-  FunDef FullFutureDef [ FullFutureType ^^ • ; (TUBase BTBool) ] (TUBase BTUnit)
-    (TGuard (ValueVar (Var 1)) (⋆ « Get ») [
-      GFree (TValue ValueUnit) ;
-      GReceive Get [ Var 0 ] (Var 1)
-        (TLet
-          (TSend (ValueVar (Var 0)) Reply [(ValueVar (Var 2))])
-          (TApp FullFutureDef [ValueVar (Var 2) ; ValueVar (Var 3)])
-        )
-    ]).
-
 (** Function emptyFuture is well-typed
     |- emptyFuture
 *)
 Lemma FullFutureWellTyped :
-  @WellTypedDefinition Future FutureMessage FutureDefinition
-    FutureMessageTypes FutureDefinitions FullFuture.
+  WellTypedDefinition FutureProgram FullFuture.
 Proof.
   constructor.
   simpl.
@@ -325,65 +394,8 @@ Proof.
         apply MPStar_rec.
 Qed.
 
-Definition Client : @FunctionDefinition Future FutureMessage FutureDefinition :=
-  FunDef ClientDef [] (TUBase BTUnit)
-    (TLet
-      (TNew)
-      (TLet
-        (TSpawn (TApp EmptyFutureDef [ValueVar (Var 0)]))
-        (TLet
-          (TNew)
-          (TLet
-            (TSend (ValueVar (Var 1)) Put [ValueBool true])
-            (TLet
-              (TSend (ValueVar (Var 3)) Get [ValueVar (Var 2)])
-              (TGuard (ValueVar (Var 3)) (« Reply ») [
-                GReceive Reply [Var 0] (Var 3) (
-                  (TLet
-                    (TGuard (ValueVar (Var 4)) 𝟙 [(GFree (TValue (ValueVar (Var 4))))])
-                    (TValue ValueUnit)
-                  )
-                )
-              ]
-              )
-            )
-          )
-        )
-      )
-    ).
-
-(*
-Definition Client : @FunctionDefinition Future FutureMessage FutureDefinition :=
-  FunDef ClientDef [] (TUBase BTUnit)
-    (TLet
-      (TLet
-        (TNew)
-        (TSpawn (TApp EmptyFutureDef [ValueVar (Var 0)]))
-      )
-      (TLet
-        (TNew)
-        (TLet
-          (TSend (ValueVar (Var 1)) Put [ValueBool true])
-          (TLet
-            (TSend (ValueVar (Var 3)) Get [ValueVar (Var 2)])
-            (TGuard (ValueVar (Var 3)) (« Reply ») [
-              GReceive Reply [Var 0] (Var 3) (
-                (TLet
-                  (TGuard (ValueVar (Var 4)) 𝟙 [(GFree (TValue (ValueVar (Var 4))))])
-                  (TValue ValueUnit)
-                )
-              )
-            ]
-            )
-          )
-        )
-      )
-    ).
-*)
-
 Lemma ClientWellTyped :
-  @WellTypedDefinition Future FutureMessage FutureDefinition
-    FutureMessageTypes FutureDefinitions Client.
+  WellTypedDefinition FutureProgram Client.
 Proof.
   constructor.
   eapply LET with (T1 := TTMailbox (? 𝟙)); simpl.
@@ -423,10 +435,65 @@ Proof.
         eapply SUB with (env2 := None :: None :: nil);
         repeat constructor.
         apply MPInclusion_refl.
-      * eapply LET with (T1 := TTBase BTUnit).
-        (* TODO: Continue *)
-Admitted.
-
-
+      * eapply LET with
+          (T1 := TTBase BTUnit)
+          (env1 := None :: None :: Some (! « Put » ^^ ◦) :: nil).
+        -- repeat constructor.
+        -- eapply SEND with
+             (env' := None :: None :: Some (! « Put » ^^ ◦) :: nil)
+             (envList := (None :: None :: None :: nil) :: nil).
+           ++ repeat constructor.
+           ++ easy.
+           ++ repeat constructor.
+           ++ repeat constructor.
+        -- eapply LET with
+            (T1 := TTBase BTUnit)
+            (env1 := None :: Some (! « Reply » ^^ ◦) :: None :: Some (! « Get » ^^ •) :: nil).
+           ++ repeat constructor.
+           ++ eapply SEND with
+               (env' := None :: None :: None :: Some (! « Get » ^^ •) :: nil).
+              ** eapply SUB with
+                  (env2 := None :: None :: None :: Some (! « Get » ^^ ◦) :: nil).
+                 --- repeat constructor. apply MPInclusion_refl.
+                 --- constructor. apply MPInclusion_refl. constructor.
+                 --- repeat constructor.
+              ** easy.
+              ** repeat constructor.
+              ** repeat constructor.
+           ++ eapply SUB with
+                  (env2 := None :: None :: Some (? « Reply » ⊙ 𝟙 ^^ •) :: None :: None :: nil).
+              ** repeat constructor. apply MPInclusion_refl.
+              ** constructor.
+              ** eapply GUARD with
+                   (f := « Reply » ⊙ 𝟙) (env2 := None :: None :: None :: None :: None :: nil).
+                 --- repeat constructor.
+                 --- repeat constructor.
+                 --- constructor. eapply RECEIVE.
+                     +++ easy.
+                     +++ right. constructor.
+                     +++ simpl.
+                         eapply LET with
+                           (T1 := TTBase BTUnit)
+                           (env1 := None :: Some (? 𝟙 ^^ •) :: None :: None :: None :: None :: None:: nil).
+                           *** repeat constructor.
+                           *** eapply GUARD.
+                               ----  constructor. apply EnvDisCombLeft. repeat constructor.
+                               ---- repeat constructor.
+                               ---- repeat constructor.
+                               ---- apply MPInclusion_refl.
+                               ---- repeat constructor.
+                           *** eapply SUB with
+                                 (env2 := None :: None :: None :: None :: None :: None :: None :: None :: nil).
+                               ---- repeat constructor.
+                               ---- repeat constructor.
+                               ---- repeat constructor.
+                 --- intros m mIn. now rewrite MPComp_unit.
+                 --- repeat constructor.
+                     eapply PNFLitComp.
+                     repeat constructor.
+                     rewrite MPComp_unit.
+                     rewrite MPComp_zero_right.
+                     now rewrite MPChoice_unit.
+Qed.
 
 End Examples.

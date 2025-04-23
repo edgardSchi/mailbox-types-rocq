@@ -151,7 +151,7 @@ Proof.
   right; unfold not; intros; discriminate H.
 Defined.
 
-Global Instance SendReceiveMessage : IMessage SendReceive :=
+Instance SendReceiveMessage : IMessage SendReceive :=
 {
   eq_dec := SendReceive_eq_dec
 }.
