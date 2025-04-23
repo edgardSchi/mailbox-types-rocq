@@ -48,6 +48,7 @@ Inductive Term : Type :=
 with Guard : Type :=
     GFail : Guard
   | GFree : Term -> Guard
+  (* TODO: Remove list of variables *)
   | GReceive : Message -> list VarName -> VarName -> Term -> Guard.
 
 Inductive FunctionDefinition : Type :=
@@ -88,7 +89,9 @@ Inductive WellTypedTerm {f : Message -> list TType} {g : DefinitionName -> (list
       WellTypedTerm env t (TUBase BTUnit) ->
       WellTypedTerm ⌈ env ⌉ₑ (TSpawn t) (TUBase BTUnit)
   (* New *)
-  | NEW : WellTypedTerm nil TNew (? 𝟙 ^^ •)
+  | NEW : forall env,
+      EmptyEnv env ->
+      WellTypedTerm env TNew (? 𝟙 ^^ •)
   (* Send *)
   (* TODO: Maybe try a recursive approach with this rule *)
   | SEND : forall env env' envList tList vList m v,
@@ -304,12 +307,11 @@ Proof.
               apply MPInclusion_refl.
               all: repeat constructor.
            ** constructor.
-           ** eapply APP.
+           ** eapply APP with
+              (envList := (None :: None :: Some (? ⋆ « Get » ^^ •) :: None :: None :: nil)
+               :: (None :: None :: None :: Some (TUBase BTBool) :: None :: nil) :: nil).
               --- easy.
-              --- do 3 constructor.
-                  apply EnvDisCombLeft.
-                  apply EnvDisCombRight.
-                  repeat constructor.
+              --- repeat constructor.
               --- repeat constructor.
   - apply MPStar_MPInclusion_rec.
   - constructor. constructor.
@@ -322,5 +324,109 @@ Proof.
         rewrite MPChoice_unit.
         apply MPStar_rec.
 Qed.
+
+Definition Client : @FunctionDefinition Future FutureMessage FutureDefinition :=
+  FunDef ClientDef [] (TUBase BTUnit)
+    (TLet
+      (TNew)
+      (TLet
+        (TSpawn (TApp EmptyFutureDef [ValueVar (Var 0)]))
+        (TLet
+          (TNew)
+          (TLet
+            (TSend (ValueVar (Var 1)) Put [ValueBool true])
+            (TLet
+              (TSend (ValueVar (Var 3)) Get [ValueVar (Var 2)])
+              (TGuard (ValueVar (Var 3)) (« Reply ») [
+                GReceive Reply [Var 0] (Var 3) (
+                  (TLet
+                    (TGuard (ValueVar (Var 4)) 𝟙 [(GFree (TValue (ValueVar (Var 4))))])
+                    (TValue ValueUnit)
+                  )
+                )
+              ]
+              )
+            )
+          )
+        )
+      )
+    ).
+
+(*
+Definition Client : @FunctionDefinition Future FutureMessage FutureDefinition :=
+  FunDef ClientDef [] (TUBase BTUnit)
+    (TLet
+      (TLet
+        (TNew)
+        (TSpawn (TApp EmptyFutureDef [ValueVar (Var 0)]))
+      )
+      (TLet
+        (TNew)
+        (TLet
+          (TSend (ValueVar (Var 1)) Put [ValueBool true])
+          (TLet
+            (TSend (ValueVar (Var 3)) Get [ValueVar (Var 2)])
+            (TGuard (ValueVar (Var 3)) (« Reply ») [
+              GReceive Reply [Var 0] (Var 3) (
+                (TLet
+                  (TGuard (ValueVar (Var 4)) 𝟙 [(GFree (TValue (ValueVar (Var 4))))])
+                  (TValue ValueUnit)
+                )
+              )
+            ]
+            )
+          )
+        )
+      )
+    ).
+*)
+
+Lemma ClientWellTyped :
+  @WellTypedDefinition Future FutureMessage FutureDefinition
+    FutureMessageTypes FutureDefinitions Client.
+Proof.
+  constructor.
+  eapply LET with (T1 := TTMailbox (? 𝟙)); simpl.
+  - constructor.
+  - apply NEW; constructor.
+  - eapply LET with (T1 := TTBase BTUnit); simpl.
+    + apply EnvCombBoth with
+        (T1 := ? ((« Put » ⊙  « Get ») ⊙  𝟙) ^^ ◦)
+        (T2 := ! (« Put » ⊙  « Get ») ^^ •).
+      * constructor.
+      * constructor. constructor.
+        apply TCombOutIn.
+    + apply SUB with
+        (T1 := TUBase BTUnit)
+        (env2 := Some (? (« Put » ⊙  ⋆ « Get ») ^^ ◦) :: nil).
+      * repeat constructor.
+        (* TODO: Move into own lemma *)
+        intros m mIn.
+        rewrite MPComp_unit in mIn.
+        inversion mIn; subst.
+        eapply MPValueComp.
+        apply H1.
+        constructor. exists 1. simpl. rewrite MPComp_unit. apply H3.
+        easy.
+      * constructor.
+      * assert (H : (Some (? « Put » ⊙ ⋆ « Get » ^^ ◦) :: nil) = ⌈ (Some (? « Put » ⊙ ⋆ « Get » ^^ •) :: nil) ⌉ₑ).
+        { reflexivity. }
+        rewrite H.
+        apply SPAWN.
+        eapply APP.
+        -- easy.
+        -- constructor.
+        -- repeat constructor.
+    + eapply LET with (T1 := TTMailbox (? 𝟙)) (env1 := None :: None :: nil). (*T1 := ? 𝟙 ^^ •).*)
+      * repeat constructor.
+      * simpl. 
+        eapply SUB with (env2 := None :: None :: nil);
+        repeat constructor.
+        apply MPInclusion_refl.
+      * eapply LET with (T1 := TTBase BTUnit).
+        (* TODO: Continue *)
+Admitted.
+
+
 
 End Examples.

@@ -25,10 +25,11 @@ Proof. constructor. Qed.
 
 End Forall3.
 
-Section MapMaybe.
+Section MaybeUtils.
 
 Variables A B : Type.
 Variable f : A -> B.
+Variable P : A -> Prop.
 
 Definition f_maybe (e : option A) : option B :=
   match e with
@@ -36,7 +37,16 @@ Definition f_maybe (e : option A) : option B :=
   | Some e' => Some (f e')
   end.
 
-Fixpoint map_maybe (l : list (option A)) : list (option B) :=
+Definition map_maybe (l : list (option A)) : list (option B) :=
   map f_maybe l.
 
-End MapMaybe.
+Definition ForallMaybe (l : list (option A)) : Prop :=
+  Forall
+    (fun x => match x with
+              | None => False
+              | Some a => P a
+              end
+    )
+    l.
+
+End MaybeUtils.

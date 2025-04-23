@@ -58,6 +58,23 @@ Inductive EnvironmentSubtype : Env -> Env -> Prop :=
       EnvironmentSubtype env1 env2 ->
       EnvironmentSubtype (Some T1 :: env1) (Some T2 :: env2).
 
+(** Strict environment subtyping.
+    Strict subtyping of environments is same as normal
+    subtyping but the domains of both environments must be
+    equal. In our representation this means that for every
+    index in every list, both contain either None or Some.
+*)
+Inductive EnvironmentSubtypeStrict : Env -> Env -> Prop :=
+    EnvSubtypeStrEmpty : EnvironmentSubtypeStrict nil nil
+  | EnvSubtypeStrNone : forall env1 env2,
+      EnvironmentSubtypeStrict env1 env2 ->
+      EnvironmentSubtypeStrict (None :: env1) (None :: env2)
+  | EnvSubtypeStrSub : forall env1 env2 T1 T2,
+      Subtype T1 T2 ->
+      EnvironmentSubtypeStrict env1 env2 ->
+      EnvironmentSubtypeStrict (Some T1 :: env1) (Some T2 :: env2).
+
+
 (** Definition 3.8 of environment combination.
     This representation relates three environments of equal length, but
     they may contain different amounts of types
@@ -103,7 +120,9 @@ Inductive EnvironmentDisjointCombination : Env -> Env -> Env -> Prop :=
         (Some (TUBase BT) :: env1) (Some (TUBase BT) :: env2) (Some (TUBase BT) :: env).
 
 Inductive EnvironmentDisjointCombinationN : list Env -> Env -> Prop :=
-    EnvDisComb2 : forall env env1 env2,
+  | EnvDisComb1 : forall env,
+      EnvironmentDisjointCombinationN [env] env
+  | EnvDisComb2 : forall env env1 env2,
       EnvironmentDisjointCombination env1 env2 env ->
       EnvironmentDisjointCombinationN [env1 ; env2] env
   | EnvDisCombN : forall env env1 env2 env3 envList,
@@ -141,8 +160,15 @@ Declare Scope environment_scope.
 Open Scope environment_scope.
 
 Notation "Env1 ≤ₑ Env2" := (EnvironmentSubtype Env1 Env2) (at level 80) : environment_scope.
+Notation "Env1 ≼ₑ Env2" := (EnvironmentSubtypeStrict Env1 Env2) (at level 80) : environment_scope.
 Notation "Env1 ▷ₑ Env2 ~= Env" := (EnvironmentCombination Env1 Env2 Env) (at level 80) : environment_scope.
 Notation "Env1 +ₑ Env2 ~= Env" := (EnvironmentDisjointCombination Env1 Env2 Env) (at level 80) : environment_scope.
 Notation "[ Env1 ]+ₑ ~= Env" := (EnvironmentDisjointCombinationN Env1 Env) (at level 80) : environment_scope.
 Notation "⌊ Env ⌋ₑ" := (returnEnvironment Env) : environment_scope.
 Notation "⌈ Env ⌉ₑ" := (secondEnvironment Env) : environment_scope.
+
+Section environment_properties.
+
+Context `{M : IMessage Message}.
+
+End environment_properties.
