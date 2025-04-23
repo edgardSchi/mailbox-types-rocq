@@ -5,3 +5,5 @@ Types.v
 Syntax.v
 Util.v
 Environment.v
+TypingRules.v
+Example.v

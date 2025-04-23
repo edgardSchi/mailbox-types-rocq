@@ -15,7 +15,7 @@ Section type_def.
 Context `{M : IMessage Message}.
 
 (** Mailbox type definition *)
-Inductive MType `{IMessage Message} : Type :=
+Inductive MType (*`{IMessage Message}*) : Type :=
     MTOutput : MPattern -> MType
   | MTInput  : MPattern -> MType.
 
