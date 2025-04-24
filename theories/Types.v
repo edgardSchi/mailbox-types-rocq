@@ -161,7 +161,6 @@ Definition TUCruft (t : TUsage) : Prop :=
   | _ => False
   end.
 
-
 End mailbox_types_classes.
 
 Section mailbox_combinations.
@@ -201,3 +200,19 @@ End mailbox_combinations.
 Notation "T ⊞ U ~= V" := (TypeCombination T U V) (at level 80) : types_scope.
 Notation "n1 ▷ⁿ n2 ~= n" := (UsageCombination n1 n2 n) (at level 80) : types_scope.
 Notation "J ▷ K ~= L" := (TypeUsageCombination J K L) (at level 80) : types_scope.
+
+
+Section mailbox_types_properties.
+  Context `{M : IMessage Message}.
+
+  Lemma SubtypeReliable : forall a b n1 n2, (a ^^ n1) ≤ (b ^^ n2) -> Reliable a -> Reliable b.
+  Proof.
+    intros a b n1 n2 Sub_a Rel.
+    unfold Reliable in *.
+    intros n.
+    unfold not.
+    intro Sub_b.
+    inversion Sub_b; subst.
+    inversion Sub_a; subst.
+  Admitted.
+End mailbox_types_properties.
