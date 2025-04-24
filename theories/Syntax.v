@@ -68,7 +68,8 @@ Inductive FunctionDefinition : Type :=
 Record Prog : Type :=
   {
     signature : Message -> list TType
-  ; definitions : DefinitionName -> (list TUsage) * TUsage * Term
+  (*; definitions : DefinitionName -> (list TUsage) * TUsage * Term*)
+  ; definitions : DefinitionName -> FunctionDefinition
   ; initialTerm : Term
   }.
 

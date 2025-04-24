@@ -33,7 +33,7 @@ Inductive WellTypedTerm (prog : Prog) : Env -> Term -> TUsage -> Prop :=
       WellTypedTerm prog env (TValue ValueUnit) (TUBase BTUnit)
   (* App *)
   | APP : forall env envList vList definition bodyType argumentTypes term,
-      definitions prog definition = (argumentTypes, bodyType, term) ->
+      definitions prog definition = (FunDef definition argumentTypes bodyType term) ->
       [ envList ]+ₑ ~= env ->
       Forall3 (WellTypedTerm prog) envList (map TValue vList) (argumentTypes) ->
       WellTypedTerm prog env (TApp definition vList) bodyType
@@ -101,6 +101,8 @@ Inductive WellTypedDefinition (prog : Prog) : FunctionDefinition -> Prop :=
       WellTypedDefinition prog (FunDef defName argumentTypes bodyType body).
 
 Inductive WellTypedProgram (prog : Prog) : Prop :=
-  PROG : WellTypedTerm prog nil (initialTerm prog) (TUBase BTUnit) -> WellTypedProgram prog.
+  PROG :
+    (forall def, WellTypedDefinition prog (definitions prog def)) ->
+    WellTypedTerm prog nil (initialTerm prog) (TUBase BTUnit) -> WellTypedProgram prog.
 
 End typing_rules_def.

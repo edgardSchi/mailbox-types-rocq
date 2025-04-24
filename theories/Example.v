@@ -8,11 +8,13 @@ Import ListNotations.
 
 Section future_example.
 
+(** [Future] defines the message atoms *)
 Inductive Future : Type :=
   | Put   : Future
   | Get   : Future
   | Reply : Future.
 
+(** We show that [Future] has decidable equality *)
 Instance FutureMessage : IMessage Future.
 Proof.
   constructor;
@@ -21,11 +23,13 @@ Proof.
   try (now right).
 Defined.
 
+(** Function definition names used in the program *)
 Inductive FutureDefinition : Type :=
   | EmptyFutureDef : FutureDefinition
   | FullFutureDef  : FutureDefinition
   | ClientDef      : FutureDefinition.
 
+(** We show that [FutureDefinitionName] has decidable equality *)
 Instance FutureDefinitionName : IDefinitionName FutureDefinition.
 Proof.
   constructor; destruct m; destruct n;
@@ -33,6 +37,7 @@ Proof.
   try (now right).
 Defined.
 
+(** We define the appropriate types used in the program *)
 Definition ClientSendType : @MType Future FutureMessage :=
   ! « Reply ».
 
@@ -111,11 +116,11 @@ Definition Client : FunctionDefinition :=
   FunDef ClientDef [] (TUBase BTUnit) ClientBody.
 
 (** Defining the function returning function definitons *)
-Definition FutureDefinitions (d : FutureDefinition) : (list TUsage) * TUsage * Term :=
+Definition FutureDefinitions (d : FutureDefinition) : FunctionDefinition :=
   match d with
-  | EmptyFutureDef => (((EmptyFutureType ^^ •) :: nil), (TUBase BTUnit), EmptyFutureBody)
-  | FullFutureDef => (((FullFutureType ^^ •) :: (TUBase BTBool) :: nil), (TUBase BTUnit), FullFutureBody)
-  | ClientDef => (nil, (TUBase BTUnit), ClientBody)
+  | EmptyFutureDef => FunDef EmptyFutureDef [EmptyFutureType ^^ •] (TUBase BTUnit) EmptyFutureBody
+  | FullFutureDef => FunDef FullFutureDef [FullFutureType ^^ •; (TUBase BTBool)] (TUBase BTUnit) FullFutureBody
+  | ClientDef => FunDef ClientDef [] (TUBase BTUnit) ClientBody
   end.
 
 Definition FutureProgram :=
@@ -140,9 +145,8 @@ Proof.
     + easy.
     + right. constructor.
     + simpl.
-      eapply APP
-      with (argumentTypes := fst (fst (FutureDefinitions FullFutureDef)))
-           (envList := ((None :: Some (FullFutureType ^^ •) :: None :: nil) :: (Some (TUBase BTBool) :: None :: None :: nil) :: nil)).
+      eapply APP with
+        (envList := ((None :: Some (FullFutureType ^^ •) :: None :: nil) :: (Some (TUBase BTBool) :: None :: None :: nil) :: nil)).
       * easy.
       * repeat constructor.
       * simpl. constructor.
@@ -230,10 +234,8 @@ Proof.
         apply MPStar_rec.
 Qed.
 
-Lemma ClientWellTyped :
-  WellTypedDefinition FutureProgram Client.
+Lemma ClientBodyWellTyped : WellTypedTerm FutureProgram [] ClientBody (TUBase BTUnit).
 Proof.
-  constructor.
   eapply LET with (T1 := TTMailbox (? 𝟙)); simpl.
   - constructor.
   - apply NEW; constructor.
@@ -330,6 +332,23 @@ Proof.
                      rewrite MPComp_unit.
                      rewrite MPComp_zero_right.
                      now rewrite MPChoice_unit.
+Qed.
+
+Lemma ClientWellTyped :
+  WellTypedDefinition FutureProgram Client.
+Proof.
+  constructor.
+  apply ClientBodyWellTyped.
+Qed.
+
+Lemma FutureProgramWellTyped : WellTypedProgram FutureProgram.
+Proof.
+  apply PROG.
+  - destruct def; simpl.
+    + apply EmptyFutureWellTyped.
+    + apply FullFutureWellTyped.
+    + apply ClientWellTyped.
+  - simpl. apply ClientBodyWellTyped.
 Qed.
 
 End future_example.
