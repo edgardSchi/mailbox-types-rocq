@@ -205,14 +205,37 @@ Notation "J ▷ K ~= L" := (TypeUsageCombination J K L) (at level 80) : types_sc
 Section mailbox_types_properties.
   Context `{M : IMessage Message}.
 
+  (** Subtyping preserves reliability.
+      Proof based on Ugo de’Liguoro and Luca Padovani Prop. 26
+      In Fowler et al. this is Lemma D.6
+  *)
   Lemma SubtypeReliable : forall a b n1 n2, (a ^^ n1) ≤ (b ^^ n2) -> Reliable a -> Reliable b.
   Proof.
     intros a b n1 n2 Sub_a Rel.
     unfold Reliable in *.
-    intros n.
-    unfold not.
-    intro Sub_b.
-    inversion Sub_b; subst.
-    inversion Sub_a; subst.
-  Admitted.
+    destruct a; inversion Sub_a as [| ? ? ? ? Inc_mf |]; subst;
+    intros n Sub_b; inversion Sub_b as [| ? ? ? ? Inc_f0 |]; subst.
+    generalize (MPInclusion_trans m f 𝟘 Inc_mf Inc_f0).
+    intros Inc0.
+    destruct Rel with (n := n).
+    constructor; easy.
+  Qed.
+
+  (** Subtyping preserves usability.
+      Proof based on Ugo de’Liguoro and Luca Padovani Prop. 26
+      In Fowler et al. this is Lemma D.6
+  *)
+  Lemma SubtypeUsable : forall a b n1 n2, (a ^^ n1) ≤ (b ^^ n2) -> Usable a -> Usable b.
+  Proof.
+    intros a b n1 n2 Sub_a Use.
+    unfold Usable in *.
+    destruct a; inversion Sub_a as [| | ? ? ? ? Inc_fm ]; subst;
+    intros n Sub_b; inversion Sub_b as [| | ? ? ? ? Inc_0f]; subst.
+    generalize (MPInclusion_trans 𝟘 f m Inc_0f Inc_fm).
+    intros Inc0.
+    destruct Use with (n := n).
+    constructor; easy.
+Qed.
+
+    
 End mailbox_types_properties.

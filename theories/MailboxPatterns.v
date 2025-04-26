@@ -2,8 +2,10 @@
 
 Require Import Classes.RelationClasses.
 Require Import Classes.Morphisms.
+Require Import List.
 
 From MailboxTypes Require Import Message.
+
 Open Scope mailbox_config_scope.
 
 Generalizable All Variables.
@@ -98,7 +100,8 @@ Inductive PatternResidual : MPattern -> MPattern -> MPattern -> Prop :=
       PatternResidual f (« m ») f' ->
       PatternResidual (e ⊙ f) (« m ») ((e' ⊙ f) ⊕ (e ⊙ f'))
   (* This rule is not included in the paper, but otherwise we can't
-     use the ⋆-operator.
+     use the ⋆-operator. TODO: I guess we can use subtyping when needed
+
      Also, this definition is included in the original paper from
      2018.
      TODO: Check if this rule breaks something
@@ -127,6 +130,7 @@ Inductive PNF : MPattern -> MPattern -> Prop :=
 End MPattern_residuals.
 
 Notation "E ⊧ F" := (PNF E F) (at level 98) : mailbox_pattern_scope.
+Notation "E // F ~= G" := (PatternResidual E F G) (at level 99) : mailbox_pattern_scope.
 
 Section MPattern_props.
 
@@ -534,6 +538,343 @@ Proof.
     + easy.
     + now apply MPStar_valueOf_inv.
 Qed.
+
+Lemma MPInclusion_zero : forall e, e ⊑ 𝟘 -> e ≈ 𝟘.
+Proof.
+  intros e eSub.
+  split.
+  easy.
+  intros m mIn.
+  inversion mIn.
+Qed.
+
+Lemma valueOf_Message_Eq : forall m mc a b, a ∈ « m » -> ⟨ m ⟩ ⊎ mc =ᵐᵇ a ⊎ b -> mc =ᵐᵇ b.
+Proof.
+  intros * aIn Eq;
+  inversion aIn; subst;
+  eapply Permutation.Permutation_cons_inv;
+  apply Eq.
+Qed.
+
+Lemma valueOf_MPComp_inv : forall m mc e, (⟨ m ⟩ ⊎ mc) ∈ « m » ⊙ e -> mc ∈ e.
+Proof.
+  intros * In.
+  inversion In; subst.
+  rewrite valueOf_Message_Eq with (a := a) (b := b) (m := m); easy.
+Qed.
+
+Lemma valueOf_Message_Res : forall mc m e e',
+  (⟨ m ⟩ ⊎ mc) ∈ « m » ⊙ e ->
+  « m » ⊙ e // « m » ~= e' ->
+  mc ∈ e'.
+Proof.
+  intros * unionInE Res.
+  apply valueOf_MPComp_inv in unionInE.
+  inversion Res; subst.
+  inversion H2; subst.
+  - apply MPValueChoiceLeft.
+    rewrite MPComp_comm.
+    now rewrite MPComp_unit.
+  - now destruct H1.
+Qed.
+
+Lemma valueOf_not_zero : forall mc e, mc ∈ e -> ~ e ≈ 𝟘.
+Proof.
+  intros * In.
+  inversion In; subst; intros [Inc1 Inc2];
+  generalize (Inc1 _ In);
+  intros F; inversion F.
+Qed.
+
+Lemma MPInclusion_MPComp_Diff : forall n m f, ~ (f ⊑ 𝟘) -> m <> n -> ~ « n » ⊙ f ⊑ « m ».
+Proof.
+  intros *.
+  intros notF Neq In.
+  induction f; unfold "⊑" in *.
+  - apply notF. easy.
+  - generalize (In ⟨ n ⟩).
+    intros InFalse.
+    assert (In' : ⟨ n ⟩ ∈ « n » ⊙ 𝟙). apply MPComp_unit. constructor.
+    apply InFalse in In'.
+    inversion In'; subst. easy.
+  - generalize (In (n :: m0 :: nil)).
+    intros InFalse.
+    assert (In' : (n :: m0 :: nil) ∈ « n » ⊙ « m0 »).
+    {
+      eapply MPValueComp with (a := ⟨ n ⟩) (b := ⟨ m0 ⟩);
+      repeat constructor.
+    }
+    apply InFalse in In'.
+    inversion In'.
+  - apply notF. intros mc mcIn.
+    generalize (In (⟨ n ⟩ ⊎ mc)).
+    intros InFalse.
+    assert (In' : (⟨ n ⟩ ⊎ mc) ∈ « n » ⊙ (f1 ⊕ f2)).
+    {
+      eapply MPValueComp with (a := ⟨ n ⟩).
+      constructor.
+      exact mcIn.
+      repeat constructor. reflexivity.
+    }
+    apply InFalse in In'.
+    inversion In'; subst. easy.
+  - apply notF. intros mc mcIn.
+    generalize (In (⟨ n ⟩ ⊎ mc)).
+    intros InFalse.
+    assert (In' : (⟨ n ⟩ ⊎ mc) ∈ « n » ⊙ (f1 ⊙ f2)).
+    {
+      eapply MPValueComp with (a := ⟨ n ⟩).
+      constructor.
+      exact mcIn.
+      repeat constructor. reflexivity.
+    }
+    apply InFalse in In'.
+    inversion In'; subst. easy.
+  - apply notF. intros mc mcIn.
+    generalize (In (⟨ n ⟩ ⊎ mc)).
+    intros InFalse.
+    assert (In' : (⟨ n ⟩ ⊎ mc) ∈ « n » ⊙ ⋆ f).
+    {
+      eapply MPValueComp with (a := ⟨ n ⟩).
+      constructor.
+      exact mcIn.
+      repeat constructor. reflexivity.
+    }
+    apply InFalse in In'.
+    inversion In'; subst. easy.
+Qed.
+
+Lemma MPValueChoice_inv : forall m e f g, m ∈ e -> e ⊑ f ⊕ g -> m ∈ f \/ m ∈ g.
+Proof.
+  intros * mIn Sub.
+  apply Sub in mIn.
+  inversion mIn; subst.
+  - now left.
+  - now right.
+Qed.
+
+Lemma Balancing_valueOf_message : forall mc m f,
+  (⟨ m ⟩ ⊎ mc) ∈ « m » ⊙ f ->
+  « m » ⊙ f // « m » ~= f ->
+  mc ∈ f.
+Proof.
+  intros * In Res.
+  inversion Res; subst.
+  inversion H2; subst.
+  - rewrite MPComp_comm.
+    rewrite MPComp_unit.
+    inversion In; subst.
+    inversion H1; subst.
+    apply Permutation.Permutation_app_inv_l in H7.
+    rewrite H7.
+    now apply MPValueChoiceLeft.
+  - now destruct H1.
+Qed.
+
+Lemma Balancing_valueOf' : forall mc m f f',
+  (⟨ m ⟩ ⊎ mc) ∈ « m » ⊙ f ->
+  « m » ⊙ f // « m » ~= f' ->
+  mc ∈ f'.
+Proof.
+  intros * In Res.
+  inversion Res; subst.
+  inversion H2; subst.
+  - rewrite MPComp_comm.
+    rewrite MPComp_unit.
+    inversion In; subst.
+    inversion H1; subst.
+    apply Permutation.Permutation_app_inv_l in H6.
+    rewrite H6.
+    now apply MPValueChoiceLeft.
+  - now destruct H1.
+Qed.
+
+Lemma in_split_valueOf : forall m a e, In m a -> a ∈ e -> exists a', (⟨ m ⟩ ⊎ a') ∈ e.
+Proof.
+  intros * In valueOf.
+  generalize (in_split m a In).
+  intros [l1 [l2 Eq]].
+  subst.
+  rewrite <- Permutation.Permutation_middle in valueOf.
+  exists (l1 ++ l2).
+  easy.
+Qed.
+
+Lemma MPValueStar_split : forall m mc e,
+  (⟨ m ⟩ ⊎ mc) ∈ ⋆ e ->
+  exists a b, ((⟨ m ⟩ ⊎ a) ∈ e) /\ (b ∈ ⋆ e) /\ mc =ᵐᵇ a ⊎ b.
+Proof.
+  intros * In.
+  inversion In; subst.
+  destruct H1 as [n In'].
+  revert mc In In'.
+  induction n; intros * In In'.
+  - simpl in In'; inversion In'.
+  - simpl in In'.
+    inversion In'; subst.
+    remember H4 as Eq.
+    clear HeqEq.
+    apply mailbox_eq_union_split in H4.
+    destruct H4 as [[a' Eq'] | [b' Eq']].
+    + exists a', b; repeat split.
+      * rewrite Eq in Eq'.
+        apply Permutation.Permutation_app_inv_r in Eq'.
+        now rewrite Eq' in H1.
+      * constructor. now exists n.
+      * intros. simpl in Eq'.
+        now apply Permutation.Permutation_app_inv_l with (l := ⟨ m ⟩) in Eq'.
+    + remember Eq' as EqOrig.
+      clear HeqEqOrig.
+      rewrite Eq in Eq'.
+      rewrite Permutation.Permutation_app_comm with (l' := a) in Eq'.
+      rewrite <- app_assoc in Eq'.
+      apply Permutation.Permutation_app_inv_l with (l := a) in Eq'.
+      assert (InStar : (⟨ m ⟩ ⊎ b') ∈ ⋆ e).
+      {
+        constructor. exists n. now rewrite <- Eq'.
+      }
+      rewrite Eq' in H3.
+      generalize (IHn b' InStar H3).
+      intros [a'' [b'' [In'' [InStar' Eq'']]]].
+      exists a'', (a ⊎ b''); repeat split.
+      * assumption.
+      * inversion InStar'; subst.
+        destruct H2 as [n' Pow'].
+        constructor. exists (S n').
+        simpl.
+        eapply MPValueComp.
+        -- exact H1.
+        -- exact Pow'.
+        -- reflexivity.
+      * rewrite app_assoc.
+        rewrite Permutation.Permutation_app_comm with (l' := b'').
+        rewrite app_assoc.
+        rewrite Permutation.Permutation_app_comm with (l' := a'').
+        rewrite <- Eq''.
+        simpl in EqOrig.
+        apply Permutation.Permutation_app_inv_l with (l := ⟨ m ⟩) in EqOrig.
+        rewrite Permutation.Permutation_app_comm.
+        assumption.
+Qed.
+
+Lemma Balancing_valueOf : forall mc m f f',
+  (⟨ m ⟩ ⊎ mc) ∈ f ->
+  f // « m » ~= f' ->
+  mc ∈ f'.
+Proof.
+  intros *.
+  revert mc m f'.
+  induction f; intros * In Res.
+  - inversion In.
+  - inversion In.
+  - inversion In; subst.
+    inversion Res; subst.
+    constructor.
+    now destruct H1.
+  - inversion Res; subst.
+    inversion In; subst.
+    + apply MPValueChoiceLeft.
+      eapply IHf1.
+      exact H1.
+      exact H2.
+    + apply MPValueChoiceRight.
+      eapply IHf2.
+      exact H1.
+      exact H4.
+  - inversion Res; subst.
+    inversion In; subst.
+    remember H6 as Eq.
+    clear HeqEq.
+    apply mailbox_eq_union_split in H6.
+    destruct H6 as [[a' Eq'] | [b' Eq']].
+    + apply MPValueChoiceLeft.
+      eapply MPValueComp with (a := a') (b := b).
+      * apply IHf1 with (m := m).
+        rewrite Eq' in Eq.
+        apply Permutation.Permutation_app_inv_r in Eq.
+        now rewrite Eq.
+        assumption.
+      * assumption.
+      * eapply Permutation.Permutation_app_inv_l with (l := (m :: nil)).
+        apply Eq'.
+    + apply MPValueChoiceRight.
+      eapply MPValueComp with (a := a) (b := b').
+      * assumption.
+      * apply IHf2 with (m := m).
+        rewrite Eq' in Eq.
+        rewrite Permutation.Permutation_app_comm with (l' := a) in Eq.
+        rewrite <- app_assoc in Eq.
+        apply Permutation.Permutation_app_inv_l in Eq.
+        now rewrite Eq.
+        assumption.
+      * eapply Permutation.Permutation_app_inv_l with (l := (m :: nil)).
+        apply Eq'.
+  - inversion Res; subst.
+    inversion In; subst.
+    destruct H2 as [n In'].
+    apply MPValueStar_split in In.
+    destruct In as [a [b [InF [InStar Eq]]]].
+    rewrite Eq.
+    generalize (IHf a m e' InF H1).
+    intros InE'.
+    eapply MPValueComp.
+    + exact InE'.
+    + exact InStar.
+    + reflexivity.
+Qed.
+
+Lemma PatternResidual_det : forall m e f f', e // « m » ~= f -> e // « m » ~= f' -> f = f'.
+Proof.
+  intro m.
+  induction e; intros * Res1 Res2.
+  - inversion Res1; subst; inversion Res2; subst; reflexivity.
+  - inversion Res1; subst; inversion Res2; subst; reflexivity.
+  - inversion Res1; subst; inversion Res2; subst;
+    try (reflexivity; fail);
+    try (now destruct H1).
+  - inversion Res1; subst; inversion Res2; subst.
+    generalize (IHe1 _ _ H2 H3); intros ->;
+    generalize (IHe2 _ _ H4 H6); intros ->;
+    reflexivity.
+  - inversion Res1; subst; inversion Res2; subst.
+    generalize (IHe1 _ _ H2 H3); intros ->;
+    generalize (IHe2 _ _ H4 H6); intros ->;
+    reflexivity.
+  - inversion Res1; subst; inversion Res2; subst.
+    generalize (IHe e' e'0 H1 H2); intros ->;
+    reflexivity.
+Qed.
+
+Lemma PatternResidual_MPComp : forall m f f' e, « m » ⊙ f // « m » ~= e -> f // « m » ~= f' -> e ≈ f ⊕ « m » ⊙ f'.
+Proof.
+  intros * Res1 Res2.
+  inversion Res1; subst.
+  inversion H2; subst.
+  - rewrite MPComp_comm.
+    rewrite MPComp_unit.
+    rewrite (PatternResidual_det m f f' f'0).
+    + reflexivity.
+    + assumption.
+    + assumption.
+  - now destruct H1.
+Qed.
+
+(** Balancing lemma
+    Proof based on Ugo de’Liguoro and Luca Padovani Prop. 27
+    In Fowler et al. this is Lemma D.8
+*)
+Lemma Balancing : forall m f e e', « m » ⊙ f ⊑ e -> ~ (f ⊑ 𝟘) -> e // « m » ~= e' -> f ⊑ e'.
+Proof.
+  intros * Sub NotSub0 Res mc mcIn.
+  assert (In' : (⟨ m ⟩ ⊎ mc) ∈ « m » ⊙ f).
+  {
+    eapply MPValueComp with (a := ⟨ m ⟩) (b := mc).
+    constructor. exact mcIn. reflexivity.
+  }
+  apply Sub in In'.
+  apply Balancing_valueOf with (m := m) (f := e); assumption.
+Qed.
+
 
 End MPattern_props.
 

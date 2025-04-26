@@ -31,6 +31,15 @@ Definition mailbox_union (m1 m2 : MailboxConfig) : MailboxConfig := app m1 m2.
 
 End MessageConfig_def.
 
+Declare Scope mailbox_config_scope.
+
+Infix "=ᵐᵇ" := mailbox_eq (at level 71, left associativity) : mailbox_config_scope.
+Infix "⊎" := mailbox_union (at level 68, left associativity) : mailbox_config_scope.
+Notation "⟨ M ⟩" := (SingletonMailbox M).
+Notation "⟨⟩" := (EmptyMailbox).
+
+Open Scope mailbox_config_scope.
+
 Section MessageConfig_props.
 
 Context `{IM : IMessage Message}.
@@ -99,16 +108,62 @@ Proof.
   now apply Permutation_app.
 Defined.
 
+(** If a mailbox contains message [m] and is equal to the union of
+    two other mailboxes [a] and [b], then [m] can moved in front.
+*)
+Lemma mailbox_eq_move_from_middle : forall (m : Message) mc a b,
+  (⟨ m ⟩ ⊎ mc) =ᵐᵇ (a ⊎ b) ->
+  exists a' b', (⟨ m ⟩ ⊎ mc) =ᵐᵇ (⟨ m ⟩ ⊎ a' ⊎ b').
+Proof.
+  intros * Perm.
+  assert (mIn : In m (a ++ b)).
+  {
+    apply Permutation_in with (l := m :: mc).
+    easy.
+    now constructor.
+  }
+  apply in_split in mIn.
+  destruct mIn as [l1 [l2 Split]].
+  exists l1, l2.
+  simpl.
+  rewrite Permutation_middle.
+  now rewrite <- Split.
+Qed.
+
+(** If a mailbox contains message [m] and is equal to the union of
+    two other mailboxes [a] and [b], then [m] must be in either in
+    [a] or [b].
+*)
+Lemma mailbox_eq_union_split : forall (m : Message) mc a b,
+  (⟨ m ⟩ ⊎ mc) =ᵐᵇ (a ⊎ b) ->
+  (exists a', (⟨ m ⟩ ⊎ mc) =ᵐᵇ (⟨ m ⟩ ⊎ a' ⊎ b)) \/
+  (exists b', (⟨ m ⟩ ⊎ mc) =ᵐᵇ (⟨ m ⟩ ⊎ a ⊎ b')).
+Proof.
+  intros * Eq.
+  assert (mIn : In m (a ⊎ b)).
+  {
+    eapply Permutation_in with (l := ⟨ m ⟩ ⊎ mc).
+    now symmetry.
+    now constructor.
+  }
+  apply in_app_or in mIn.
+  destruct mIn as [InA | InB].
+  - left.
+    apply in_split in InA.
+    destruct InA as [l1 [l2 Split]].
+    subst.
+    rewrite <- Permutation_middle in Eq.
+    now exists (l1 ++ l2).
+  - right.
+    apply in_split in InB.
+    destruct InB as [l1 [l2 Split]].
+    subst.
+    rewrite <- Permutation_middle in Eq.
+    rewrite <- Permutation_middle in Eq.
+    now exists (l1 ++ l2).
+Qed.
+
 End MessageConfig_props.
-
-Declare Scope mailbox_config_scope.
-
-Infix "=ᵐᵇ" := mailbox_eq (at level 71, left associativity) : mailbox_config_scope.
-Infix "⊎" := mailbox_union (at level 68, left associativity) : mailbox_config_scope.
-Notation "⟨ M ⟩" := (SingletonMailbox M).
-Notation "⟨⟩" := (EmptyMailbox).
-
-Open Scope mailbox_config_scope.
 
 (** ** Strings as messages *)
 Require Import String.

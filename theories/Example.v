@@ -138,7 +138,7 @@ Lemma EmptyFutureWellTyped :
 Proof.
   unfold EmptyFuture. unfold EmptyFutureBody.
   eapply FUNDEF; simpl.
-  eapply GUARD with (env2 := (None :: nil)) (env1 := (Some (EmptyFutureType ^^ •)) :: nil) (f := (« Put » ⊙ (⋆ « Get »))).
+  eapply GUARD with (env2 := (None :: nil)) (env1 := (Some (EmptyFutureType ^^ •)) :: nil) (f := (« Put » ⊙ ⋆ « Get »)).
   - simpl. repeat constructor.
   - constructor; simpl. constructor. f_equal.
   - constructor. apply RECEIVE with (tList := FutureMessageTypes Put).
