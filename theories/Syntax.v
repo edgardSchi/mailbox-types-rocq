@@ -7,6 +7,7 @@ From MailboxTypes Require Import Util.
 
 Require Import Lists.List.
 Import ListNotations.
+Require Import Compare_dec.
 
 Generalizable All Variables.
 
@@ -68,9 +69,61 @@ Inductive FunctionDefinition : Type :=
 Record Prog : Type :=
   {
     signature : Message -> list TType
-  (*; definitions : DefinitionName -> (list TUsage) * TUsage * Term*)
   ; definitions : DefinitionName -> FunctionDefinition
   ; initialTerm : Term
   }.
 
 End syntax_def.
+
+
+Require Import ListSet.
+Require Import PeanoNat.
+
+Section free_var_def.
+
+Context `{M : IMessage Message}.
+Context `{D : IDefinitionName DefinitionName}.
+
+Fixpoint set_concat (l : list (set nat)) : set nat :=
+  match l with
+  | nil => nil
+  | (s :: l') => set_union Nat.eq_dec s (set_concat l')
+  end.
+
+(* TODO: Check if this construction of free variables is correct *)
+(* TODO: Move this section to corresponding place when confirmed it works *)
+
+(** Computes the set of free variables for a term.
+    Based on the paper "HOπ in Coq" by Ambal et. al.
+*)
+
+Definition downShift (n : nat) := set_map Nat.eq_dec (fun x => x - n).
+
+Definition FV_val (v : Value) : set nat :=
+  match v with
+  | ValueVar (Var x) => x :: nil
+  | _ => nil
+  end.
+
+Fixpoint FV (t : Term) : set nat :=
+  match t with
+  | TValue v => FV_val v
+  | TLet t1 t2  =>
+      set_union Nat.eq_dec (FV t1) (downShift 1 (set_remove Nat.eq_dec 0 (FV t2)))
+  | TApp _ values => set_concat (map (fun v => FV_val v) values)
+  | TSpawn t1 => FV t1
+  | TNew => nil
+  | TSend v m values =>
+      set_union Nat.eq_dec (FV_val v) (set_concat (map (fun v => FV_val v) values))
+  | TGuard v _ guards =>
+      set_union Nat.eq_dec (FV_val v) (set_concat (map (fun v => FV_guard v) guards))
+  end
+with FV_guard (g : Guard) : list nat :=
+  match g with
+  | GFail => nil
+  | GFree t1 => FV t1
+  | GReceive m (Var x) t1 =>
+      set_union Nat.eq_dec [x] (downShift (content_size m) (set_diff Nat.eq_dec (FV t1) (seq 0 ((content_size m)))))
+  end.
+
+End free_var_def.

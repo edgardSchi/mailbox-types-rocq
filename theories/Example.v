@@ -17,10 +17,11 @@ Inductive Future : Type :=
 (** We show that [Future] has decidable equality *)
 Instance FutureMessage : IMessage Future.
 Proof.
-  constructor;
-  destruct m; destruct n;
-  try (now left);
-  try (now right).
+  constructor.
+  - destruct m; destruct n;
+    try (now left);
+    try (now right).
+  - apply (fun _ => 1).
 Defined.
 
 (** Function definition names used in the program *)
@@ -63,7 +64,7 @@ Definition FutureMessageTypes (m : Future) : list TType :=
 *)
 Definition EmptyFutureBody : Term :=
   TGuard (ValueVar (Var 0)) (« Put » ⊙ (⋆ « Get »)) [
-    GReceive Put (Var 1) (TApp FullFutureDef [ValueVar (Var 1) ; ValueVar (Var 0)])
+    GReceive Put (Var 0) (TApp FullFutureDef [ValueVar (Var 1) ; ValueVar (Var 0)])
   ].
 
 Definition EmptyFuture : FunctionDefinition :=
@@ -129,6 +130,11 @@ Definition FutureProgram :=
   ; definitions := FutureDefinitions
   ; initialTerm := ClientBody
   |}.
+
+Compute FV EmptyFutureBody.
+Compute FV FullFutureBody.
+Compute FV ClientBody.
+
 
 (** Function emptyFuture is well-typed
     |- emptyFuture

@@ -142,6 +142,10 @@ Fixpoint BaseEnv (e : Env) : Prop :=
   | _ => False
   end.
 
+Definition CruftEnv : Env -> Prop :=
+  ForallMaybe TUCruft.
+
+
 (** An empty environment contains only None as entries *)
 Definition EmptyEnv (e : Env) : Prop := Forall (fun x => x = None) e.
 
@@ -163,6 +167,7 @@ Notation "Env1 ≤ₑ Env2" := (EnvironmentSubtype Env1 Env2) (at level 80) : en
 Notation "Env1 ≼ₑ Env2" := (EnvironmentSubtypeStrict Env1 Env2) (at level 80) : environment_scope.
 Notation "Env1 ▷ₑ Env2 ~= Env" := (EnvironmentCombination Env1 Env2 Env) (at level 80) : environment_scope.
 Notation "Env1 +ₑ Env2 ~= Env" := (EnvironmentDisjointCombination Env1 Env2 Env) (at level 80) : environment_scope.
+(* TODO: Change the below notation. It sometimes collides with list notations *)
 Notation "[ Env1 ]+ₑ ~= Env" := (EnvironmentDisjointCombinationN Env1 Env) (at level 80) : environment_scope.
 Notation "⌊ Env ⌋ₑ" := (returnEnvironment Env) : environment_scope.
 Notation "⌈ Env ⌉ₑ" := (secondEnvironment Env) : environment_scope.

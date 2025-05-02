@@ -10,10 +10,13 @@ Generalizable All Variables.
 
 Section Message_def.
 
-(** A message is a type with decidable Leibniz equality *)
+(** A message is a type with decidable Leibniz equality
+    as well as the number of values it contains.
+*)
 Class IMessage Message : Type :=
   {
     eq_dec : forall m n, {@eq Message m n} + {~ @eq Message m n}
+  ; content_size : Message -> nat
   }.
 
 End Message_def.
@@ -172,6 +175,8 @@ Section StringMessages.
 Global Instance StringMessage : IMessage string :=
 {
   eq_dec := string_dec
+  (* Each string contains exactly one value *)
+; content_size := fun _ => 1
 }.
 
 End StringMessages.
@@ -209,6 +214,7 @@ Defined.
 Instance SendReceiveMessage : IMessage SendReceive :=
 {
   eq_dec := SendReceive_eq_dec
+; content_size := fun _ => 1
 }.
 
 End SendReceiveMessages.

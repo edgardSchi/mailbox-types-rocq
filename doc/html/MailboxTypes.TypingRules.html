@@ -150,6 +150,61 @@
 
 <br/>
 <span class="id" title="keyword">End</span> <a class="idref" href="MailboxTypes.TypingRules.html#typing_rules_def"><span class="id" title="section">typing_rules_def</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Section</span> <a id="well_typed_def" class="idref" href="#well_typed_def"><span class="id" title="section">well_typed_def</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Generalizable All Variables</span>.<br/>
+<span class="id" title="keyword">Context</span> `{<a id="M:89" class="idref" href="#M:89"><span class="id" title="binder">M</span></a> : <a class="idref" href="MailboxTypes.Message.html#IMessage"><span class="id" title="class">IMessage</span></a> <a id="Message:88" class="idref" href="#Message:88"><span class="id" title="binder">Message</span></a>}.<br/>
+<span class="id" title="keyword">Context</span> `{<a id="D:91" class="idref" href="#D:91"><span class="id" title="binder">D</span></a> : <a class="idref" href="MailboxTypes.Syntax.html#IDefinitionName"><span class="id" title="class">IDefinitionName</span></a> <a id="DefinitionName:90" class="idref" href="#DefinitionName:90"><span class="id" title="binder">DefinitionName</span></a>}.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The domain of an environment is equal to the free variables in a term 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="EnvEqFV" class="idref" href="#EnvEqFV"><span class="id" title="definition">EnvEqFV</span></a> (<a id="env:92" class="idref" href="#env:92"><span class="id" title="binder">env</span></a> : <a class="idref" href="MailboxTypes.Environment.html#Env"><span class="id" title="definition">Env</span></a>) (<a id="m:93" class="idref" href="#m:93"><span class="id" title="binder">m</span></a> : <a class="idref" href="MailboxTypes.Syntax.html#Term"><span class="id" title="inductive">Term</span></a>) :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">forall</span> <a id="x:94" class="idref" href="#x:94"><span class="id" title="binder">x</span></a>, <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Lists.List.html#In"><span class="id" title="definition">In</span></a> <a class="idref" href="MailboxTypes.TypingRules.html#x:94"><span class="id" title="variable">x</span></a> (<a class="idref" href="MailboxTypes.Syntax.html#FV"><span class="id" title="definition">FV</span></a> <a class="idref" href="MailboxTypes.TypingRules.html#m:93"><span class="id" title="variable">m</span></a>) <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'&lt;-&gt;'_x"><span class="id" title="notation">&lt;-&gt;</span></a> <a class="idref" href="MailboxTypes.Util.html#is_Some"><span class="id" title="definition">is_Some</span></a> (<a class="idref" href="MailboxTypes.Environment.html#lookup"><span class="id" title="definition">lookup</span></a> <a class="idref" href="MailboxTypes.TypingRules.html#x:94"><span class="id" title="variable">x</span></a> <a class="idref" href="MailboxTypes.TypingRules.html#env:92"><span class="id" title="variable">env</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Definition D.3 of cruftless.
+   An environment is cruftless for a term, if the term is well-typed under
+   the environment and the domain of the environment is equal to the
+   free variables in the term.
+
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="Cruftless" class="idref" href="#Cruftless"><span class="id" title="definition">Cruftless</span></a> (<a id="env:95" class="idref" href="#env:95"><span class="id" title="binder">env</span></a> : <a class="idref" href="MailboxTypes.Environment.html#Env"><span class="id" title="definition">Env</span></a>) (<a id="m:96" class="idref" href="#m:96"><span class="id" title="binder">m</span></a> : <a class="idref" href="MailboxTypes.Syntax.html#Term"><span class="id" title="inductive">Term</span></a>) :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">forall</span> {<a id="T:97" class="idref" href="#T:97"><span class="id" title="binder">T</span></a> <a id="p:98" class="idref" href="#p:98"><span class="id" title="binder">p</span></a>}, <a class="idref" href="MailboxTypes.TypingRules.html#WellTypedTerm"><span class="id" title="inductive">WellTypedTerm</span></a> <a class="idref" href="MailboxTypes.TypingRules.html#p:98"><span class="id" title="variable">p</span></a> <a class="idref" href="MailboxTypes.TypingRules.html#env:95"><span class="id" title="variable">env</span></a> <a class="idref" href="MailboxTypes.TypingRules.html#m:96"><span class="id" title="variable">m</span></a> <a class="idref" href="MailboxTypes.TypingRules.html#T:97"><span class="id" title="variable">T</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#ba2b0e492d2b4675a0acf3ea92aabadd"><span class="id" title="notation">/\</span></a> <a class="idref" href="MailboxTypes.TypingRules.html#EnvEqFV"><span class="id" title="definition">EnvEqFV</span></a> <a class="idref" href="MailboxTypes.TypingRules.html#env:95"><span class="id" title="variable">env</span></a> <a class="idref" href="MailboxTypes.TypingRules.html#m:96"><span class="id" title="variable">m</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Lemma D.4 
+</div>
+<div class="code">
+<span class="id" title="keyword">Lemma</span> <a id="WellTypedEnvSub" class="idref" href="#WellTypedEnvSub"><span class="id" title="lemma">WellTypedEnvSub</span></a> :<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">forall</span> {<a id="T:99" class="idref" href="#T:99"><span class="id" title="binder">T</span></a> <a id="p:100" class="idref" href="#p:100"><span class="id" title="binder">p</span></a>} <a id="env:101" class="idref" href="#env:101"><span class="id" title="binder">env</span></a> <a id="m:102" class="idref" href="#m:102"><span class="id" title="binder">m</span></a>,<br/>
+&nbsp;&nbsp;<a class="idref" href="MailboxTypes.TypingRules.html#WellTypedTerm"><span class="id" title="inductive">WellTypedTerm</span></a> <a class="idref" href="MailboxTypes.TypingRules.html#p:100"><span class="id" title="variable">p</span></a> <a class="idref" href="MailboxTypes.TypingRules.html#env:101"><span class="id" title="variable">env</span></a> <a class="idref" href="MailboxTypes.TypingRules.html#m:102"><span class="id" title="variable">m</span></a> <a class="idref" href="MailboxTypes.TypingRules.html#T:99"><span class="id" title="variable">T</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a><br/>
+&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">exists</span></a> <a id="env1:103" class="idref" href="#env1:103"><span class="id" title="binder">env1</span></a> <a id="env2:104" class="idref" href="#env2:104"><span class="id" title="binder">env2</span></a> <a id="env3:105" class="idref" href="#env3:105"><span class="id" title="binder">env3</span></a> <a id="T':106" class="idref" href="#T':106"><span class="id" title="binder">T'</span></a><a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">,</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="MailboxTypes.TypingRules.html#env:101"><span class="id" title="variable">env</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="MailboxTypes.TypingRules.html#env1:103"><span class="id" title="variable">env1</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Datatypes.html#bc347c51eaf667706ae54503b26d52c6"><span class="id" title="notation">++</span></a> <a class="idref" href="MailboxTypes.TypingRules.html#env2:104"><span class="id" title="variable">env2</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#ba2b0e492d2b4675a0acf3ea92aabadd"><span class="id" title="notation">/\</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="MailboxTypes.TypingRules.html#T':106"><span class="id" title="variable">T'</span></a> <a class="idref" href="MailboxTypes.Types.html#131af33f01ef889df697fc663d016c9f"><span class="id" title="notation">≤</span></a> <a class="idref" href="MailboxTypes.TypingRules.html#T:99"><span class="id" title="variable">T</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#ba2b0e492d2b4675a0acf3ea92aabadd"><span class="id" title="notation">/\</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="MailboxTypes.TypingRules.html#WellTypedTerm"><span class="id" title="inductive">WellTypedTerm</span></a> <a class="idref" href="MailboxTypes.TypingRules.html#p:100"><span class="id" title="variable">p</span></a> <a class="idref" href="MailboxTypes.TypingRules.html#env3:105"><span class="id" title="variable">env3</span></a> <a class="idref" href="MailboxTypes.TypingRules.html#m:102"><span class="id" title="variable">m</span></a> <a class="idref" href="MailboxTypes.TypingRules.html#T':106"><span class="id" title="variable">T'</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#ba2b0e492d2b4675a0acf3ea92aabadd"><span class="id" title="notation">/\</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;@<a class="idref" href="MailboxTypes.TypingRules.html#Cruftless"><span class="id" title="definition">Cruftless</span></a> <a class="idref" href="MailboxTypes.TypingRules.html#env1:103"><span class="id" title="variable">env1</span></a> <a class="idref" href="MailboxTypes.TypingRules.html#m:102"><span class="id" title="variable">m</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#ba2b0e492d2b4675a0acf3ea92aabadd"><span class="id" title="notation">/\</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="MailboxTypes.TypingRules.html#env1:103"><span class="id" title="variable">env1</span></a> <a class="idref" href="MailboxTypes.Environment.html#22c8f7a63b68a1c7f51b8c6d9a892198"><span class="id" title="notation">≼ₑ</span></a> <a class="idref" href="MailboxTypes.TypingRules.html#env3:105"><span class="id" title="variable">env3</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.19.1/stdlib//Coq.Init.Logic.html#ba2b0e492d2b4675a0acf3ea92aabadd"><span class="id" title="notation">/\</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="MailboxTypes.Environment.html#CruftEnv"><span class="id" title="definition">CruftEnv</span></a> <a class="idref" href="MailboxTypes.TypingRules.html#env2:104"><span class="id" title="variable">env2</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+<span class="id" title="var">Admitted</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="MailboxTypes.TypingRules.html#well_typed_def"><span class="id" title="section">well_typed_def</span></a>.<br/>
 </div>
 </div>
 <div id="footer">

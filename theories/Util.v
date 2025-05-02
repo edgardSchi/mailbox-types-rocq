@@ -31,6 +31,12 @@ Variables A B : Type.
 Variable f : A -> B.
 Variable P : A -> Prop.
 
+Definition is_Some (e : option A) : Prop :=
+  match e with
+  | None => False
+  | Some _ => True
+  end.
+
 Definition f_maybe (e : option A) : option B :=
   match e with
   | None => None
@@ -43,7 +49,7 @@ Definition map_maybe (l : list (option A)) : list (option B) :=
 Definition ForallMaybe (l : list (option A)) : Prop :=
   Forall
     (fun x => match x with
-              | None => False
+              | None => True
               | Some a => P a
               end
     )

@@ -106,3 +106,37 @@ Inductive WellTypedProgram (prog : Prog) : Prop :=
     WellTypedTerm prog nil (initialTerm prog) (TUBase BTUnit) -> WellTypedProgram prog.
 
 End typing_rules_def.
+
+Section well_typed_def.
+
+Generalizable All Variables.
+Context `{M : IMessage Message}.
+Context `{D : IDefinitionName DefinitionName}.
+
+(** The domain of an environment is equal to the free variables in a term *)
+Definition EnvEqFV (env : Env) (m : Term) :=
+  forall x, In x (FV m) <-> is_Some (lookup x env).
+
+(** Definition D.3 of cruftless.
+   An environment is cruftless for a term, if the term is well-typed under
+   the environment and the domain of the environment is equal to the
+   free variables in the term.
+*)
+Definition Cruftless (env : Env) (m : Term) :=
+  forall {T p}, WellTypedTerm p env m T /\ EnvEqFV env m.
+
+(** Lemma D.4 *)
+Lemma WellTypedEnvSub :
+  forall {T p} env m,
+  WellTypedTerm p env m T ->
+  exists env1 env2 env3 T',
+    env = env1 ++ env2 /\
+    T' ≤ T /\
+    WellTypedTerm p env3 m T' /\
+    @Cruftless env1 m /\
+    env1 ≼ₑ env3 /\
+    CruftEnv env2.
+Proof.
+Admitted.
+
+End well_typed_def.
