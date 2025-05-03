@@ -4,5 +4,6 @@
 *.vos
 *.glob
 *.d
+*.cache
 CoqMakefile
 CoqMakefile.conf
