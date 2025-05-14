@@ -237,5 +237,52 @@ Section mailbox_types_properties.
     constructor; easy.
 Qed.
 
-    
+Lemma UsageSubtype_trans : forall n1 n2 n3, n1 ≤ⁿ n2 -> n2 ≤ⁿ n3 -> n1 ≤ⁿ n3.
+Proof.
+  intros * Sub1 Sub2; destruct n1, n2, n3; try (constructor); assumption.
+Qed.
+
+Lemma Subtype_refl : forall t, t ≤ t.
+Proof.
+  destruct t.
+  - constructor.
+  - destruct m; constructor; try (apply MPInclusion_refl || constructor).
+Qed.
+
+Lemma Subtype_trans : forall t1 t2 t3, t1 ≤ t2 -> t2 ≤ t3 -> t1 ≤ t3.
+Proof.
+  intros * Sub1 Sub2.
+  induction Sub1; inversion Sub2; subst; constructor;
+  try (
+    now apply MPInclusion_trans with (f := f) ||
+    now apply UsageSubtype_trans with (n2 := n2)
+  ).
+Qed.
+
+Lemma Subtype_inversion_TUBase_right : forall T B, T ≤ (TUBase B) -> T = TUBase B.
+Proof.
+  intros * Sub.
+  now inversion Sub.
+Qed.
+
+Lemma Subtype_inversion_TUBase_left : forall T B, (TUBase B) ≤ T -> T = TUBase B.
+Proof.
+  intros * Sub.
+  now inversion Sub.
+Qed.
+
+Lemma Unrestricted_implies_TUCruft : forall T, Unrestricted T -> TUCruft T.
+Proof.
+  intros T Un.
+  inversion Un; subst.
+  - constructor.
+  - unfold TUCruft.
+    unfold TTCruft.
+    unfold Irrelevant.
+    unfold Relevant.
+    intros Sub.
+    generalize (Sub SecondClass).
+    intros S; apply S; apply Subtype_refl.
+Qed.
+
 End mailbox_types_properties.
