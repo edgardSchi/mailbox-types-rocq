@@ -117,7 +117,7 @@ Definition Relevant (m : MType) : Prop :=
   forall n, ~ ((TUUsage n m) ≤ (TUUsage n (! 𝟙))).
 
 Definition Irrelevant (m : MType) : Prop :=
-  ~ Relevant m.
+  forall n, (m ^^ n) ≤ (! 𝟙 ^^ n).
 
 Definition Reliable (m : MType) : Prop :=
   forall n, ~ ((TUUsage n m) ≤ (TUUsage n (? 𝟘))).
@@ -132,13 +132,37 @@ Definition Unusable (m : MType) : Prop :=
   ~ Usable m.
 
 (* TODO: Check if this is correct *)
+
+(* Old Version *)
+(*Inductive Unrestricted : TUsage -> Prop :=*)
+(*    unBase : forall c : BType, Unrestricted (TUBase c)*)
+(*  | unOne : Unrestricted (TUUsage SecondClass (! 𝟙)).*)
+
+(** In the original paper, the predicate Unrestricted is defined over a syntactic
+    check, i.e. Un(T) <=> T = ! 𝟙 ^^ ◦.
+
+    However, this definition breaks transitivity of environment subtyping. As an
+    example, consider environment [[! 𝟙 ^^ •]]. The type [! 𝟙 ^^ •] is not unrestricted,
+    so, [[! 𝟙 ^^ •] ≤ₑ []] does not hold. But [! 𝟙 ^^ • ≤ ! 𝟙 ^^ ◦] holds, and 
+    [[! 𝟙 ^^ ◦] ≤ₑ []] holds since the type is unrestricted.
+
+    So in the typing rules we would have to use the [TSub]-rule twice in order to
+    weaken the environment from [[! 𝟙 ^^ •]] to [[]].
+    To avoid this, we define a type to be unrestricted, if it is a subtype of [! 𝟙 ^^ ◦].
+*)
+
 Inductive Unrestricted : TUsage -> Prop :=
     unBase : forall c : BType, Unrestricted (TUBase c)
-  | unOne : Unrestricted (TUUsage SecondClass (! 𝟙)).
+  | unOne : forall T, T ≤ ! 𝟙 ^^ ◦ -> Unrestricted T.
 
 Definition Linear (m : TUsage) : Prop :=
   ~ Unrestricted m.
 
+(* TODO: Maybe remove these definitions if they are not needed *)
+
+(** After changing the definition of un(-), I think the notion of 
+    Cruft is not needed anymore.
+*)
 
 (** A cruft type is either a base type or irrelevant.
     A cruft type represents a type that can be added
@@ -271,18 +295,12 @@ Proof.
   now inversion Sub.
 Qed.
 
-Lemma Unrestricted_implies_TUCruft : forall T, Unrestricted T -> TUCruft T.
+Lemma Subtype_preserves_Unrestricted : forall T1 T2, Unrestricted T2 -> T1 ≤ T2 -> Unrestricted T1.
 Proof.
-  intros T Un.
-  inversion Un; subst.
-  - constructor.
-  - unfold TUCruft.
-    unfold TTCruft.
-    unfold Irrelevant.
-    unfold Relevant.
-    intros Sub.
-    generalize (Sub SecondClass).
-    intros S; apply S; apply Subtype_refl.
+  intros * Unr2 Sub.
+  inversion Unr2; subst.
+  - inversion Sub; subst; constructor.
+  - constructor; now apply Subtype_trans with (t2 := T2).
 Qed.
 
 End mailbox_types_properties.

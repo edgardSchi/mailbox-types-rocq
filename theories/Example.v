@@ -3,7 +3,7 @@
 From MailboxTypes Require Import TypingRules.
 From MailboxTypes Require Import Util.
 
-Require Import Lists.List.
+From Stdlib Require Import Lists.List.
 Import ListNotations.
 
 Section future_example.
@@ -131,10 +131,9 @@ Definition FutureProgram :=
   ; initialTerm := ClientBody
   |}.
 
-Compute FV EmptyFutureBody.
-Compute FV FullFutureBody.
-Compute FV ClientBody.
-
+(*Compute FV EmptyFutureBody.*)
+(*Compute FV FullFutureBody.*)
+(*Compute FV ClientBody.*)
 
 (** Function emptyFuture is well-typed
     |- emptyFuture

@@ -3,9 +3,9 @@
 From MailboxTypes Require Export Types.
 From MailboxTypes Require Import Util.
 
-Require Import Lists.List.
+From Stdlib Require Import Lists.List.
 Import ListNotations.
-Require Import Lia.
+From Stdlib Require Import Lia.
 
 Generalizable All Variables.
 
@@ -146,6 +146,8 @@ Fixpoint BaseEnv (e : Env) : Prop :=
 Definition CruftEnv : Env -> Prop :=
   ForallMaybe TUCruft.
 
+Definition UnrestrictedEnv : Env -> Prop :=
+  ForallMaybe Unrestricted.
 
 (** An empty environment contains only None as entries *)
 Definition EmptyEnv (e : Env) : Prop := Forall (fun x => x = None) e.
@@ -176,9 +178,9 @@ Notation "Env1 ≼ₑ Env2" := (EnvironmentSubtypeStrict Env1 Env2) (at level 80
 Notation "Env1 ▷ₑ Env2 ~= Env" := (EnvironmentCombination Env1 Env2 Env) (at level 80) : environment_scope.
 Notation "Env1 +ₑ Env2 ~= Env" := (EnvironmentDisjointCombination Env1 Env2 Env) (at level 80) : environment_scope.
 (* TODO: Change the below notation. It sometimes collides with list notations *)
-Notation "[ Env1 ]+ₑ ~= Env" := (EnvironmentDisjointCombinationN Env1 Env) (at level 80) : environment_scope.
-Notation "⌊ Env ⌋ₑ" := (returnEnvironment Env) : environment_scope.
-Notation "⌈ Env ⌉ₑ" := (secondEnvironment Env) : environment_scope.
+Notation "[ Env1 ]+ₑ ~= Env" := (EnvironmentDisjointCombinationN Env1 Env) (at level 0) : environment_scope.
+Notation "⌊ Env ⌋ₑ" := (returnEnvironment Env) (at level 0) : environment_scope.
+Notation "⌈ Env ⌉ₑ" := (secondEnvironment Env) (at level 0) : environment_scope.
 
 Section environment_test.
 
@@ -257,6 +259,25 @@ Notation "Env1 ,, Env2 ~= Env" := (EnvironmentSplit Env1 Env2 Env) (at level 80)
 Section environment_properties.
 
 Context `{M : IMessage Message}.
+
+(* TODO: Remove if not needed anymore *)
+
+(** This example shows that environment subtyping is not transitive, since the Unrestricted
+    predicate is a syntactic check on a type, NOT a semantic one.
+ *)
+(*Example Example_trans1 : Some (! 𝟙 ^^ •) :: None :: nil ≤ₑ Some (! 𝟙 ^^ ◦) :: None :: nil.*)
+(*Proof.*)
+(*  repeat constructor;  apply MPInclusion_refl.*)
+(*Qed.*)
+(*Example Example_trans2 : Some (! 𝟙 ^^ ◦) :: None :: nil ≤ₑ None :: None :: nil.*)
+(*Proof.*)
+(*  repeat constructor;  apply MPInclusion_refl.*)
+(*Qed.*)
+(*Example Example_trans3 : ~ (Some (! 𝟙 ^^ •) :: None :: nil ≤ₑ None :: None :: nil).*)
+(*Proof.*)
+(*  intros N; inversion N; subst; inversion H2.*)
+(*Qed.*)
+
 
 Lemma EnvironmentSplit_EmptyEnv : forall env, EmptyEnv env -> env,, env ~= env.
 Proof.
@@ -491,12 +512,9 @@ Fixpoint EnvironmentSubtype_diff (env1 env2 : Env) : Env :=
 
 Lemma EnvironmentSubtype_diff_CruftEnv : forall env1 env2,
   env1 ≤ₑ env2 ->
-  CruftEnv (EnvironmentSubtype_diff env1 env2).
+  UnrestrictedEnv (EnvironmentSubtype_diff env1 env2).
 Proof.
   intros * Sub; induction Sub; simpl; try (now constructor).
-  constructor.
-  now apply Unrestricted_implies_TUCruft.
-  assumption.
 Qed.
 
 Fixpoint EnvironmentSubtype_diff_Sub (env1 env2 : Env) : Env :=
@@ -508,6 +526,13 @@ Fixpoint EnvironmentSubtype_diff_Sub (env1 env2 : Env) : Env :=
   (* This should never occur when env1 ≤ₑ env2 *)
   | _, _ => nil
   end.
+
+Lemma EnvironmentSubtype_diff_split : forall env1 env2,
+  env1 ≤ₑ env2 ->
+  (EnvironmentSubtype_diff_Sub env1 env2),, (EnvironmentSubtype_diff env1 env2) ~= env1.
+Proof.
+  intros * Sub; induction Sub; simpl; now constructor.
+Qed.
 
 Lemma EnvironmentSubtype_diff_Sub_Empty : forall env1 env2,
   env1 ≤ₑ env2 ->
@@ -662,7 +687,7 @@ Proof.
     + inversion Empty; subst; discriminate.
 Qed.
 
-Lemma CruftEnv_EmptyEnv : forall env, EmptyEnv env -> CruftEnv env.
+Lemma UnrestrictedEnv_EmptyEnv : forall env, EmptyEnv env -> UnrestrictedEnv env.
 Proof.
   induction env.
   - constructor.
@@ -693,6 +718,23 @@ Proof.
   induction env.
   - constructor.
   - destruct a; constructor; try (apply Subtype_refl || assumption).
+Qed.
+
+Lemma EnvironmentSubtype_trans : forall env1 env2 env3, env1 ≤ₑ env2 -> env2 ≤ₑ env3 -> env1 ≤ₑ env3.
+Proof.
+  induction env1, env2; intros * Sub1 Sub2.
+  - inversion Sub2; constructor.
+  - inversion Sub1.
+  - inversion Sub2; now subst.
+  - inversion Sub1; inversion Sub2; subst;
+    try (discriminate);
+    try (constructor; (assumption || now apply IHenv1 with (env2 := env2))).
+    + constructor.
+      * injection H5; intros ->; now apply Subtype_preserves_Unrestricted with (T2 := T2).
+      * now apply IHenv1 with (env2 := env2).
+    + constructor.
+      * injection H5; intros ->; now apply Subtype_trans with (t2 := T2).
+      * now apply IHenv1 with (env2 := env2).
 Qed.
 
 End environment_properties.

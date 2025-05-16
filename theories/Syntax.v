@@ -5,9 +5,9 @@ From MailboxTypes Require Import Environment.
 From MailboxTypes Require Import Message.
 From MailboxTypes Require Import Util.
 
-Require Import Lists.List.
+From Stdlib Require Import Lists.List.
 Import ListNotations.
-Require Import Compare_dec.
+From Stdlib Require Import Compare_dec.
 
 Generalizable All Variables.
 
@@ -76,8 +76,8 @@ Record Prog : Type :=
 End syntax_def.
 
 
-Require Import ListSet.
-Require Import PeanoNat.
+From Stdlib Require Import ListSet.
+From Stdlib Require Import PeanoNat.
 
 Section free_var_def.
 
