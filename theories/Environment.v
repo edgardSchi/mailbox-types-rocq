@@ -199,6 +199,16 @@ Inductive EnvironmentSplit : Env -> Env -> Env -> Prop :=
       EnvironmentSplit env1 env2 env ->
       EnvironmentSplit (None :: env1) (Some x :: env2) (Some x :: env).
 
+Inductive EnvironmentSplitN : list Env -> Env -> Prop :=
+  | EnvSplit2 : forall env env1 env2,
+      EnvironmentSplit env1 env2 env ->
+      EnvironmentSplitN [env1 ; env2] env
+  | EnvSplitN : forall env env1 env2 env3 envList,
+      EnvironmentSplit env1 env2 env3 ->
+      EnvironmentSplitN (env3 :: envList) env ->
+      EnvironmentSplitN (env1 :: env2 :: envList) env.
+
+
 Lemma EnvironmentSplit_elems : forall env env1 env2,
   EnvironmentSplit env1 env2 env ->
   forall x, In (Some x) env <-> (In (Some x) env1) \/ (In (Some x) env2).
@@ -510,6 +520,7 @@ Fixpoint EnvironmentSubtype_diff (env1 env2 : Env) : Env :=
   | _, _ => nil
   end.
 
+(* TODO: Change name *)
 Lemma EnvironmentSubtype_diff_CruftEnv : forall env1 env2,
   env1 ≤ₑ env2 ->
   UnrestrictedEnv (EnvironmentSubtype_diff env1 env2).
@@ -527,12 +538,95 @@ Fixpoint EnvironmentSubtype_diff_Sub (env1 env2 : Env) : Env :=
   | _, _ => nil
   end.
 
+
+Lemma EnvironmentSubtype_diff_Sub_Unrestricted : forall env1 env2 env2A env2B,
+  env1 ≤ₑ env2 ->
+  env2A,, env2B ~= env2 ->
+  UnrestrictedEnv env2B ->
+  UnrestrictedEnv (EnvironmentSubtype_diff_Sub env1 env2B).
+Proof.
+  intros * Sub.
+  revert env2A env2B.
+  induction Sub; intros * Split Unr.
+  - inversion Split; subst; simpl; constructor.
+  - inversion Split; subst; simpl.
+    inversion Unr; subst.
+    constructor.
+    apply I.
+    now apply IHSub with (env2A := env0).
+  - inversion Split; subst; simpl.
+    inversion Unr; subst.
+    constructor.
+    assumption.
+    now apply IHSub with (env2A := env0).
+  - inversion Split; subst; simpl; inversion Unr; subst.
+    + constructor.
+      apply I.
+      now apply IHSub with (env2A := env0).
+    + constructor.
+      * now apply Subtype_preserves_Unrestricted with (T2 := T2).
+      * now apply IHSub with (env2A := env0).
+Qed.
+
 Lemma EnvironmentSubtype_diff_split : forall env1 env2,
   env1 ≤ₑ env2 ->
   (EnvironmentSubtype_diff_Sub env1 env2),, (EnvironmentSubtype_diff env1 env2) ~= env1.
 Proof.
   intros * Sub; induction Sub; simpl; now constructor.
 Qed.
+
+
+Lemma EnvironmentSubtype_diff_split2 : forall env1 env2 env2A env2B,
+  env1 ≤ₑ env2 ->
+  env2A,, env2B ~= env2 ->
+  EnvironmentSplitN [EnvironmentSubtype_diff_Sub env1 env2A; EnvironmentSubtype_diff_Sub env1 env2B; EnvironmentSubtype_diff env1 env2] env1.
+Proof.
+  intros * Sub.
+  revert env2A env2B.
+  induction Sub; intros * Split.
+  - inversion Split; subst; simpl.
+    apply EnvSplitN with (env3 := []); repeat constructor.
+  - inversion Split; subst; simpl.
+    apply IHSub in H2.
+    inversion H2; subst.
+    inversion H5; subst.
+    + econstructor.
+      * assert (H : None :: EnvironmentSubtype_diff_Sub env1 env0,,
+                  None :: EnvironmentSubtype_diff_Sub env1 env3 ~= None :: env6).
+        now constructor.
+        apply H.
+      * now repeat constructor.
+    + econstructor.
+      * assert (H : None :: EnvironmentSubtype_diff_Sub env1 env0,,
+                  None :: EnvironmentSubtype_diff_Sub env1 env3 ~= None :: env6).
+        now constructor.
+        apply H.
+      * inversion H7.
+  - inversion Split; subst; simpl.
+    apply IHSub in H3.
+    inversion H3; subst.
+    inversion H6; subst.
+    + apply EnvSplitN with (env3 := None :: env6).
+      * now constructor.
+      * now repeat constructor.
+    + inversion H8.
+  - inversion Split; subst; simpl.
+    + apply IHSub in H3.
+      inversion H3; subst.
+      inversion H6; subst.
+      * apply EnvSplitN with (env3 := Some T1 :: env6).
+        -- now constructor.
+        -- now repeat constructor.
+      * inversion H8.
+    + apply IHSub in H3.
+      inversion H3; subst.
+      inversion H6; subst.
+      * apply EnvSplitN with (env3 := Some T1 :: env6).
+        -- now constructor.
+        -- now repeat constructor.
+      * inversion H8.
+Qed.
+  
 
 Lemma EnvironmentSubtype_diff_Sub_Empty : forall env1 env2,
   env1 ≤ₑ env2 ->

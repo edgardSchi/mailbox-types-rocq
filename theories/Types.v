@@ -1,11 +1,11 @@
 (** * Syntax of types *)
 
-Require Import Lia.
+From Stdlib Require Import Lia.
 
 From MailboxTypes Require Export Message.
 From MailboxTypes Require Export MailboxPatterns.
 
-Require Import List.
+From Stdlib Require Import List.
 Import ListNotations.
 
 Generalizable All Variables.
@@ -22,7 +22,7 @@ Inductive MType (*`{IMessage Message}*) : Type :=
 (** Base type definition. For now only unit type and booleans *)
 Inductive BType : Type :=
     BTUnit : BType
-  | BTBool : BType.
+| BTBool : BType.
 
 (** Type definition. A type is either a base type or a mailbox type *)
 Inductive TType : Type :=
@@ -302,5 +302,79 @@ Proof.
   - inversion Sub; subst; constructor.
   - constructor; now apply Subtype_trans with (t2 := T2).
 Qed.
+
+(** Deciding whether a type is unrestricted is deciable *)
+(* TODO: Clean up proof *)
+Lemma Unrestricted_dec : forall T, {Unrestricted T} + {~ Unrestricted T}.
+Proof.
+  intros T.
+  destruct T.
+  - left; constructor.
+  - destruct m.
+    + induction m.
+      * right; intros Unr; inversion Unr; subst; inversion H; subst.
+        apply MPInclusion_zero in H3.
+        now apply one_zero_not_MPEqual.
+      * left. destruct u; repeat constructor; apply MPInclusion_refl.
+      * right. intros Unr; inversion Unr; subst; inversion H; subst;
+        generalize (H3 ⟨⟩ MPValueOne); intros In; inversion In.
+      * destruct IHm1 as [Unr1 | NUnr1]; destruct IHm2 as [Unr2 | NUnr2].
+        -- left. inversion Unr1; inversion H; subst.
+           repeat constructor. inversion H0; subst. now apply H4.
+           inversion H6; constructor.
+        -- left. inversion Unr1; inversion H; subst.
+           repeat constructor. inversion H0; subst. now apply H4.
+           inversion H6; constructor.
+        -- left. inversion Unr2; inversion H; subst.
+           constructor. constructor. intros m. intros In.
+           apply MPValueChoiceRight.
+           now apply H4.
+           inversion H6; constructor.
+        -- right. intros Unr. inversion Unr; subst. inversion H; subst.
+           generalize (H3 ⟨⟩ MPValueOne); intros In; inversion In; subst.
+           ++ apply NUnr1. repeat constructor.
+              intros x xIn; now inversion xIn. destruct u; constructor.
+           ++ apply NUnr2; repeat constructor.
+              intros x xIn; now inversion xIn. destruct u; constructor.
+      * destruct IHm1 as [Unr1 | NUnr1]; destruct IHm2 as [Unr2 | NUnr2].
+        -- left. inversion Unr1; inversion Unr2; subst.
+           inversion H; inversion H1; subst.
+           repeat constructor.
+           ++ intros x xIn.
+              eapply MPValueComp.
+              ** apply (H4 x xIn).
+              ** apply (H10 x xIn).
+              ** inversion xIn; subst; constructor.
+           ++ destruct u; constructor.
+        -- right. inversion Unr1; inversion H; subst.
+           intros UnrC; inversion UnrC; inversion H0; subst.
+           generalize (H7 ⟨⟩ MPValueOne); intros In; inversion In; subst.
+           apply NUnr2.
+           apply mailbox_union_empty in H10. destruct H10; subst.
+           repeat constructor.
+           ++ intros x xIn; inversion xIn; now subst.
+           ++ destruct u; constructor.
+        -- right. inversion Unr2; inversion H; subst.
+           intros UnrC; inversion UnrC; inversion H0; subst.
+           generalize (H7 ⟨⟩ MPValueOne); intros In; inversion In; subst.
+           apply NUnr1.
+           apply mailbox_union_empty in H10. destruct H10; subst.
+           repeat constructor.
+           ++ intros x xIn; inversion xIn; now subst.
+           ++ destruct u; constructor.
+        -- right.
+           intros UnrC. inversion UnrC; subst. inversion H; subst.
+           apply NUnr1.
+           generalize (H3 ⟨⟩ MPValueOne); intros In; inversion In; subst.
+           apply mailbox_union_empty in H7; destruct H7; subst.
+           repeat constructor.
+           ++ intros x xIn; inversion xIn; now subst.
+           ++ destruct u; constructor.
+      * left. repeat constructor.
+        -- now exists 0.
+        -- destruct u; constructor.
+    + right; intros NUnr; inversion NUnr; inversion H.
+Qed.
+
 
 End mailbox_types_properties.

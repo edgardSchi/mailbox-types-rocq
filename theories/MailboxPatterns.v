@@ -548,6 +548,14 @@ Proof.
   inversion mIn.
 Qed.
 
+Lemma one_zero_not_MPEqual : ~ 𝟙 ≈ 𝟘.
+Proof.
+  intros Eq.
+  destruct Eq as [Inc1 Inc2].
+  generalize (Inc1 ⟨⟩ MPValueOne).
+  intros H; inversion H.
+Qed.
+
 Lemma valueOf_Message_Eq : forall m mc a b, a ∈ « m » -> ⟨ m ⟩ ⊎ mc =ᵐᵇ a ⊎ b -> mc =ᵐᵇ b.
 Proof.
   intros * aIn Eq;

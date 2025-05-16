@@ -74,6 +74,12 @@ Proof.
   now rewrite app_nil_l.
 Qed.
 
+Lemma mailbox_union_empty : forall m1 m2,
+  mailbox_eq EmptyMailbox (mailbox_union m1 m2) -> m1 = EmptyMailbox /\ m2 = EmptyMailbox .
+Proof.
+  intros * Eq; apply Permutation_nil in Eq; now apply app_eq_nil.
+Qed.
+
 Lemma mailbox_union_assoc : forall m n o,
   mailbox_eq (mailbox_union m (mailbox_union n o)) (mailbox_union (mailbox_union m n) o).
 Proof.

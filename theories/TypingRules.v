@@ -357,6 +357,33 @@ Lemma xfdx : forall p env1 env2 t T,
   WellTypedTerm p env2 t T ->
   EnvEqFV env2 t.
 Proof.
+  intros until t.
+  revert env1 env2.
+  induction t; intros * Eq Sub WT.
+  - destruct v; unfold EnvEqFV in *; simpl in *.
+    + remember (TValue (ValueBool b)) as V.
+      induction WT; try discriminate.
+      * now apply lookup_False_EmptyEnv'.
+      * now apply lookup_False_EmptyEnv'.
+      * apply lookup_False_EmptyEnv'.
+        apply lookup_False_EmptyEnv in Eq.
+        now apply EmptyEnv_SubEnv_EmptyEnv with (env1 := env1).
+    + inversion WT; subst.
+      * now apply lookup_False_EmptyEnv'.
+      * apply lookup_False_EmptyEnv'.
+        apply lookup_False_EmptyEnv in Eq.
+        now apply EmptyEnv_SubEnv_EmptyEnv with (env1 := env1).
+    + inversion WT; subst.
+      * simpl in *.
+        apply lookup_False_SingletonEnv in Eq.
+        intros.
+        destruct (PeanoNat.Nat.eq_dec v0 x).
+        -- subst. rewrite H2; simpl; intuition.
+        -- generalize (SingletonEnv_lookup_None _ _ _ H0 H2 x n).
+           intros ->; simpl; intuition.
+      * admit.
+  - unfold EnvEqFV in *; simpl in *; inversion WT; subst.
+    + admit.
 Admitted.
 
 Lemma EnvironmentSubtype_diff_Sub_Cruftless_TLet : forall p env t1 t2,
@@ -369,7 +396,12 @@ Proof.
   remember (TLet t1 t2) as L.
   induction WT; subst; try discriminate.
   - admit.
-  - admit.
+  - apply IHWT.
+    + reflexivity.
+    + eapply xfdx.
+      apply Eq.
+      assumption.
+      apply WT.
 Admitted.
 
 Lemma EnvironmentSubtype_diff_Sub_EnvEqFV : forall env1 env2 t,
@@ -382,68 +414,6 @@ Proof.
   induction t; intros * Sub Eq.
 Admitted.
 
-
-Lemma EnvironmentSubtype_diff_Sub_Cruftless : forall p env1 env2 t,
-  env1 ≤ₑ env2 ->
-  @Cruftless p env2 t ->
-  @Cruftless p (EnvironmentSubtype_diff_Sub env1 env2) t.
-Proof.
-  intros until t.
-  revert env1 env2.
-  (*destruct Cruftl as [T [WT Eq]].*)
-  (*unfold EnvEqFV in *.*)
-  induction t; intros * Sub Cruftl.
-  - apply EnvironmentSubtype_diff_Sub_Cruftless_TValue; (assumption || exists T; intuition).
-  - unfold Cruftless. unfold EnvEqFV. simpl.
-    simpl in *.
-    apply EnvironmentSubtype_diff_Sub_Cruftless_TLet in Cruftl.
-    destruct Cruftl as [env1' [env2' [T [Cruftl1 Cruftl2]]]].
-
-
-
-  (*intros * Sub Cruftl.*)
-  (*unfold Cruftless in *.*)
-  (*destruct Cruftl as [T [WT Eq]].*)
-  (*unfold EnvEqFV in *.*)
-  (*induction WT; simpl in *.*)
-  (*- generalize (EnvironmentSubtype_diff_Sub_lookup env1 env v T Sub H0).*)
-  (*  intros [T' Lookup].*)
-  (*  exists T'; split.*)
-  (*  + constructor.*)
-  (*    now apply EnvironmentSubtype_diff_Sub_Singleton.*)
-  (*    assumption.*)
-  (*  + intros x.*)
-  (*    destruct (PeanoNat.Nat.eq_dec v x).*)
-  (*    * subst; intuition; now rewrite Lookup.*)
-  (*    * eapply SingletonEnv_lookup_None with (y := x) in Lookup.*)
-  (*      rewrite Lookup; intuition.*)
-  (*      now apply EnvironmentSubtype_diff_Sub_Singleton.*)
-  (*      assumption.*)
-  (*- exists (TUBase BTBool); split.*)
-  (*  + constructor; now apply EnvironmentSubtype_diff_Sub_Empty.*)
-  (*  + generalize (EnvironmentSubtype_diff_Sub_Empty env1 env Sub H).*)
-  (*    intros Empty x; apply EmptyEnv_lookup with (x := x) in Empty; now rewrite Empty.*)
-  (*- exists (TUBase BTBool); split.*)
-  (*  + constructor; now apply EnvironmentSubtype_diff_Sub_Empty.*)
-  (*  + generalize (EnvironmentSubtype_diff_Sub_Empty env1 env Sub H).*)
-  (*    intros Empty x; apply EmptyEnv_lookup with (x := x) in Empty; now rewrite Empty.*)
-  (*- exists (TUBase BTUnit); split.*)
-  (*  + constructor; now apply EnvironmentSubtype_diff_Sub_Empty.*)
-  (*  + generalize (EnvironmentSubtype_diff_Sub_Empty env1 env Sub H).*)
-  (*    intros Empty x; apply EmptyEnv_lookup with (x := x) in Empty; now rewrite Empty.*)
-  (*- admit.*)
-  (*- admit.*)
-  (*- admit.*)
-  (*- admit.*)
-  (*- admit.*)
-  (*- admit.*)
-  (*- exists T2; split.*)
-  (*  + eapply SUB.*)
-  (*    * admit.*)
-  (*    * exact H0.*)
-  (*    * exact WT.*)
-  (*  + fold (EnvEqFV env0 t) in Eq.*)
-Admitted.
 
 Lemma ValueVar_Cruftless : forall {p} env v T,
   SingletonEnv env ->
@@ -544,6 +514,15 @@ Proof.
       now destruct n.
 Qed.
 
+Lemma EnvironmentSubtype_diff_Sub_Cruftless : forall p env1 env2 env2A env2B t,
+  env1 ≤ₑ env2 ->
+  env2A,, env2B ~= env2 ->
+  @Cruftless p env2B t ->
+  @Cruftless p (EnvironmentSubtype_diff_Sub env1 env2A) t.
+Proof.
+Admitted.
+
+
 Lemma WellTypedEnvSub_TValueVar :
   forall {T p} env v,
   WellTypedTerm p env (TValue (ValueVar (Var v))) T ->
@@ -553,7 +532,7 @@ Lemma WellTypedEnvSub_TValueVar :
     WellTypedTerm p env3 (TValue (ValueVar (Var v))) T' /\
     @Cruftless p env1 (TValue (ValueVar (Var v))) /\
     env1 ≼ₑ env3 /\
-    CruftEnv env2.
+    UnrestrictedEnv env2.
 Proof.
   intros * WT.
   remember (TValue (ValueVar (Var v))) as V.
@@ -595,7 +574,7 @@ Proof.
 Qed.
 
 Lemma WellTypedEnvSub_TValue :
-  forall {T p} env v,
+  forall p env v T,
   WellTypedTerm p env (TValue v) T ->
   exists env1 env2 env3 T',
     env1,, env2 ~= env /\
@@ -605,6 +584,17 @@ Lemma WellTypedEnvSub_TValue :
     env1 ≼ₑ env3 /\
     CruftEnv env2.
 Proof.
+  intros * WT.
+  remember (TValue v) as V.
+  induction WT; try discriminate.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - subst.
+    generalize (IHWT eq_refl).
+    intros [env1' [env2' [env3' [T' [Split [Sub [WT' [Cruftless' [SubStrict Cruft']]]]]]]]].
+    clear IHWT.
 Admitted.
 
 
@@ -621,13 +611,20 @@ Lemma WellTypedEnvSub :
     CruftEnv env2.
 Proof.
   intros * WT.
-  remember env as E.
+  (*remember env as E.*)
   induction WT.
   - apply WellTypedEnvSub_TValue; now constructor.
   - apply WellTypedEnvSub_TValue; now constructor.
   - apply WellTypedEnvSub_TValue; now constructor.
   - apply WellTypedEnvSub_TValue; now constructor.
-  -
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - destruct IHWT as [env1' [env2' [env3' [T' [Split [Sub [WT' [Cruftless' [SubStrict Cruft']]]]]]]]].
+    
 Admitted.
 
 End well_typed_def.
