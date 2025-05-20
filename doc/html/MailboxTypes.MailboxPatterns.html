@@ -260,6 +260,12 @@ Properties of mailbox patterns showing that they are a commutative Klenee algebr
 <span class="id" title="keyword">Qed</span>.<br/>
 
 <br/>
+<span class="id" title="keyword">Global Instance</span> <a id="Instance_MPInclusion_refl" class="idref" href="#Instance_MPInclusion_refl"><span class="id" title="instance">Instance_MPInclusion_refl</span></a> : <a class="idref" href="http://coq.inria.fr/doc/V9.0.0/stdlib//Corelib.Classes.RelationClasses.html#Reflexive"><span class="id" title="class">Reflexive</span></a> <a class="idref" href="MailboxTypes.MailboxPatterns.html#MPInclusion"><span class="id" title="definition">MPInclusion</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">unfold</span> <a class="idref" href="http://coq.inria.fr/doc/V9.0.0/stdlib//Corelib.Classes.RelationClasses.html#Reflexive"><span class="id" title="class">Reflexive</span></a>; <span class="id" title="tactic">apply</span> <a class="idref" href="MailboxTypes.MailboxPatterns.html#MPInclusion_refl"><span class="id" title="lemma">MPInclusion_refl</span></a>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
 <span class="id" title="keyword">Lemma</span> <a id="MPEqual_refl" class="idref" href="#MPEqual_refl"><span class="id" title="lemma">MPEqual_refl</span></a> : <span class="id" title="keyword">forall</span> <a id="e:77" class="idref" href="#e:77"><span class="id" title="binder">e</span></a>, <a class="idref" href="MailboxTypes.MailboxPatterns.html#e:77"><span class="id" title="variable">e</span></a> <a class="idref" href="MailboxTypes.MailboxPatterns.html#f35a544af8889eb0d0f29431adbb8351"><span class="id" title="notation">≈</span></a> <a class="idref" href="MailboxTypes.MailboxPatterns.html#e:77"><span class="id" title="variable">e</span></a>.<br/>
 <span class="id" title="keyword">Proof</span>.<br/>
 &nbsp;&nbsp;<span class="id" title="tactic">intros</span>.<br/>

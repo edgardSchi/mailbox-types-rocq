@@ -156,6 +156,11 @@ Proof.
   intro e; unfold MPInclusion in *; intuition.
 Qed.
 
+Global Instance Instance_MPInclusion_refl : Reflexive MPInclusion.
+Proof.
+  unfold Reflexive; apply MPInclusion_refl.
+Qed.
+
 Lemma MPEqual_refl : forall e, e ≈ e.
 Proof.
   intros.

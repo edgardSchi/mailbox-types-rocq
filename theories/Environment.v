@@ -57,7 +57,12 @@ Inductive EnvironmentSubtype : Env -> Env -> Prop :=
   | EnvSubtypeSub : forall env1 env2 T1 T2,
       Subtype T1 T2 ->
       EnvironmentSubtype env1 env2 ->
-      EnvironmentSubtype (Some T1 :: env1) (Some T2 :: env2).
+      EnvironmentSubtype (Some T1 :: env1) (Some T2 :: env2)
+  | EnvSubtypeTrans : forall env1 env2 env3,
+      EnvironmentSubtype env1 env2 ->
+      EnvironmentSubtype env2 env3 ->
+      EnvironmentSubtype env1 env3
+  | EnvSubtypeRefl : forall env, EnvironmentSubtype env env.
 
 (** Strict environment subtyping.
     Strict subtyping of environments is same as normal
@@ -73,7 +78,12 @@ Inductive EnvironmentSubtypeStrict : Env -> Env -> Prop :=
   | EnvSubtypeStrSub : forall env1 env2 T1 T2,
       Subtype T1 T2 ->
       EnvironmentSubtypeStrict env1 env2 ->
-      EnvironmentSubtypeStrict (Some T1 :: env1) (Some T2 :: env2).
+      EnvironmentSubtypeStrict (Some T1 :: env1) (Some T2 :: env2)
+  | EnvSubtypeStrTrans : forall env1 env2 env3,
+      EnvironmentSubtypeStrict env1 env2 ->
+      EnvironmentSubtypeStrict env2 env3 ->
+      EnvironmentSubtypeStrict env1 env3
+  | EnvSubtypeStrRefl : forall env, EnvironmentSubtypeStrict env env.
 
 
 (** Definition 3.8 of environment combination.
@@ -520,13 +530,17 @@ Fixpoint EnvironmentSubtype_diff (env1 env2 : Env) : Env :=
   | _, _ => nil
   end.
 
-(* TODO: Change name *)
-Lemma EnvironmentSubtype_diff_CruftEnv : forall env1 env2,
-  env1 ≤ₑ env2 ->
-  UnrestrictedEnv (EnvironmentSubtype_diff env1 env2).
-Proof.
-  intros * Sub; induction Sub; simpl; try (now constructor).
-Qed.
+(* TODO: Remove? Do not know if this holds *)
+(*Lemma EnvironmentSubtype_diff_CruftEnv : forall env1 env2,*)
+(*  env1 ≤ₑ env2 ->*)
+(*  CruftEnv (EnvironmentSubtype_diff env1 env2).*)
+(*Proof.*)
+(*  intros * Sub; induction Sub; try (now constructor).*)
+(*  - simpl. constructor.*)
+(*    + now apply Unrestricted_implies_Cruft.*)
+(*    + assumption.*)
+(*  - admit.*)
+(*Admitted.*)
 
 Fixpoint EnvironmentSubtype_diff_Sub (env1 env2 : Env) : Env :=
   match env1, env2 with
@@ -539,158 +553,162 @@ Fixpoint EnvironmentSubtype_diff_Sub (env1 env2 : Env) : Env :=
   end.
 
 
-Lemma EnvironmentSubtype_diff_Sub_Unrestricted : forall env1 env2 env2A env2B,
-  env1 ≤ₑ env2 ->
-  env2A,, env2B ~= env2 ->
-  UnrestrictedEnv env2B ->
-  UnrestrictedEnv (EnvironmentSubtype_diff_Sub env1 env2B).
-Proof.
-  intros * Sub.
-  revert env2A env2B.
-  induction Sub; intros * Split Unr.
-  - inversion Split; subst; simpl; constructor.
-  - inversion Split; subst; simpl.
-    inversion Unr; subst.
-    constructor.
-    apply I.
-    now apply IHSub with (env2A := env0).
-  - inversion Split; subst; simpl.
-    inversion Unr; subst.
-    constructor.
-    assumption.
-    now apply IHSub with (env2A := env0).
-  - inversion Split; subst; simpl; inversion Unr; subst.
-    + constructor.
-      apply I.
-      now apply IHSub with (env2A := env0).
-    + constructor.
-      * now apply Subtype_preserves_Unrestricted with (T2 := T2).
-      * now apply IHSub with (env2A := env0).
-Qed.
+(*Lemma EnvironmentSubtype_diff_Sub_Unrestricted : forall env1 env2 env2A env2B,*)
+(*  env1 ≤ₑ env2 ->*)
+(*  env2A,, env2B ~= env2 ->*)
+(*  UnrestrictedEnv env2B ->*)
+(*  UnrestrictedEnv (EnvironmentSubtype_diff_Sub env1 env2B).*)
+(*Proof.*)
+(*  intros * Sub.*)
+(*  revert env2A env2B.*)
+(*  induction Sub; intros * Split Unr.*)
+(*  - inversion Split; subst; simpl; constructor.*)
+(*  - inversion Split; subst; simpl.*)
+(*    inversion Unr; subst.*)
+(*    constructor.*)
+(*    apply I.*)
+(*    now apply IHSub with (env2A := env0).*)
+(*  - inversion Split; subst; simpl.*)
+(*    inversion Unr; subst.*)
+(*    constructor.*)
+(*    assumption.*)
+(*    now apply IHSub with (env2A := env0).*)
+(*  - inversion Split; subst; simpl; inversion Unr; subst.*)
+(*    + constructor.*)
+(*      apply I.*)
+(*      now apply IHSub with (env2A := env0).*)
+(*    + constructor.*)
+(*      * now apply Subtype_preserves_Unrestricted with (T2 := T2).*)
+(*      * now apply IHSub with (env2A := env0).*)
+(*Qed.*)
 
-Lemma EnvironmentSubtype_diff_split : forall env1 env2,
-  env1 ≤ₑ env2 ->
-  (EnvironmentSubtype_diff_Sub env1 env2),, (EnvironmentSubtype_diff env1 env2) ~= env1.
-Proof.
-  intros * Sub; induction Sub; simpl; now constructor.
-Qed.
+(*Lemma EnvironmentSubtype_diff_split : forall env1 env2,*)
+(*  env1 ≤ₑ env2 ->*)
+(*  (EnvironmentSubtype_diff_Sub env1 env2),, (EnvironmentSubtype_diff env1 env2) ~= env1.*)
+(*Proof.*)
+(*  intros * Sub; induction Sub; simpl; now constructor.*)
+(*Qed.*)
 
-
-Lemma EnvironmentSubtype_diff_split2 : forall env1 env2 env2A env2B,
-  env1 ≤ₑ env2 ->
-  env2A,, env2B ~= env2 ->
-  EnvironmentSplitN [EnvironmentSubtype_diff_Sub env1 env2A; EnvironmentSubtype_diff_Sub env1 env2B; EnvironmentSubtype_diff env1 env2] env1.
-Proof.
-  intros * Sub.
-  revert env2A env2B.
-  induction Sub; intros * Split.
-  - inversion Split; subst; simpl.
-    apply EnvSplitN with (env3 := []); repeat constructor.
-  - inversion Split; subst; simpl.
-    apply IHSub in H2.
-    inversion H2; subst.
-    inversion H5; subst.
-    + econstructor.
-      * assert (H : None :: EnvironmentSubtype_diff_Sub env1 env0,,
-                  None :: EnvironmentSubtype_diff_Sub env1 env3 ~= None :: env6).
-        now constructor.
-        apply H.
-      * now repeat constructor.
-    + econstructor.
-      * assert (H : None :: EnvironmentSubtype_diff_Sub env1 env0,,
-                  None :: EnvironmentSubtype_diff_Sub env1 env3 ~= None :: env6).
-        now constructor.
-        apply H.
-      * inversion H7.
-  - inversion Split; subst; simpl.
-    apply IHSub in H3.
-    inversion H3; subst.
-    inversion H6; subst.
-    + apply EnvSplitN with (env3 := None :: env6).
-      * now constructor.
-      * now repeat constructor.
-    + inversion H8.
-  - inversion Split; subst; simpl.
-    + apply IHSub in H3.
-      inversion H3; subst.
-      inversion H6; subst.
-      * apply EnvSplitN with (env3 := Some T1 :: env6).
-        -- now constructor.
-        -- now repeat constructor.
-      * inversion H8.
-    + apply IHSub in H3.
-      inversion H3; subst.
-      inversion H6; subst.
-      * apply EnvSplitN with (env3 := Some T1 :: env6).
-        -- now constructor.
-        -- now repeat constructor.
-      * inversion H8.
-Qed.
-  
+(*Lemma EnvironmentSubtype_diff_split2 : forall env1 env2 env2A env2B,*)
+(*  env1 ≤ₑ env2 ->*)
+(*  env2A,, env2B ~= env2 ->*)
+(*  EnvironmentSplitN [EnvironmentSubtype_diff_Sub env1 env2A; EnvironmentSubtype_diff_Sub env1 env2B; EnvironmentSubtype_diff env1 env2] env1.*)
+(*Proof.*)
+(*  intros * Sub.*)
+(*  revert env2A env2B.*)
+(*  induction Sub; intros * Split.*)
+(*  - inversion Split; subst; simpl.*)
+(*    apply EnvSplitN with (env3 := []); repeat constructor.*)
+(*  - inversion Split; subst; simpl.*)
+(*    apply IHSub in H2.*)
+(*    inversion H2; subst.*)
+(*    inversion H5; subst.*)
+(*    + econstructor.*)
+(*      * assert (H : None :: EnvironmentSubtype_diff_Sub env1 env0,,*)
+(*                  None :: EnvironmentSubtype_diff_Sub env1 env3 ~= None :: env6).*)
+(*        now constructor.*)
+(*        apply H.*)
+(*      * now repeat constructor.*)
+(*    + econstructor.*)
+(*      * assert (H : None :: EnvironmentSubtype_diff_Sub env1 env0,,*)
+(*                  None :: EnvironmentSubtype_diff_Sub env1 env3 ~= None :: env6).*)
+(*        now constructor.*)
+(*        apply H.*)
+(*      * inversion H7.*)
+(*  - inversion Split; subst; simpl.*)
+(*    apply IHSub in H3.*)
+(*    inversion H3; subst.*)
+(*    inversion H6; subst.*)
+(*    + apply EnvSplitN with (env3 := None :: env6).*)
+(*      * now constructor.*)
+(*      * now repeat constructor.*)
+(*    + inversion H8.*)
+(*  - inversion Split; subst; simpl.*)
+(*    + apply IHSub in H3.*)
+(*      inversion H3; subst.*)
+(*      inversion H6; subst.*)
+(*      * apply EnvSplitN with (env3 := Some T1 :: env6).*)
+(*        -- now constructor.*)
+(*        -- now repeat constructor.*)
+(*      * inversion H8.*)
+(*    + apply IHSub in H3.*)
+(*      inversion H3; subst.*)
+(*      inversion H6; subst.*)
+(*      * apply EnvSplitN with (env3 := Some T1 :: env6).*)
+(*        -- now constructor.*)
+(*        -- now repeat constructor.*)
+(*      * inversion H8.*)
+(*Qed.*)
 
 Lemma EnvironmentSubtype_diff_Sub_Empty : forall env1 env2,
-  env1 ≤ₑ env2 ->
   EmptyEnv env2 ->
   EmptyEnv (EnvironmentSubtype_diff_Sub env1 env2).
 Proof.
-  intros * Sub Empty.
-  induction Sub; simpl in *.
-  - assumption.
-  - inversion Empty; subst.
-    constructor.
+  intros *.
+  revert env1.
+  induction env2; intros * Empty.
+  - destruct env1.
     assumption.
-    now apply IHSub.
-  - inversion Empty; subst.
-    constructor.
-    assumption.
-    now apply IHSub.
-  - inversion Empty; subst; discriminate.
+    now destruct o.
+  - destruct a; inversion Empty; subst.
+    + discriminate.
+    + destruct env1.
+      * constructor.
+      * destruct o; simpl; constructor; try reflexivity; now apply IHenv2.
 Qed.
 
-Lemma EnvironmentSubtype_diff_Sub_Singleton : forall env1 env2,
-  env1 ≤ₑ env2 ->
-  SingletonEnv env2 ->
-  SingletonEnv (EnvironmentSubtype_diff_Sub env1 env2).
-Proof.
-  intros * Sub Single.
-  induction Sub; simpl in *.
-  - inversion Single.
-  - now apply IHSub.
-  - now apply IHSub.
-  - now apply EnvironmentSubtype_diff_Sub_Empty.
-Qed.
+(*Lemma EnvironmentSubtype_diff_Sub_Singleton : forall env1 env2,*)
+(*  env1 ≤ₑ env2 ->*)
+(*  SingletonEnv env2 ->*)
+(*  SingletonEnv (EnvironmentSubtype_diff_Sub env1 env2).*)
+(*Proof.*)
+(*  intros * Sub Single.*)
+(*  induction Sub; simpl in *.*)
+(*  - inversion Single.*)
+(*  - now apply IHSub.*)
+(*  - now apply IHSub.*)
+(*  - now apply EnvironmentSubtype_diff_Sub_Empty.*)
+(*Qed.*)
 
-Lemma EnvironmentSubtype_diff_Sub_lookup : forall env1 env2 v T,
-  env1 ≤ₑ env2 ->
-  lookup v env2 = Some T ->
-  exists T', lookup v (EnvironmentSubtype_diff_Sub env1 env2) = Some T'.
-Proof.
-  intros * Sub.
-  revert v.
-  induction Sub; simpl in *; intros * Lookup.
-  - rewrite lookup_nil in Lookup; discriminate.
-  - destruct v.
-    + simpl in *. discriminate.
-    + apply lookup_cons_None in Lookup.
-      apply IHSub in Lookup.
-      destruct Lookup as [T' Eq].
-      exists T'.
-      rewrite lookup_cons_None'.
-      assumption.
-      lia.
-  - destruct v.
-    + simpl in *. discriminate.
-    + apply lookup_cons_None in Lookup.
-      apply IHSub in Lookup.
-      destruct Lookup as [T' Eq].
-      exists T'.
-      rewrite lookup_cons_None'.
-      assumption.
-      lia.
-  - destruct v.
-    + now exists T1.
-    + simpl in *. now apply IHSub.
-Qed.
+(*Lemma EnvironmentSubtype_diff_Sub_Singleton_Split : forall env1 env2 env2A env2B,*)
+(*  env1 ≤ₑ env2 ->*)
+(*  env2A,, env2B ~= env2 ->*)
+(*  SingletonEnv env2A ->*)
+(*  SingletonEnv (EnvironmentSubtype_diff_Sub env1 env2A).*)
+(*Proof.*)
+
+
+(*Lemma EnvironmentSubtype_diff_Sub_lookup : forall env1 env2 v T,*)
+(*  env1 ≤ₑ env2 ->*)
+(*  lookup v env2 = Some T ->*)
+(*  exists T', lookup v (EnvironmentSubtype_diff_Sub env1 env2) = Some T'.*)
+(*Proof.*)
+(*  intros * Sub.*)
+(*  revert v.*)
+(*  induction Sub; simpl in *; intros * Lookup.*)
+(*  - rewrite lookup_nil in Lookup; discriminate.*)
+(*  - destruct v.*)
+(*    + simpl in *. discriminate.*)
+(*    + apply lookup_cons_None in Lookup.*)
+(*      apply IHSub in Lookup.*)
+(*      destruct Lookup as [T' Eq].*)
+(*      exists T'.*)
+(*      rewrite lookup_cons_None'.*)
+(*      assumption.*)
+(*      lia.*)
+(*  - destruct v.*)
+(*    + simpl in *. discriminate.*)
+(*    + apply lookup_cons_None in Lookup.*)
+(*      apply IHSub in Lookup.*)
+(*      destruct Lookup as [T' Eq].*)
+(*      exists T'.*)
+(*      rewrite lookup_cons_None'.*)
+(*      assumption.*)
+(*      lia.*)
+(*  - destruct v.*)
+(*    + now exists T1.*)
+(*    + simpl in *. now apply IHSub.*)
+(*Qed.*)
 
 (* TODO: Remove this if not needed *)
 
@@ -770,15 +788,16 @@ Qed.
 
 Lemma EmptyEnv_SubEnv_EmptyEnv : forall env1 env2, EmptyEnv env1 -> env1 ≤ₑ env2 -> EmptyEnv env2.
 Proof.
-  induction env1; intros * Empty Sub.
-  - inversion Sub; subst; constructor.
-  - inversion Sub; subst.
-    + inversion Empty; subst.
-      constructor.
-      reflexivity.
-      now apply IHenv1.
-    + inversion Empty; subst; discriminate.
-    + inversion Empty; subst; discriminate.
+  intros * Empty Sub; induction Sub.
+  - constructor.
+  - inversion Empty; subst.
+    constructor.
+    assumption.
+    now apply IHSub.
+  - inversion Empty; subst; discriminate.
+  - inversion Empty; subst; discriminate.
+  - apply IHSub2. now apply IHSub1.
+  - assumption.
 Qed.
 
 Lemma UnrestrictedEnv_EmptyEnv : forall env, EmptyEnv env -> UnrestrictedEnv env.
@@ -816,19 +835,7 @@ Qed.
 
 Lemma EnvironmentSubtype_trans : forall env1 env2 env3, env1 ≤ₑ env2 -> env2 ≤ₑ env3 -> env1 ≤ₑ env3.
 Proof.
-  induction env1, env2; intros * Sub1 Sub2.
-  - inversion Sub2; constructor.
-  - inversion Sub1.
-  - inversion Sub2; now subst.
-  - inversion Sub1; inversion Sub2; subst;
-    try (discriminate);
-    try (constructor; (assumption || now apply IHenv1 with (env2 := env2))).
-    + constructor.
-      * injection H5; intros ->; now apply Subtype_preserves_Unrestricted with (T2 := T2).
-      * now apply IHenv1 with (env2 := env2).
-    + constructor.
-      * injection H5; intros ->; now apply Subtype_trans with (t2 := T2).
-      * now apply IHenv1 with (env2 := env2).
+  apply EnvSubtypeTrans.
 Qed.
 
 End environment_properties.

@@ -1,6 +1,7 @@
 (** * Syntax of types *)
 
 From Stdlib Require Import Lia.
+From Stdlib Require Import Classes.RelationClasses.
 
 From MailboxTypes Require Export Message.
 From MailboxTypes Require Export MailboxPatterns.
@@ -153,7 +154,7 @@ Definition Unusable (m : MType) : Prop :=
 
 Inductive Unrestricted : TUsage -> Prop :=
     unBase : forall c : BType, Unrestricted (TUBase c)
-  | unOne : forall T, T ≤ ! 𝟙 ^^ ◦ -> Unrestricted T.
+  | unOne : Unrestricted (! 𝟙 ^^ ◦).
 
 Definition Linear (m : TUsage) : Prop :=
   ~ Unrestricted m.
@@ -266,6 +267,11 @@ Proof.
   intros * Sub1 Sub2; destruct n1, n2, n3; try (constructor); assumption.
 Qed.
 
+Global Instance UsageSubtype_refl : Reflexive UsageSubtype.
+Proof.
+  unfold Reflexive; constructor.
+Qed.
+
 Lemma Subtype_refl : forall t, t ≤ t.
 Proof.
   destruct t.
@@ -295,86 +301,28 @@ Proof.
   now inversion Sub.
 Qed.
 
-Lemma Subtype_preserves_Unrestricted : forall T1 T2, Unrestricted T2 -> T1 ≤ T2 -> Unrestricted T1.
+(* TODO: Remove this. Does not hold if Unrestricted is a syntactic check *)
+(*Lemma Subtype_preserves_Unrestricted : forall T1 T2, Unrestricted T2 -> T1 ≤ T2 -> Unrestricted T1.*)
+(*Proof.*)
+(*  intros * Unr2 Sub.*)
+(*  inversion Unr2; subst.*)
+(*  - inversion Sub; subst; constructor.*)
+(*  - constructor; now apply Subtype_trans with (t2 := T2).*)
+(*Qed.*)
+
+Lemma Unrestricted_implies_Cruft : forall T, Unrestricted T -> TUCruft T.
 Proof.
-  intros * Unr2 Sub.
-  inversion Unr2; subst.
-  - inversion Sub; subst; constructor.
-  - constructor; now apply Subtype_trans with (t2 := T2).
+  intros * Unr; inversion Unr; constructor; reflexivity.
 Qed.
 
 (** Deciding whether a type is unrestricted is deciable *)
-(* TODO: Clean up proof *)
 Lemma Unrestricted_dec : forall T, {Unrestricted T} + {~ Unrestricted T}.
 Proof.
-  intros T.
-  destruct T.
+  intros T; destruct T.
   - left; constructor.
-  - destruct m.
-    + induction m.
-      * right; intros Unr; inversion Unr; subst; inversion H; subst.
-        apply MPInclusion_zero in H3.
-        now apply one_zero_not_MPEqual.
-      * left. destruct u; repeat constructor; apply MPInclusion_refl.
-      * right. intros Unr; inversion Unr; subst; inversion H; subst;
-        generalize (H3 ⟨⟩ MPValueOne); intros In; inversion In.
-      * destruct IHm1 as [Unr1 | NUnr1]; destruct IHm2 as [Unr2 | NUnr2].
-        -- left. inversion Unr1; inversion H; subst.
-           repeat constructor. inversion H0; subst. now apply H4.
-           inversion H6; constructor.
-        -- left. inversion Unr1; inversion H; subst.
-           repeat constructor. inversion H0; subst. now apply H4.
-           inversion H6; constructor.
-        -- left. inversion Unr2; inversion H; subst.
-           constructor. constructor. intros m. intros In.
-           apply MPValueChoiceRight.
-           now apply H4.
-           inversion H6; constructor.
-        -- right. intros Unr. inversion Unr; subst. inversion H; subst.
-           generalize (H3 ⟨⟩ MPValueOne); intros In; inversion In; subst.
-           ++ apply NUnr1. repeat constructor.
-              intros x xIn; now inversion xIn. destruct u; constructor.
-           ++ apply NUnr2; repeat constructor.
-              intros x xIn; now inversion xIn. destruct u; constructor.
-      * destruct IHm1 as [Unr1 | NUnr1]; destruct IHm2 as [Unr2 | NUnr2].
-        -- left. inversion Unr1; inversion Unr2; subst.
-           inversion H; inversion H1; subst.
-           repeat constructor.
-           ++ intros x xIn.
-              eapply MPValueComp.
-              ** apply (H4 x xIn).
-              ** apply (H10 x xIn).
-              ** inversion xIn; subst; constructor.
-           ++ destruct u; constructor.
-        -- right. inversion Unr1; inversion H; subst.
-           intros UnrC; inversion UnrC; inversion H0; subst.
-           generalize (H7 ⟨⟩ MPValueOne); intros In; inversion In; subst.
-           apply NUnr2.
-           apply mailbox_union_empty in H10. destruct H10; subst.
-           repeat constructor.
-           ++ intros x xIn; inversion xIn; now subst.
-           ++ destruct u; constructor.
-        -- right. inversion Unr2; inversion H; subst.
-           intros UnrC; inversion UnrC; inversion H0; subst.
-           generalize (H7 ⟨⟩ MPValueOne); intros In; inversion In; subst.
-           apply NUnr1.
-           apply mailbox_union_empty in H10. destruct H10; subst.
-           repeat constructor.
-           ++ intros x xIn; inversion xIn; now subst.
-           ++ destruct u; constructor.
-        -- right.
-           intros UnrC. inversion UnrC; subst. inversion H; subst.
-           apply NUnr1.
-           generalize (H3 ⟨⟩ MPValueOne); intros In; inversion In; subst.
-           apply mailbox_union_empty in H7; destruct H7; subst.
-           repeat constructor.
-           ++ intros x xIn; inversion xIn; now subst.
-           ++ destruct u; constructor.
-      * left. repeat constructor.
-        -- now exists 0.
-        -- destruct u; constructor.
-    + right; intros NUnr; inversion NUnr; inversion H.
+  - destruct m; destruct m; destruct u;
+    try (left; constructor);
+    right; intros Unr; inversion Unr.
 Qed.
-
 
 End mailbox_types_properties.
