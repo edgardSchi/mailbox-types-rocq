@@ -30,7 +30,7 @@ Inductive Term' (prog : Prog) : Env -> TUsage -> Prop :=
       [ envList ]+ₑ ~= env ->
       Forall3 (Term' prog) envList (map TValue vList) (argumentTypes) ->
       Term' prog env (TApp definition vList) bodyType
-  .
+.
 
 Inductive WellTypedTerm (prog : Prog) : Env -> Term -> TUsage -> Prop :=
   (* Var *)

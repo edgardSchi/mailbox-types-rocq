@@ -3,8 +3,8 @@
 From MailboxTypes Require Export Types.
 From MailboxTypes Require Import Util.
 
-From Stdlib Require Import Lists.List.
-Import ListNotations.
+From Stdlib Require Export Lists.List.
+Export ListNotations.
 From Stdlib Require Import Lia.
 
 Generalizable All Variables.

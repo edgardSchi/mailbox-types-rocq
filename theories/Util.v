@@ -56,3 +56,10 @@ Definition ForallMaybe (l : list (option A)) : Prop :=
     l.
 
 End MaybeUtils.
+
+(** Defining function composition *)
+Definition funcomp {X Y Z} (g : Y -> Z) (f : X -> Y) :=
+  fun x => g (f x).
+
+Notation "f >> g" := (funcomp g f) (*fun x => g (f x)*) (at level 50).
+
