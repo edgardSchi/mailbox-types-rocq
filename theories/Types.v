@@ -16,7 +16,7 @@ Section type_def.
 Context `{M : IMessage Message}.
 
 (** Mailbox type definition *)
-Inductive MType (*`{IMessage Message}*) : Type :=
+Inductive MType : Type :=
     MTOutput : MPattern -> MType
   | MTInput  : MPattern -> MType.
 
@@ -67,6 +67,11 @@ Definition secondUsage (t : TUsage) : TUsage :=
   | TUUsage _ m => TUUsage SecondClass m
   end.
 
+Definition BaseType (T : TType) : Prop :=
+  match T with
+  | TTBase _ => True
+  | _ => False
+  end.
 
 (** A list of only base types *)
 Fixpoint BaseTypes (e : list TType) : Prop :=

@@ -838,4 +838,9 @@ Proof.
   apply EnvSubtypeTrans.
 Qed.
 
+Lemma EnvironmentDis_implies_Comb : forall env1 env2 env, env1 +ₑ env2 ~= env -> env1 ▷ₑ env2 ~= env.
+Proof.
+  intros * Dis; induction Dis; now repeat constructor.
+Qed.
+
 End environment_properties.

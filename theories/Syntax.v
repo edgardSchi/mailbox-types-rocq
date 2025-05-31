@@ -45,35 +45,85 @@ Inductive Value : Type :=
 Inductive Term `{IMessage Message} `{IDefinitionName DefinitionName} : Type :=
     TValue : Value -> Term
   | TLet   : Term -> Term -> Term
-  | TApp   : DefinitionName -> list Value -> Term
+  | TApp   : DefinitionName -> Value -> Term
   | TSpawn : Term -> Term
   | TNew   : Term
-  | TSend  : Value -> Message -> list Value -> Term
+  | TSend  : Value -> Message -> Value -> Term
   | TGuard : Value -> MPattern -> list Guard -> Term
 with Guard `{IMessage Message} `{IDefinitionName DefinitionName} : Type :=
     GFail : Guard
   | GFree : Term -> Guard
-  | GReceive : Message -> VarName -> Term -> Guard.
+  | GReceive : Message -> Term -> Guard.
 
 (** Function definitions *)
 Inductive FunctionDefinition : Type :=
-  | FunDef : DefinitionName ->
-             list TUsage ->
-             TUsage ->
-             Term ->
+  | FunDef : DefinitionName ->  (* Function name *)
+             TUsage ->          (* Argument type *)
+             TUsage ->          (* Result type *)
+             Term ->            (* Function body *)
              FunctionDefinition.
 
-(** A program is a collection of definitions, an initial term and a 
-    mapping from message to types of the contents
+(** A program is a collection of definitions, an initial term and a
+    mapping from message to the content's type
 *)
 Record Prog : Type :=
   {
-    signature : Message -> list TType
+    signature : Message -> TType
   ; definitions : DefinitionName -> FunctionDefinition
   ; initialTerm : Term
   }.
 
+(** Defining the mutual recursion scheme for [Term] *)
+(*Scheme Term_ind2 := Induction for Term Sort Prop*)
+(*  with Guard_ind2 := Induction for Guard Sort Prop.*)
+
 End syntax_def.
+
+Section term_ind.
+
+  Context `{M : IMessage Message}.
+  Context `{D : IDefinitionName DefinitionName}.
+
+  Variable P : Term -> Prop.
+  Variable PG : Guard -> Prop.
+
+  Hypothesis TValue_case : forall v, P (TValue v).
+  Hypothesis TLet_case : forall t1 t2, P t1 -> P t2 -> P (TLet t1 t2).
+  Hypothesis TApp_case : forall def v, P (TApp def v).
+  Hypothesis TSpawn_case : forall t, P t -> P (TSpawn t).
+  Hypothesis TNew_case : P TNew.
+  Hypothesis TSend_case : forall v1 m v2, P (TSend v1 m v2).
+  Hypothesis TGuard_case : forall v e gs, Forall PG gs -> P (TGuard v e gs).
+  Hypothesis GFail_case : PG GFail.
+  Hypothesis GFree_case : forall t, P t -> PG (GFree t).
+  Hypothesis GReceive_case : forall m t, P t -> PG (GReceive m t).
+
+  Definition Term_ind2 (t : Term) : P t :=
+    fix F (t : Term) : P t :=
+      match t return (P t) with
+      | TValue v => TValue_case v
+      | TLet t1 t2 => TLet_case t1 t2 (F t1) (F t2)
+      | TApp def v => TApp_case def v
+      | TSpawn t => TSpawn_case t (F t)
+      | TNew => TNew_case
+      | TSend v1 m v2 => TSend_case v1 m v2
+      | TGuard v e gs => TGuard_case v e gs
+          ((fix Guards_ind (gs : list Guard) : (Forall PG gs) :=
+            match gs with
+            | nil => Forall_nil PG
+            | g :: gs' => Forall_cons _ (FG g) (Guards_ind gs')
+            end
+            ) gs)
+      end
+    with FG (g : Guard) : PG g :=
+      match g return (PG g) with
+      | GFail => GFail_case
+      | GFree t => GFree_case t (F t)
+      | GReceive m t => GReceive_case m t (F t)
+      end
+    for F t.
+
+End term_ind.
 
 
 From Stdlib Require Import ListSet.
@@ -110,11 +160,11 @@ Fixpoint FV (t : Term) : set nat :=
   | TValue v => FV_val v
   | TLet t1 t2  =>
       set_union Nat.eq_dec (FV t1) (downShift 1 (set_remove Nat.eq_dec 0 (FV t2)))
-  | TApp _ values => set_concat (map (fun v => FV_val v) values)
+  | TApp _ v => FV_val v
   | TSpawn t1 => FV t1
   | TNew => nil
-  | TSend v m values =>
-      set_union Nat.eq_dec (FV_val v) (set_concat (map (fun v => FV_val v) values))
+  | TSend v m value =>
+      set_union Nat.eq_dec (FV_val v) (FV_val value)
   | TGuard v _ guards =>
       set_union Nat.eq_dec (FV_val v) (set_concat (map (fun v => FV_guard v) guards))
   end
@@ -122,8 +172,8 @@ with FV_guard (g : Guard) : list nat :=
   match g with
   | GFail => nil
   | GFree t1 => FV t1
-  | GReceive m (Var x) t1 =>
-      set_union Nat.eq_dec [x] (downShift (content_size m) (set_diff Nat.eq_dec (FV t1) (seq 0 ((content_size m)))))
+  | GReceive m t1 =>
+      (downShift (content_size m) (set_diff Nat.eq_dec (FV t1) (seq 0 ((content_size m)))))
   end.
 
 End free_var_def.

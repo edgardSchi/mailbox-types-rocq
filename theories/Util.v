@@ -1,6 +1,6 @@
 (** Utility definitions *)
 
-Require Import List.
+From Stdlib Require Import List.
 Import ListNotations.
 
 Set Implicit Arguments.
@@ -61,5 +61,9 @@ End MaybeUtils.
 Definition funcomp {X Y Z} (g : Y -> Z) (f : X -> Y) :=
   fun x => g (f x).
 
+(** Notation for forward function composition *)
 Notation "f >> g" := (funcomp g f) (*fun x => g (f x)*) (at level 50).
 
+Lemma funcomp_assoc : forall {A B C D} (f : A -> B) (g : B -> C) (h : C -> D),
+  (f >> g) >> h = f >> (g >> h).
+Proof. intros; reflexivity. Qed.

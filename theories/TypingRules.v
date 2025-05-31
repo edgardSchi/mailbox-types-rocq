@@ -32,11 +32,10 @@ Inductive WellTypedTerm (prog : Prog) : Env -> Term -> TUsage -> Prop :=
       EmptyEnv env ->
       WellTypedTerm prog env (TValue ValueUnit) (TUBase BTUnit)
   (* App *)
-  | APP : forall env envList vList definition bodyType argumentTypes term,
-      definitions prog definition = (FunDef definition argumentTypes bodyType term) ->
-      [ envList ]+ₑ ~= env ->
-      Forall3 (WellTypedTerm prog) envList (map TValue vList) (argumentTypes) ->
-      WellTypedTerm prog env (TApp definition vList) bodyType
+  | APP : forall env v definition bodyType argumentType term,
+      definitions prog definition = (FunDef definition argumentType bodyType term) ->
+      WellTypedTerm prog env (TValue v) argumentType ->
+      WellTypedTerm prog env (TApp definition v) bodyType
   (* Let *)
   | LET   : forall env env1 env2 T1 T2 t1 t2, 
       env1 ▷ₑ env2 ~= env ->
@@ -52,13 +51,12 @@ Inductive WellTypedTerm (prog : Prog) : Env -> Term -> TUsage -> Prop :=
       EmptyEnv env ->
       WellTypedTerm prog env TNew (? 𝟙 ^^ •)
   (* Send *)
-  (* TODO: Maybe try a recursive approach with this rule *)
-  | SEND : forall env env' envList tList vList m v,
-      WellTypedTerm prog env' (TValue v) (! « m » ^^ ◦) ->
-      signature prog m = tList ->
-      [ (env' :: envList) ]+ₑ ~= env ->
-      Forall3 (WellTypedTerm prog) envList (map TValue vList) (map secondType tList) ->
-      WellTypedTerm prog env (TSend v m vList) (TUBase BTUnit)
+  | SEND : forall env env1 env2 T m v1 v2,
+      WellTypedTerm prog env1 (TValue v1) (! « m » ^^ ◦) ->
+      signature prog m = T ->
+      env1 +ₑ env2 ~= env ->
+      WellTypedTerm prog env2 (TValue v2) ⌈ T ⌉ ->
+      WellTypedTerm prog env (TSend v1 m v2) (TUBase BTUnit)
   (* Guard *)
   | GUARD : forall env env1 env2 guards v T e f,
       env1 +ₑ env2 ~= env ->
@@ -89,24 +87,21 @@ with WellTypedGuard (prog : Prog) : Env -> Guard -> TUsage -> MPattern -> Prop :
       WellTypedTerm prog env t T ->
       WellTypedGuard prog env (GFree t) T 𝟙
   (* Receive *)
-  | RECEIVE : forall t m env T tList e mailbox,
-      signature prog m = tList ->
-      BaseTypes tList \/ BaseEnv env ->
-      WellTypedTerm prog ((toEnv (map secondType tList)) ++ [Some (? e ^^ •)] ++ env) t T ->
-      WellTypedGuard prog env (GReceive m mailbox t) T (« m » ⊙ e).
+  | RECEIVE : forall t m env BT T e,
+      signature prog m = BT ->
+      BaseType BT \/ BaseEnv env ->
+      WellTypedTerm prog (Some ⌈ BT ⌉ :: Some (? e ^^ •) :: env) t T ->
+      WellTypedGuard prog env (GReceive m t) T (« m » ⊙ e).
 
 Inductive WellTypedDefinition (prog : Prog) : FunctionDefinition -> Prop :=
-  | FUNDEF : forall defName argumentTypes body bodyType,
-      WellTypedTerm prog (toEnv argumentTypes) body bodyType ->
-      WellTypedDefinition prog (FunDef defName argumentTypes bodyType body).
+  | FUNDEF : forall defName argumentType body bodyType,
+      WellTypedTerm prog [Some argumentType] body bodyType ->
+      WellTypedDefinition prog (FunDef defName argumentType bodyType body).
 
 Inductive WellTypedProgram (prog : Prog) : Prop :=
   PROG :
     (forall def, WellTypedDefinition prog (definitions prog def)) ->
     WellTypedTerm prog nil (initialTerm prog) (TUBase BTUnit) -> WellTypedProgram prog.
-
-  Scheme WellTypedTerm_ind_test := Induction for WellTypedTerm Sort Prop.
-  (*Print WellTypedTerm_ind_test.*)
 
   Scheme WellTypedTerm_ind3 := Minimality for WellTypedTerm Sort Prop
     with WellTypedGuards_ind3 := Minimality for WellTypedGuards Sort Prop
@@ -116,6 +111,7 @@ Inductive WellTypedProgram (prog : Prog) : Prop :=
 
 End typing_rules_def.
 
+(*
 Section well_typed_ind'.
 
   Generalizable All Variables.
@@ -237,7 +233,7 @@ Section well_typed_ind'.
   Defined.
 
 End well_typed_ind'.
-
+*)
 
 Section well_typed_def.
 
@@ -417,17 +413,6 @@ Proof.
       apply WT.
 Admitted.
 
-(*Lemma EnvironmentSubtype_diff_Sub_EnvEqFV : forall env1 env2 t,*)
-(*  env1 ≤ₑ env2 ->*)
-(*  EnvEqFV env2 t ->*)
-(*  EnvEqFV (EnvironmentSubtype_diff_Sub env1 env2) t.*)
-(*Proof.*)
-(*  intros until t.*)
-(*  revert env1 env2.*)
-(*  induction t; intros * Sub Eq.*)
-(*Admitted.*)
-
-
 Lemma ValueVar_Cruftless : forall {p} env v T,
   SingletonEnv env ->
   lookup v env = Some T ->
@@ -527,20 +512,6 @@ Proof.
       now destruct n.
 Qed.
 
-(*Lemma EnvironmentSubtype_diff_Sub_Cruftless : forall p env1 env2 env2A env2B t,*)
-(*  env1 ≤ₑ env2 ->*)
-(*  env2A,, env2B ~= env2 ->*)
-(*  @Cruftless p env2A t ->*)
-(*  @Cruftless p (EnvironmentSubtype_diff_Sub env1 env2A) t.*)
-(*Proof.*)
-(*  intros * Sub Split [T [WT Eq]].*)
-(*  revert env2 env2B Split Sub.*)
-(*  induction WT. intros * Sub Split.*)
-(*  - exists T. split.*)
-(*    + constructor; admit.*)
-(*Admitted.*)
-
-
 Lemma WellTypedEnvSub_TValueVar :
   forall {T p} env v,
   WellTypedTerm p env (TValue (ValueVar (Var v))) T ->
@@ -578,18 +549,6 @@ Proof.
     (*+ assumption.*)
     (*+ assumption.*)
 Admitted.
-
-(*Lemma xfy : forall p env b T, WellTypedTerm p env (TValue (ValueBool b)) T -> T = TUBase BTBool.*)
-(*Proof.*)
-(*  intros * WT.*)
-(*  remember (TValue (ValueBool b)) as V.*)
-(*  induction WT; try (discriminate HeqV).*)
-(*  - reflexivity.*)
-(*  - reflexivity.*)
-(*  - generalize (IHWT HeqV).*)
-(*    intros ->.*)
-(*    now apply Subtype_inversion_TUBase_left in H0.*)
-(*Qed.*)
 
 Lemma WellTypedEnvSub_TValue :
   forall p env v T,

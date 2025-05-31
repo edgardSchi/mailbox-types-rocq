@@ -36,7 +36,7 @@ Utility definitions
 <div class="code">
 
 <br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">List</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">Stdlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">List</span>.<br/>
 <span class="id" title="keyword">Import</span> <span class="id" title="module">ListNotations</span>.<br/>
 
 <br/>
@@ -122,9 +122,18 @@ Defining function composition
 &nbsp;&nbsp;<span class="id" title="keyword">fun</span> <a id="x:38" class="idref" href="#x:38"><span class="id" title="binder">x</span></a> =&gt; <a class="idref" href="MailboxTypes.Util.html#g:36"><span class="id" title="variable">g</span></a> (<a class="idref" href="MailboxTypes.Util.html#f:37"><span class="id" title="variable">f</span></a> <a class="idref" href="MailboxTypes.Util.html#x:38"><span class="id" title="variable">x</span></a>).<br/>
 
 <br/>
+</div>
+
+<div class="doc">
+Notation for forward function composition 
+</div>
+<div class="code">
 <span class="id" title="keyword">Notation</span> <a id=":::x_'&gt;&gt;'_x" class="idref" href="#:::x_'&gt;&gt;'_x"><span class="id" title="notation">&quot;</span></a>f &gt;&gt; g" := (<a class="idref" href="MailboxTypes.Util.html#funcomp"><span class="id" title="definition">funcomp</span></a> <span class="id" title="var">g</span> <span class="id" title="var">f</span>) <span class="comment">(*fun&nbsp;x&nbsp;=&gt;&nbsp;g&nbsp;(f&nbsp;x)*)</span> (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 50).<br/>
 
 <br/>
+<span class="id" title="keyword">Lemma</span> <a id="funcomp_assoc" class="idref" href="#funcomp_assoc"><span class="id" title="lemma">funcomp_assoc</span></a> : <span class="id" title="keyword">forall</span> {<a id="A:39" class="idref" href="#A:39"><span class="id" title="binder">A</span></a> <a id="B:40" class="idref" href="#B:40"><span class="id" title="binder">B</span></a> <a id="C:41" class="idref" href="#C:41"><span class="id" title="binder">C</span></a> <a id="D:42" class="idref" href="#D:42"><span class="id" title="binder">D</span></a>} (<a id="f:43" class="idref" href="#f:43"><span class="id" title="binder">f</span></a> : <a class="idref" href="MailboxTypes.Util.html#A:39"><span class="id" title="variable">A</span></a> <a class="idref" href="http://coq.inria.fr/doc/V9.0.0/stdlib//Corelib.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="MailboxTypes.Util.html#B:40"><span class="id" title="variable">B</span></a>) (<a id="g:44" class="idref" href="#g:44"><span class="id" title="binder">g</span></a> : <a class="idref" href="MailboxTypes.Util.html#B:40"><span class="id" title="variable">B</span></a> <a class="idref" href="http://coq.inria.fr/doc/V9.0.0/stdlib//Corelib.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="MailboxTypes.Util.html#C:41"><span class="id" title="variable">C</span></a>) (<a id="h:45" class="idref" href="#h:45"><span class="id" title="binder">h</span></a> : <a class="idref" href="MailboxTypes.Util.html#C:41"><span class="id" title="variable">C</span></a> <a class="idref" href="http://coq.inria.fr/doc/V9.0.0/stdlib//Corelib.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">-&gt;</span></a> <a class="idref" href="MailboxTypes.Util.html#D:42"><span class="id" title="variable">D</span></a>),<br/>
+&nbsp;&nbsp;<a class="idref" href="MailboxTypes.Util.html#:::x_'&gt;&gt;'_x"><span class="id" title="notation">(</span></a><a class="idref" href="MailboxTypes.Util.html#f:43"><span class="id" title="variable">f</span></a> <a class="idref" href="MailboxTypes.Util.html#:::x_'&gt;&gt;'_x"><span class="id" title="notation">&gt;&gt;</span></a> <a class="idref" href="MailboxTypes.Util.html#g:44"><span class="id" title="variable">g</span></a><a class="idref" href="MailboxTypes.Util.html#:::x_'&gt;&gt;'_x"><span class="id" title="notation">)</span></a> <a class="idref" href="MailboxTypes.Util.html#:::x_'&gt;&gt;'_x"><span class="id" title="notation">&gt;&gt;</span></a> <a class="idref" href="MailboxTypes.Util.html#h:45"><span class="id" title="variable">h</span></a> <a class="idref" href="http://coq.inria.fr/doc/V9.0.0/stdlib//Corelib.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="MailboxTypes.Util.html#f:43"><span class="id" title="variable">f</span></a> <a class="idref" href="MailboxTypes.Util.html#:::x_'&gt;&gt;'_x"><span class="id" title="notation">&gt;&gt;</span></a> <a class="idref" href="MailboxTypes.Util.html#:::x_'&gt;&gt;'_x"><span class="id" title="notation">(</span></a><a class="idref" href="MailboxTypes.Util.html#g:44"><span class="id" title="variable">g</span></a> <a class="idref" href="MailboxTypes.Util.html#:::x_'&gt;&gt;'_x"><span class="id" title="notation">&gt;&gt;</span></a> <a class="idref" href="MailboxTypes.Util.html#h:45"><span class="id" title="variable">h</span></a><a class="idref" href="MailboxTypes.Util.html#:::x_'&gt;&gt;'_x"><span class="id" title="notation">)</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>. <span class="id" title="tactic">intros</span>; <span class="id" title="tactic">reflexivity</span>. <span class="id" title="keyword">Qed</span>.<br/>
 </div>
 </div>
 <div id="footer">
