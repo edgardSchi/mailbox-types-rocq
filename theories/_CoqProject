@@ -1,4 +1,9 @@
 -R . MailboxTypes
+
+Dblib/DblibTactics.v
+Dblib/DeBruijn.v
+Dblib/Environments.v
+
 Message.v
 MailboxPatterns.v
 Types.v

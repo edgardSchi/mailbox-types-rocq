@@ -30,7 +30,8 @@ Context `{M : IMessage Message}.
 Context `{D : IDefinitionName DefinitionName}.
 
 (** A variable is just a natural number *)
-Inductive VarName : Type := Var : nat -> VarName.
+(*Inductive VarName : Type := Var : nat -> VarName.*)
+Definition VarName := nat.
 
 (** We associated values as relations between environments and types.
     Since variables are treated as values, we need a way to check what
@@ -74,8 +75,8 @@ Record Prog : Type :=
   }.
 
 (** Defining the mutual recursion scheme for [Term] *)
-(*Scheme Term_ind2 := Induction for Term Sort Prop*)
-(*  with Guard_ind2 := Induction for Guard Sort Prop.*)
+Scheme Term_ind2 := Induction for Term Sort Prop
+  with Guard_ind2 := Induction for Guard Sort Prop.
 
 End syntax_def.
 
@@ -98,7 +99,7 @@ Section term_ind.
   Hypothesis GFree_case : forall t, P t -> PG (GFree t).
   Hypothesis GReceive_case : forall m t, P t -> PG (GReceive m t).
 
-  Definition Term_ind2 (t : Term) : P t :=
+  Definition Term_ind3 (t : Term) : P t :=
     fix F (t : Term) : P t :=
       match t return (P t) with
       | TValue v => TValue_case v
@@ -151,7 +152,7 @@ Definition downShift (n : nat) := set_map Nat.eq_dec (fun x => x - n).
 
 Definition FV_val (v : Value) : set nat :=
   match v with
-  | ValueVar (Var x) => x :: nil
+  | ValueVar x => x :: nil
   | _ => nil
   end.
 

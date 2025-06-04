@@ -57,6 +57,8 @@ Definition ForallMaybe (l : list (option A)) : Prop :=
 
 End MaybeUtils.
 
+Section function_comp.
+
 (** Defining function composition *)
 Definition funcomp {X Y Z} (g : Y -> Z) (f : X -> Y) :=
   fun x => g (f x).
@@ -67,3 +69,5 @@ Notation "f >> g" := (funcomp g f) (*fun x => g (f x)*) (at level 50).
 Lemma funcomp_assoc : forall {A B C D} (f : A -> B) (g : B -> C) (h : C -> D),
   (f >> g) >> h = f >> (g >> h).
 Proof. intros; reflexivity. Qed.
+
+End function_comp.
