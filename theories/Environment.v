@@ -786,6 +786,35 @@ Proof.
   - now constructor.
 Qed.
 
+Lemma EnvironmentSubtype_length : forall env1 env2, env1 ≤ₑ env2 -> length env1 = length env2.
+Proof.
+  intros * Sub.
+  induction Sub; simpl;
+  try (f_equal; try easy; fail).
+  rewrite IHSub1; now rewrite IHSub2.
+Qed.
+
+Lemma create_EmptyEnv_length : forall env1 env2,
+  length env1 = length env2 ->
+  create_EmptyEnv env1 = create_EmptyEnv env2.
+Proof.
+  induction env1, env2; intros Eq;
+  try discriminate Eq.
+  - easy.
+  - simpl in *; f_equal; apply IHenv1; eauto.
+Qed.
+
+Lemma EnvironmentSubtype_create_EmptyEnv : forall env1 env2,
+  env1 ≤ₑ env2 ->
+  create_EmptyEnv env1 ≤ₑ create_EmptyEnv env2.
+Proof.
+  intros.
+  apply EnvironmentSubtype_length in H.
+  apply create_EmptyEnv_length in H.
+  rewrite H; constructor.
+Qed.
+
+
 Lemma EmptyEnv_SubEnv_EmptyEnv : forall env1 env2, EmptyEnv env1 -> env1 ≤ₑ env2 -> EmptyEnv env2.
 Proof.
   intros * Empty Sub; induction Sub.

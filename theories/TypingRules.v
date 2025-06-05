@@ -17,10 +17,10 @@ Context `{D : IDefinitionName DefinitionName}.
 
 Inductive WellTypedTerm (prog : Prog) : Env -> Term -> TUsage -> Prop :=
   (* Var *)
-| VAR   : forall v env T,
-      SingletonEnv env ->
-      lookup v env = Some T ->
-      WellTypedTerm prog env (TValue (ValueVar v)) T
+| VAR   : forall env v T,
+    SingletonEnv env ->
+    lookup v env = Some T ->
+    WellTypedTerm prog env (TValue (ValueVar v)) T
   (* Consts *)
   | TRUE  : forall env,
       EmptyEnv env ->
@@ -37,7 +37,7 @@ Inductive WellTypedTerm (prog : Prog) : Env -> Term -> TUsage -> Prop :=
       WellTypedTerm prog env (TValue v) argumentType ->
       WellTypedTerm prog env (TApp definition v) bodyType
   (* Let *)
-  | LET   : forall env env1 env2 T1 T2 t1 t2, 
+  | LET   : forall env env1 env2 T1 T2 t1 t2,
       env1 ▷ₑ env2 ~= env ->
       WellTypedTerm prog env1 t1 ⌊ T1 ⌋ ->
       WellTypedTerm prog (Some ⌊ T1 ⌋ :: env2) t2 T2 ->
@@ -47,9 +47,7 @@ Inductive WellTypedTerm (prog : Prog) : Env -> Term -> TUsage -> Prop :=
       WellTypedTerm prog env t (TUBase BTUnit) ->
       WellTypedTerm prog ⌈ env ⌉ₑ (TSpawn t) (TUBase BTUnit)
   (* New *)
-  | NEW : forall env,
-      EmptyEnv env ->
-      WellTypedTerm prog env TNew (? 𝟙 ^^ •)
+  | NEW : forall env, EmptyEnv env -> WellTypedTerm prog env TNew (? 𝟙 ^^ •)
   (* Send *)
   | SEND : forall env env1 env2 T m v1 v2,
       WellTypedTerm prog env1 (TValue v1) (! « m » ^^ ◦) ->
@@ -106,8 +104,6 @@ Inductive WellTypedProgram (prog : Prog) : Prop :=
   Scheme WellTypedTerm_ind3 := Minimality for WellTypedTerm Sort Prop
     with WellTypedGuards_ind3 := Minimality for WellTypedGuards Sort Prop
     with WellTypedGuard_ind3 := Minimality for WellTypedGuard Sort Prop.
-
-  (*Print WellTypedTerm_ind3.*)
 
 End typing_rules_def.
 
@@ -256,60 +252,58 @@ Definition Cruftless {p : Prog} (env : Env) (m : Term) :=
   exists T, WellTypedTerm p env m T /\ EnvEqFV env m.
 
 
-Lemma EnvironmentSubtype_nil : forall env, [] ≤ₑ env -> env = [].
-Proof.
-  intros * Sub.
-  remember [] as E.
-  induction Sub;
-  try (inversion HeqE);
-  try (reflexivity);
-  rewrite IHSub2; now rewrite IHSub1.
-Qed.
+(*Lemma EnvironmentSubtype_nil : forall env, [] ≤ₑ env -> env = [].*)
+(*Proof.*)
+(*  intros * Sub.*)
+(*  remember [] as E.*)
+(*  induction Sub;*)
+(*  try (symmetry in HeqE; now apply empty_eq_insert in HeqE).*)
+(*  - rewrite IHSub2; now rewrite IHSub1.*)
+(*  - reflexivity.*)
+(*Qed.*)
 
-Lemma WT_empty_Var : forall p v T, ~ WellTypedTerm p [] (TValue (ValueVar v)) T.
-Proof.
-  intros * WT.
-  remember (TValue (ValueVar v)) as V.
-  remember [] as E.
-  induction WT; try (discriminate HeqV).
-  + subst. inversion H.
-  + subst. inversion H; subst; try (now apply IHWT).
-    apply IHWT. reflexivity.
-    now apply EnvironmentSubtype_nil.
-Qed.
+(*Lemma WT_empty_Var : forall p v T, ~ WellTypedTerm p [] (TValue (ValueVar v)) T.*)
+(*Proof.*)
+(*  intros * WT.*)
+(*  remember (TValue (ValueVar v)) as V.*)
+(*  remember [] as E.*)
+(*  induction WT; try (discriminate HeqV).*)
+(*  + symmetry in HeqE; now apply empty_eq_insert in HeqE.*)
+(*  + subst; apply IHWT; (reflexivity || now apply EnvironmentSubtype_nil).*)
+(*Qed.*)
 
-Lemma not_EmptyEnv_and_SingletonEnv : forall env,
-  ~ (EmptyEnv env /\ SingletonEnv env).
-Proof.
-  induction env.
-  - simpl. intuition.
-  - simpl. destruct a.
-    + intros [Empty1 _]. inversion Empty1; subst. discriminate.
-    + assert (EmptyEnv (None :: env) <-> EmptyEnv env).
-      {
-        split.
-        - intros H; now inversion H.
-        - intros H; now constructor.
-      }
-      now rewrite H.
-Qed.
-
-Lemma WT_EmptyEnv_Var : forall p v T env,
-  EmptyEnv env ->
-  ~ WellTypedTerm p env (TValue (ValueVar v)) T.
-Proof.
-  intros * Empty WT.
-  remember (TValue (ValueVar v)) as V.
-  induction WT; try (discriminate HeqV).
-  + induction env.
-    * inversion H.
-    * destruct a.
-      -- inversion Empty; subst; discriminate.
-      -- now apply not_EmptyEnv_and_SingletonEnv with (env := None :: env).
-  + subst; apply IHWT.
-    * now apply EmptyEnv_SubEnv_EmptyEnv with (env1 := env1).
-    * reflexivity.
-Qed.
+(*Lemma not_EmptyEnv_and_SingletonEnv : forall env,*)
+(*  ~ (EmptyEnv env /\ SingletonEnv env).*)
+(*Proof.*)
+(*  induction env.*)
+(*  - simpl. intuition.*)
+(*  - simpl. destruct a.*)
+(*    + intros [Empty1 _]. inversion Empty1; subst. discriminate.*)
+(*    + assert (EmptyEnv (None :: env) <-> EmptyEnv env).*)
+(*      {*)
+(*        split.*)
+(*        - intros H; now inversion H.*)
+(*        - intros H; now constructor.*)
+(*      }*)
+(*      now rewrite H.*)
+(*Qed.*)
+(**)
+(*Lemma WT_EmptyEnv_Var : forall p v T env,*)
+(*  EmptyEnv env ->*)
+(*  ~ WellTypedTerm p env (TValue (ValueVar v)) T.*)
+(*Proof.*)
+(*  intros * Empty WT.*)
+(*  remember (TValue (ValueVar v)) as V.*)
+(*  induction WT; try (discriminate HeqV).*)
+(*  + induction env.*)
+(*    * inversion H.*)
+(*    * destruct a.*)
+(*      -- inversion Empty; subst; discriminate.*)
+(*      -- now apply not_EmptyEnv_and_SingletonEnv with (env := None :: env).*)
+(*  + subst; apply IHWT.*)
+(*    * now apply EmptyEnv_SubEnv_EmptyEnv with (env1 := env1).*)
+(*    * reflexivity.*)
+(*Qed.*)
 
 (* TODO: Cleanup proof *)
 (*Lemma EnvironmentSubtype_diff_Sub_Cruftless_TValue : forall p env1 env2 v,*)
@@ -413,194 +407,180 @@ Qed.
 (*      apply WT.*)
 (*Admitted.*)
 
-Lemma ValueVar_Cruftless : forall {p} env v T,
-  SingletonEnv env ->
-  lookup v env = Some T ->
-  @Cruftless p env (TValue (ValueVar v)).
-Proof.
-  intros * Singleton Lookup.
-  unfold Cruftless.
-  exists T.
-  split.
-  - now constructor.
-  - intros x.
-    simpl.
-    intuition.
-    + unfold is_Some. subst. now rewrite Lookup.
-    + destruct (lookup x env) eqn:xLookup.
-      * generalize (SingletonEnv_lookup_eq env v x T t Singleton Lookup xLookup).
-        intuition.
-      * intuition.
-Qed.
+(*Lemma ValueVar_Cruftless : forall {p} env v T,*)
+(*  SingletonEnv env ->*)
+(*  lookup v env = Some T ->*)
+(*  @Cruftless p env (TValue (ValueVar v)).*)
+(*Proof.*)
+(*  intros * Singleton Lookup.*)
+(*  unfold Cruftless.*)
+(*  exists T.*)
+(*  split.*)
+(*  - now constructor.*)
+(*  - intros x.*)
+(*    simpl.*)
+(*    intuition.*)
+(*    + unfold is_Some. subst. now rewrite Lookup.*)
+(*    + destruct (lookup x env) eqn:xLookup.*)
+(*      * generalize (SingletonEnv_lookup_eq env v x T t Singleton Lookup xLookup).*)
+(*        intuition.*)
+(*      * intuition.*)
+(*Qed.*)
 
-Lemma stes : forall env T,
-  (forall x, 0 = x \/ False <-> is_Some (lookup x (Some T :: env))) ->
-  (forall x, False <-> is_Some (lookup x env)).
-Proof.
-  intros * Eq x.
-  generalize (Eq (S x)).
-  intros EqX.
-  destruct x.
-  - intuition. discriminate H0.
-  - intuition. discriminate H0.
-Qed.
+(*Lemma stes : forall env T,*)
+(*  (forall x, 0 = x \/ False <-> is_Some (lookup x (Some T :: env))) ->*)
+(*  (forall x, False <-> is_Some (lookup x env)).*)
+(*Proof.*)
+(*  intros * Eq x.*)
+(*  generalize (Eq (S x)).*)
+(*  intros EqX.*)
+(*  destruct x.*)
+(*  - intuition. discriminate H0.*)
+(*  - intuition. discriminate H0.*)
+(*Qed.*)
+(**)
+(*Lemma stes' : forall env n T,*)
+(*  (forall x, n = x \/ False <-> is_Some (lookup x (Some T :: env))) ->*)
+(*  n = 0.*)
+(*Proof.*)
+(*  induction n; intros * Eq.*)
+(*  - reflexivity.*)
+(*  - generalize (Eq 0); simpl; intuition.*)
+(*Qed.*)
 
-Lemma stes' : forall env n T,
-  (forall x, n = x \/ False <-> is_Some (lookup x (Some T :: env))) ->
-  n = 0.
-Proof.
-  induction n; intros * Eq.
-  - reflexivity.
-  - generalize (Eq 0); simpl; intuition.
-Qed.
+(*Lemma canonical_form_BTBool : forall {p} env v,*)
+(*  WellTypedTerm p env (TValue v) (TUBase BTBool) ->*)
+(*  v = ValueBool false \/ v = ValueBool true \/ exists n, v = ValueVar n.*)
+(*Proof.*)
+(*  intros * WT.*)
+(*  remember (TUBase BTBool) as T.*)
+(*  destruct v.*)
+(*  - destruct b; intuition.*)
+(*  - remember (TValue ValueUnit) as V.*)
+(*    induction WT; try (discriminate HeqV); try (discriminate HeqT).*)
+(*    subst.*)
+(*    apply Subtype_inversion_TUBase_right in H0.*)
+(*    now apply IHWT.*)
+(*  - remember (TValue (ValueVar v)) as V.*)
+(*    induction WT; try (discriminate HeqT); try (discriminate HeqV).*)
+(*    + repeat right. exists v0. now inversion HeqV.*)
+(*    + subst.*)
+(*      apply Subtype_inversion_TUBase_right in H0.*)
+(*      now apply IHWT.*)
+(*Qed.*)
 
-Lemma canonical_form_BTBool : forall {p} env v,
-  WellTypedTerm p env (TValue v) (TUBase BTBool) ->
-  v = ValueBool false \/ v = ValueBool true \/ exists n, v = ValueVar n.
-Proof.
-  intros * WT.
-  remember (TUBase BTBool) as T.
-  destruct v.
-  - destruct b; intuition.
-  - remember (TValue ValueUnit) as V.
-    induction WT; try (discriminate HeqV); try (discriminate HeqT).
-    subst.
-    apply Subtype_inversion_TUBase_right in H0.
-    now apply IHWT.
-  - remember (TValue (ValueVar v)) as V.
-    induction WT; try (discriminate HeqT); try (discriminate HeqV).
-    + repeat right. exists v0. now inversion HeqV.
-    + subst.
-      apply Subtype_inversion_TUBase_right in H0.
-      now apply IHWT.
-Qed.
+(*Lemma canonical_form_BTUnit : forall {p} env v,*)
+(*  WellTypedTerm p env (TValue v) (TUBase BTUnit) ->*)
+(*  v = ValueUnit \/ exists n, v = ValueVar n.*)
+(*Proof.*)
+(*  intros * WT.*)
+(*  remember (TUBase BTUnit) as T.*)
+(*  remember (TValue v) as V.*)
+(*  induction WT; try (discriminate HeqT); try (discriminate HeqV).*)
+(*  + right; exists v0; now inversion HeqV.*)
+(*  + left; now inversion HeqV.*)
+(*  + subst; apply Subtype_inversion_TUBase_right in H0; now apply IHWT.*)
+(*Qed.*)
+(**)
+(*Lemma test' : forall vList tList t,*)
+(*  t :: tList = map TValue vList ->*)
+(*  exists v vList', t = TValue v /\ tList = map TValue vList'.*)
+(*Proof.*)
+(*  induction vList; simpl; intros * Eq.*)
+(*  - discriminate Eq.*)
+(*  - inversion Eq.*)
+(*    now exists a, vList.*)
+(*Qed.*)
 
-Lemma canonical_form_BTUnit : forall {p} env v,
-  WellTypedTerm p env (TValue v) (TUBase BTUnit) ->
-  v = ValueUnit \/ exists n, v = ValueVar n.
-Proof.
-  intros * WT.
-  remember (TUBase BTUnit) as T.
-  remember (TValue v) as V.
-  induction WT; try (discriminate HeqT); try (discriminate HeqV).
-  + right; exists v0; now inversion HeqV.
-  + left; now inversion HeqV.
-  + subst; apply Subtype_inversion_TUBase_right in H0; now apply IHWT.
-Qed.
+(*Lemma lookup_None : forall n env T,*)
+(*  lookup n (None :: env) = Some T -> lookup (n-1) env = Some T.*)
+(*Proof.*)
+(*  intros n.*)
+(*  induction env; simpl; intros * Eq.*)
+(*  - induction n; simpl in *.*)
+(*    + discriminate.*)
+(*    + rewrite lookup_nil in Eq; discriminate.*)
+(*  - induction n; simpl in *.*)
+(*    + discriminate.*)
+(*    + replace (n-0) with n. assumption.*)
+(*      now destruct n.*)
+(*Qed.*)
 
-Lemma test' : forall vList tList t,
-  t :: tList = map TValue vList ->
-  exists v vList', t = TValue v /\ tList = map TValue vList'.
-Proof.
-  induction vList; simpl; intros * Eq.
-  - discriminate Eq.
-  - inversion Eq.
-    now exists a, vList.
-Qed.
+(*Lemma WellTypedEnvSub_TValueVar :*)
+(*  forall {T p} env v,*)
+(*  WellTypedTerm p env (TValue (ValueVar v)) T ->*)
+(*  exists env1 env2 env3 T',*)
+(*    env1,, env2 ~= env /\*)
+(*    T' ≤ T /\*)
+(*    WellTypedTerm p env3 (TValue (ValueVar v)) T' /\*)
+(*    @Cruftless p env1 (TValue (ValueVar v)) /\*)
+(*    env1 ≼ₑ env3 /\*)
+(*    UnrestrictedEnv env2.*)
+(*Proof.*)
+(*  intros * WT.*)
+(*  remember (TValue (ValueVar v)) as V.*)
+(*  induction WT; try (subst; discriminate).*)
+(*  - inversion HeqV. subst.*)
+(*    exists env, (create_EmptyEnv env), env, T.*)
+(*    repeat split.*)
+(*    + apply EnvironmentSplit_create_EmptyEnv.*)
+(*    + apply Subtype_refl.*)
+(*    + now constructor.*)
+(*    + now apply ValueVar_Cruftless with (T := T).*)
+(*    + apply EnvironmentSubtypeStrict_refl.*)
+(*    + admit. (*apply CruftEnv_EmptyEnv; apply create_EmptyEnv_EmptyEnv.*)*)
+(*  - subst.*)
+(*    generalize (IHWT eq_refl).*)
+(*    intros [env1' [env2' [env3' [T' [Split [Sub [WT' [Cruftless' [SubStrict Cruft']]]]]]]]].*)
+(*    clear IHWT.*)
+(*    (*generalize (EnvironmentSubtype_diff_CruftEnv env1 env2 H). intros.*)*)
+(*    (*exists env1', env2', env3', T'.*)*)
+(*    (*repeat split.*)*)
+(*    (*+ admit.*)*)
+(*    (*+ eapply Subtype_trans. apply Sub. assumption.*)*)
+(*    (*+ assumption.*)*)
+(*    (*+ assumption.*)*)
+(*    (*+ assumption.*)*)
+(*    (*+ assumption.*)*)
+(*Admitted.*)
 
-Lemma lookup_None : forall n env T,
-  lookup n (None :: env) = Some T -> lookup (n-1) env = Some T.
-Proof.
-  intros n.
-  induction env; simpl; intros * Eq.
-  - induction n; simpl in *.
-    + discriminate.
-    + rewrite lookup_nil in Eq; discriminate.
-  - induction n; simpl in *.
-    + discriminate.
-    + replace (n-0) with n. assumption.
-      now destruct n.
-Qed.
-
-Lemma WellTypedEnvSub_TValueVar :
-  forall {T p} env v,
-  WellTypedTerm p env (TValue (ValueVar v)) T ->
-  exists env1 env2 env3 T',
-    env1,, env2 ~= env /\
-    T' ≤ T /\
-    WellTypedTerm p env3 (TValue (ValueVar v)) T' /\
-    @Cruftless p env1 (TValue (ValueVar v)) /\
-    env1 ≼ₑ env3 /\
-    UnrestrictedEnv env2.
-Proof.
-  intros * WT.
-  remember (TValue (ValueVar v)) as V.
-  induction WT; try (subst; discriminate).
-  - inversion HeqV. subst.
-    exists env, (create_EmptyEnv env), env, T.
-    repeat split.
-    + apply EnvironmentSplit_create_EmptyEnv.
-    + apply Subtype_refl.
-    + now constructor.
-    + now apply ValueVar_Cruftless with (T := T).
-    + apply EnvironmentSubtypeStrict_refl.
-    + admit. (*apply CruftEnv_EmptyEnv; apply create_EmptyEnv_EmptyEnv.*)
-  - subst.
-    generalize (IHWT eq_refl).
-    intros [env1' [env2' [env3' [T' [Split [Sub [WT' [Cruftless' [SubStrict Cruft']]]]]]]]].
-    clear IHWT.
-    (*generalize (EnvironmentSubtype_diff_CruftEnv env1 env2 H). intros.*)
-    (*exists env1', env2', env3', T'.*)
-    (*repeat split.*)
-    (*+ admit.*)
-    (*+ eapply Subtype_trans. apply Sub. assumption.*)
-    (*+ assumption.*)
-    (*+ assumption.*)
-    (*+ assumption.*)
-    (*+ assumption.*)
-Admitted.
-
-Lemma WellTypedEnvSub_TValue :
-  forall p env v T,
-  WellTypedTerm p env (TValue v) T ->
-  exists env1 env2 env3 T',
-    env1,, env2 ~= env /\
-    T' ≤ T /\
-    WellTypedTerm p env3 (TValue v) T' /\
-    @Cruftless p env1 (TValue v) /\
-    env1 ≼ₑ env3 /\
-    CruftEnv env2.
-Proof.
-  intros * WT.
-  remember (TValue v) as V.
-  induction WT; try discriminate.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-  - subst.
-    generalize (IHWT eq_refl).
-    intros [env1' [env2' [env3' [T' [Split [Sub [WT' [Cruftless' [SubStrict Cruft']]]]]]]]].
-    clear IHWT.
-Admitted.
-
+(*Lemma WellTypedEnvSub_TValue :*)
+(*  forall p env v T,*)
+(*  WellTypedTerm p env (TValue v) T ->*)
+(*  exists env1 env2 env3 T',*)
+(*    env1,, env2 ~= env /\*)
+(*    T' ≤ T /\*)
+(*    WellTypedTerm p env3 (TValue v) T' /\*)
+(*    @Cruftless p env1 (TValue v) /\*)
+(*    env1 ≼ₑ env3 /\*)
+(*    CruftEnv env2.*)
+(*Proof.*)
+(*  intros * WT.*)
+(*  remember (TValue v) as V.*)
+(*  induction WT; try discriminate.*)
+(*  - admit.*)
+(*  - admit.*)
+(*  - admit.*)
+(*  - admit.*)
+(*  - subst.*)
+(*    generalize (IHWT eq_refl).*)
+(*    intros [env1' [env2' [env3' [T' [Split [Sub [WT' [Cruftless' [SubStrict Cruft']]]]]]]]].*)
+(*    clear IHWT.*)
+(*Admitted.*)
+(**)
 
 (** Lemma D.4 *)
-Lemma WellTypedEnvSub :
-  forall {T p} env m,
-  WellTypedTerm p env m T ->
-  exists env1 env2 env3 T',
-    env1,, env2 ~= env /\
-    T' ≤ T /\
-    WellTypedTerm p env3 m T' /\
-    @Cruftless p env1 m /\
-    env1 ≼ₑ env3 /\
-    CruftEnv env2.
-Proof.
-  intros * WT.
-  (*remember env as E.*)
-  induction WT.
-  - apply WellTypedEnvSub_TValue; now constructor.
-  - apply WellTypedEnvSub_TValue; now constructor.
-  - apply WellTypedEnvSub_TValue; now constructor.
-  - apply WellTypedEnvSub_TValue; now constructor.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-  - destruct IHWT as [env1' [env2' [env3' [T' [Split [Sub [WT' [Cruftless' [SubStrict Cruft']]]]]]]]].
-Admitted.
+(*Lemma WellTypedEnvSub :*)
+(*  forall {T p} env m,*)
+(*  WellTypedTerm p env m T ->*)
+(*  exists env1 env2 env3 T',*)
+(*    env1,, env2 ~= env /\*)
+(*    T' ≤ T /\*)
+(*    WellTypedTerm p env3 m T' /\*)
+(*    @Cruftless p env1 m /\*)
+(*    env1 ≼ₑ env3 /\*)
+(*    CruftEnv env2.*)
+(*Proof.*)
+(*Admitted.*)
 
 End well_typed_def.
