@@ -5,7 +5,7 @@ From MailboxTypes Require Export Syntax.
 From MailboxTypes Require Import Util.
 From MailboxTypes Require Import TypingRules.
 From MailboxTypes Require Import Dblib.DeBruijn.
-(*From MailboxTypes Require Import Dblib.DblibTactics.*)
+From MailboxTypes Require Import Dblib.DblibTactics.
 
 From Stdlib Require Import Lia.
 
@@ -350,17 +350,16 @@ match g with
     intros * WT.
     remember (TValue (ValueBool b)) as V.
     revert HeqV.
-    induction WT; intro; try discriminate; try apply EnvironmentSubtype_refl.
-    - admit. (* Need one more lemma *)
-    - admit. (* Need one more lemma *)
-    - subst.
-      eapply EnvSubtypeTrans.
-      eassumption.
-      generalize (IHWT eq_refl); intros Sub'.
-      apply EnvironmentSubtype_length in H.
-      apply create_EmptyEnv_length in H.
-      now rewrite H.
-  Admitted.
+    induction WT; intro; try discriminate; try apply EnvironmentSubtype_refl;
+    try (now apply SubEnv_EmptyEnv_create_EmptyEnv).
+    subst.
+    eapply EnvSubtypeTrans.
+    eassumption.
+    generalize (IHWT eq_refl); intros Sub'.
+    apply EnvironmentSubtype_length in H.
+    apply create_EmptyEnv_length in H.
+    now rewrite H.
+  Qed.
 
   Lemma canonical_form_BTBool : forall p env b T,
     WellTypedTerm p env (TValue (ValueBool b)) T ->
@@ -777,7 +776,35 @@ match g with
         destruct H as [Sub EnvSub]
     end.
 
-  Lemma EnvironmentSubtype_middle' : forall env1_1 env1_2 env2 A,
+  Lemma EnvironmentSubtype_middle' : forall env1_1 env1_2 env2 T,
+    env1_1 ++ Some T :: env1_2 ≤ₑ env2 ->
+    exists env2_1 env2_2 T',
+    env1_1 ≤ₑ env2_1 /\ env1_2 ≤ₑ env2_2 /\ T ≤ T' /\
+    ((env2 = env2_1 ++ None :: env2_2 /\ Unrestricted T') \/
+    (env2 = env2_1 ++ Some T' :: env2_2)).
+  Proof.
+    induction env1_1; simpl; intros * Sub.
+    - simpl_SubEnv; exists [], env0, T0; repeat split; eauto using EnvSubtypeRefl.
+    - destruct a; simpl_SubEnv; subst.
+      + apply IHenv1_1 in EnvSub;
+        destruct EnvSub as [env2_1 [env2_2 [T' [Sub1 [Sub2 [Sub' [[Eq' Unr'] | Eq']]]]]]];
+        subst;
+        exists (None :: env2_1), env2_2, T'; repeat split; eauto;
+        apply EnvSubtypeTrans with (env2 := Some T0 :: env1_1); constructor;
+        eauto using EnvSubtypeRefl.
+      + apply IHenv1_1 in EnvSub;
+        destruct EnvSub as [env2_1 [env2_2 [T' [Sub1 [Sub2 [Sub' [[Eq' Unr'] | Eq']]]]]]];
+        subst;
+        exists (Some T0 :: env2_1), env2_2, T'; repeat split; eauto;
+        apply EnvSubtypeTrans with (env2 := Some T0 :: env1_1); constructor;
+        eauto using EnvSubtypeRefl, Subtype_refl.
+      + apply IHenv1_1 in Sub0;
+        destruct Sub0 as [env2_1 [env2_2 [T' [Sub1 [Sub2 [Sub' [[Eq' Unr'] | Eq']]]]]]];
+        subst; exists (None :: env2_1), env2_2, T'; repeat split; eauto; now constructor.
+  Qed.
+
+
+  Lemma EnvironmentSubtype_middle'' : forall env1_1 env1_2 env2 A,
     env1_1 ++ Some A :: env1_2 ≤ₑ env2 ->
     exists env2_1 env2_2,
     env1_1 ≤ₑ env2_1 /\ env1_2 ≤ₑ env2_2 /\
@@ -823,50 +850,84 @@ match g with
           -- right. now exists A'.
   Qed.
 
-  Lemma subst_lemma_TValue : forall p env1_1 env1_2 A B v1,
-    WellTypedTerm p (env1_1 ++ Some A :: env1_2) (TValue v1) B ->
-    forall v2 env2 A' env,
-    WellTypedTerm p env2 (TValue v2) A' ->
-    A' ≤ A ->
-    (env1_1 ++ None :: env1_2) +ₑ env2 ~= env ->
-    WellTypedTerm p env (subst v2 (length env1_1) (TValue v1)) B.
+  Lemma WellTypedTerm_Var_inv : forall p env v T,
+    WellTypedTerm p env (TValue (ValueVar v)) T ->
+    exists env' T',
+    SingletonEnv env' /\ env ≤ₑ env' /\ T' ≤ T /\ lookup v env' = Some T'.
   Proof.
-    intros * WT1.
-    remember (env1_1 ++ Some A :: env1_2) as E.
-    remember (TValue v1) as V.
-    generalize dependent A.
-    induction WT1; intros * Eq * WT2 Sub Dis; subst; try discriminate.
-    - simpl_subst_goal. simpl. simpl_lift_goal. simpl.
-      assert (Heq : T = A). admit.
-      assert (Hv : v = length env1_1). admit.
-      subst.
-      simpl_subst_goal. admit.
-    - admit. (* use exfalso *)
-    - admit. (* use exfalso *)
-    - admit. (* use exfalso *)
-    - apply EnvironmentSubtype_middle in H.
-      destruct H as [env2_1 [env2_2 [Eq | [A'' [Eq Sub']]]]].
-      + subst.
-        eapply SUB.
-        apply EnvSubtypeRefl.
-        eassumption.
-        eapply IHWT1.
-        * reflexivity.
-        * admit.
-        * apply WT2.
-        * eassumption.
-        * assumption.
-      + subst.
-        eapply SUB.
-        apply EnvSubtypeRefl.
-        eassumption.
-        eapply IHWT1.
-        * reflexivity.
-        * admit.
-        * eassumption.
-        * eassumption.
-        * assumption.
-  Admitted.
+    intros * WT.
+    remember (TValue (ValueVar v)) as V.
+    revert v HeqV.
+    induction WT; intros; subst; try discriminate.
+    - inversion HeqV; subst.
+      exists env, T; repeat split; eauto using EnvSubtypeRefl, Subtype_refl.
+    - generalize (IHWT v eq_refl).
+      intros [env' [T' [Singleton [EnvSub [Sub Lookup]]]]].
+      exists env', T'; repeat split;
+      try (eapply EnvSubtypeTrans || eapply Subtype_trans); eassumption.
+  Qed.
+
+  (*Lemma subst_lemma_TValue : forall p env1_1 env1_2 A B v1,*)
+  (*  WellTypedTerm p (env1_1 ++ Some A :: env1_2) (TValue v1) B ->*)
+  (*  forall v2 env2 A' env,*)
+  (*  WellTypedTerm p env2 (TValue v2) A' ->*)
+  (*  A' ≤ A ->*)
+  (*  (env1_1 ++ env1_2) +ₑ env2 ~= env ->*)
+  (*  WellTypedTerm p env (subst v2 (length env1_1) (TValue v1)) B.*)
+  (*Proof.*)
+  (*  intros * WT1 * WT2 Sub Dis.*)
+  (*  destruct v1, v2; simpl_subst_goal; simpl; simpl_lift_goal; simpl.*)
+  (*  - generalize (canonical_form_BTBool _ _ _ _ WT1); intros ->.*)
+  (*    assert (Henv : env ≤ₑ create_EmptyEnv env). admit.*)
+  (*    eapply SUB; eauto using Subtype_refl;*)
+  (*    destruct b; constructor; apply create_EmptyEnv_EmptyEnv.*)
+  (*  - generalize (canonical_form_BTBool _ _ _ _ WT1); intros ->.*)
+  (*    assert (Henv : env ≤ₑ create_EmptyEnv env). admit.*)
+  (*    eapply SUB; eauto using Subtype_refl;*)
+  (*    destruct b; constructor; apply create_EmptyEnv_EmptyEnv.*)
+  (*  - generalize (canonical_form_BTBool _ _ _ _ WT1); intros ->.*)
+  (*    assert (Henv : env ≤ₑ create_EmptyEnv env). admit.*)
+  (*    eapply SUB; eauto using Subtype_refl;*)
+  (*    destruct b; constructor; apply create_EmptyEnv_EmptyEnv.*)
+  (*  - generalize (canonical_form_BTUnit _ _ _ WT1); intros ->.*)
+  (*    assert (Henv : env ≤ₑ create_EmptyEnv env). admit.*)
+  (*    eapply SUB; eauto using Subtype_refl;*)
+  (*    destruct b; constructor; apply create_EmptyEnv_EmptyEnv.*)
+  (*  - generalize (canonical_form_BTUnit _ _ _ WT1); intros ->.*)
+  (*    assert (Henv : env ≤ₑ create_EmptyEnv env). admit.*)
+  (*    eapply SUB; eauto using Subtype_refl;*)
+  (*    constructor; apply create_EmptyEnv_EmptyEnv.*)
+  (*  - generalize (canonical_form_BTUnit _ _ _ WT1); intros ->.*)
+  (*    assert (Henv : env ≤ₑ create_EmptyEnv env). admit.*)
+  (*    eapply SUB; eauto using Subtype_refl;*)
+  (*    constructor; apply create_EmptyEnv_EmptyEnv.*)
+  (*  - unfold subst_idx. dblib_by_cases.*)
+  (*    + apply WellTypedTerm_Var_inv in WT1;*)
+  (*      destruct WT1 as [env' [T' [Singleton' [EnvSub' [Sub' Lookup']]]]].*)
+  (*      (* Some A will be removed since v <> length env1_1 *)*)
+  (*      (* env1_2 sub empty since v < length env1_1 *)*)
+  (*      (* env2 sub empty since boolean *)*)
+  (*      (* => env sub some singleton *)*)
+  (*      assert (Henv : exists env'', env ≤ₑ env'' /\ SingletonEnv env''). admit.*)
+  (*      destruct Henv as [env'' [EnvSub'' Singleton'']].*)
+  (*      eapply SUB.*)
+  (*      eassumption.*)
+  (*      eassumption.*)
+  (*      constructor.*)
+  (*      assumption.*)
+  (*      admit. (* This should hold, since lookup v env' = Some T' holds *)*)
+  (*    + generalize (canonical_form_BTBool _ _ _ _ WT2); intros ->.*)
+  (*      inversion Sub; subst.*)
+  (*      (* B is BTBool: make canonical form lemma for variables *)*)
+  (*      assert (H : B = TUBase BTBool). admit. subst.*)
+  (*      (* env2 sub empty, since boolean *)*)
+  (*      (* env sub empty, since env1_1 ++ Some A :: env1_2 is singleton,*)
+  (*         i.e. env1_1 ++ Some A :: env1_2 is empty *)*)
+  (*      assert (Henv : env ≤ₑ create_EmptyEnv env). admit.*)
+  (*      eapply SUB; eauto using Subtype_refl;*)
+  (*      destruct b; constructor; apply create_EmptyEnv_EmptyEnv.*)
+  (*    + generalize (canonical_form_BTBool _ _ _ _ WT2); intros ->.*)
+  (*      inversion Sub; subst.*)
 
 (**
     We follow the method of Stark's Thesis 'Mechanising Syntax with Binders
