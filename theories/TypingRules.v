@@ -17,10 +17,9 @@ Context `{D : IDefinitionName DefinitionName}.
 
 Inductive WellTypedTerm (prog : Prog) : Env -> Term -> TUsage -> Prop :=
   (* Var *)
-| VAR   : forall env v T,
-    SingletonEnv env ->
-    lookup v env = Some T ->
-    WellTypedTerm prog env (TValue (ValueVar v)) T
+| VAR   : forall env x T,
+    EmptyEnv env ->
+    WellTypedTerm prog (insert x T env) (TValue (ValueVar x)) T
   (* Consts *)
   | TRUE  : forall env,
       EmptyEnv env ->
@@ -40,7 +39,7 @@ Inductive WellTypedTerm (prog : Prog) : Env -> Term -> TUsage -> Prop :=
   | LET   : forall env env1 env2 T1 T2 t1 t2,
       env1 ▷ₑ env2 ~= env ->
       WellTypedTerm prog env1 t1 ⌊ T1 ⌋ ->
-      WellTypedTerm prog (Some ⌊ T1 ⌋ :: env2) t2 T2 ->
+      WellTypedTerm prog (insert 0 ⌊ T1 ⌋ env2) t2 T2 ->
       WellTypedTerm prog env (TLet t1 t2) T2
   (* Spawn *)
   | SPAWN : forall env t,
@@ -88,7 +87,7 @@ with WellTypedGuard (prog : Prog) : Env -> Guard -> TUsage -> MPattern -> Prop :
   | RECEIVE : forall t m env BT T e,
       signature prog m = BT ->
       BaseType BT \/ BaseEnv env ->
-      WellTypedTerm prog (Some ⌈ BT ⌉ :: Some (? e ^^ •) :: env) t T ->
+      WellTypedTerm prog (insert 0 ⌈ BT ⌉ (insert 0 (? e ^^ •) env)) t T ->
       WellTypedGuard prog env (GReceive m t) T (« m » ⊙ e).
 
 Inductive WellTypedDefinition (prog : Prog) : FunctionDefinition -> Prop :=
@@ -106,6 +105,8 @@ Inductive WellTypedProgram (prog : Prog) : Prop :=
     with WellTypedGuard_ind3 := Minimality for WellTypedGuard Sort Prop.
 
 End typing_rules_def.
+
+Hint Constructors WellTypedTerm : environment.
 
 (*
 Section well_typed_ind'.
@@ -233,9 +234,90 @@ End well_typed_ind'.
 
 Section well_typed_def.
 
-Generalizable All Variables.
-Context `{M : IMessage Message}.
-Context `{D : IDefinitionName DefinitionName}.
+  Generalizable All Variables.
+  Context `{M : IMessage Message}.
+  Context `{D : IDefinitionName DefinitionName}.
+
+  Lemma canonical_form_BTBool : forall p env b T,
+    WellTypedTerm p env (TValue (ValueBool b)) T ->
+    T = TUBase BTBool.
+  Proof.
+    intros * WT.
+    remember (TValue (ValueBool b)) as V.
+    revert HeqV.
+    induction WT; intros; try discriminate;
+    try reflexivity.
+    subst.
+    generalize (IHWT eq_refl); intros ->.
+    inversion H0; now subst.
+  Qed.
+
+  Lemma canonical_form_BTUnit : forall p env T,
+    WellTypedTerm p env (TValue ValueUnit) T ->
+    T = TUBase BTUnit.
+  Proof.
+    intros * WT.
+    remember (TValue ValueUnit) as V.
+    revert HeqV.
+    induction WT; intros; subst; try discriminate.
+    reflexivity.
+    generalize (IHWT eq_refl); intros ->.
+    inversion H0; now subst.
+  Qed.
+
+  Lemma weak_BTBool_1 : forall p env b T,
+    WellTypedTerm p env (TValue (ValueBool b)) T ->
+    WellTypedTerm p (create_EmptyEnv env) (TValue (ValueBool b)) T.
+  Proof.
+    intros * WT.
+    remember (TValue (ValueBool b)) as V.
+    revert HeqV.
+    induction WT; intro; try discriminate.
+    - constructor; apply create_EmptyEnv_EmptyEnv.
+    - constructor; apply create_EmptyEnv_EmptyEnv.
+    - subst.
+      generalize (IHWT eq_refl).
+      intros.
+      eapply SUB with (env2 := create_EmptyEnv env2);
+      try eassumption.
+      now apply EnvironmentSubtype_create_EmptyEnv.
+  Qed.
+
+  Lemma weak_BTBool_2 : forall p env b T,
+    WellTypedTerm p env (TValue (ValueBool b)) T ->
+    env ≤ₑ create_EmptyEnv env.
+  Proof.
+    intros * WT.
+    remember (TValue (ValueBool b)) as V.
+    revert HeqV.
+    induction WT; intro; try discriminate; try apply EnvironmentSubtype_refl;
+    try (now apply SubEnv_EmptyEnv_create_EmptyEnv).
+    subst.
+    eapply EnvSubtypeTrans.
+    eassumption.
+    generalize (IHWT eq_refl); intros Sub'.
+    apply EnvironmentSubtype_length in H.
+    apply create_EmptyEnv_length in H.
+    now rewrite H.
+  Qed.
+
+  Lemma weak_BTUnit_2 : forall p env T,
+    WellTypedTerm p env (TValue ValueUnit) T ->
+    env ≤ₑ create_EmptyEnv env.
+  Proof.
+    intros * WT.
+    remember (TValue ValueUnit) as V.
+    revert HeqV.
+    induction WT; intro; try discriminate; try apply EnvironmentSubtype_refl;
+    try (now apply SubEnv_EmptyEnv_create_EmptyEnv).
+    subst.
+    eapply EnvSubtypeTrans.
+    eassumption.
+    generalize (IHWT eq_refl); intros Sub'.
+    apply EnvironmentSubtype_length in H.
+    apply create_EmptyEnv_length in H.
+    now rewrite H.
+  Qed.
 
 (* TODO: Move to environment file *)
 
