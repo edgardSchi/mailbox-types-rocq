@@ -319,6 +319,29 @@ Section well_typed_def.
     now rewrite H.
   Qed.
 
+  Lemma weak_ValueVar_2 : forall p env x T,
+    WellTypedTerm p env (TValue (ValueVar x)) T ->
+    exists env' T',
+      T' ≤ T /\
+      EmptyEnv env' /\
+      env ≤ₑ insert x T' env' /\
+      WellTypedTerm p (insert x T' env') (TValue (ValueVar x)) T'.
+  Proof.
+    intros * WT.
+    remember (TValue (ValueVar x)) as V.
+    revert HeqV.
+    induction WT; intros; try discriminate.
+    - inversion HeqV; subst.
+      exists env, T; repeat split; eauto with environment.
+      apply Subtype_refl.
+    - subst.
+      generalize (IHWT eq_refl);
+      intros [env' [T' [Sub' [Empty' [SubEnv' WT']]]]].
+      exists env', T'; repeat split; eauto with environment.
+      + eapply Subtype_trans; eassumption.
+      + eapply EnvironmentSubtype_trans; eassumption.
+  Qed.
+
 (* TODO: Move to environment file *)
 
 (** The domain of an environment is equal to the free variables in a term *)

@@ -320,6 +320,44 @@ Proof.
   intros * Unr; inversion Unr; constructor; reflexivity.
 Qed.
 
+(** Leibniz equality of mailbox types is decidable *)
+Lemma MType_eq_dec : forall (T1 T2 : MType), {T1 = T2} + {T1 <> T2}.
+Proof.
+  destruct T1 as [m1 | m1], T2 as [m2 | m2];
+  try (right; intros N; discriminate);
+  case (MPattern_eq_dec m1 m2); intros Eq; subst;
+  try (now left);
+  right; intros N; now inversion N.
+Qed.
+
+(** Leibniz equality of types is decidable *)
+Lemma TType_eq_dec : forall (T1 T2 : TType), {T1 = T2} + {T1 <> T2}.
+Proof.
+  destruct T1, T2;
+  try (right; intros N; discriminate).
+  - destruct b, b0;
+    try (now left);
+    try (right; intros N; discriminate).
+  - case (MType_eq_dec m m0); intros; subst.
+    now left.
+    right; intros N; now inversion N.
+Qed.
+
+(** Leibniz equality of usage types is decidable *)
+Lemma TUsage_eq_dec : forall (T1 T2 : TUsage), {T1 = T2} + {T1 <> T2}.
+Proof.
+  destruct T1, T2;
+  try (right; intros N; discriminate).
+  - destruct b, b0;
+    try (now left);
+    try (right; intros N; discriminate).
+  - destruct u, u0;
+    try (right; intros N; discriminate);
+    case (MType_eq_dec m m0); intros; subst;
+    try (now left);
+    try (right; intros N; now inversion N).
+Qed.
+
 (** Deciding whether a type is unrestricted is deciable *)
 Lemma Unrestricted_dec : forall T, {Unrestricted T} + {~ Unrestricted T}.
 Proof.

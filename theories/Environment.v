@@ -164,11 +164,11 @@ Definition UnrestrictedEnv : Env -> Prop :=
 Definition EmptyEnv (e : Env) : Prop := Forall (fun x => x = None) e.
 
 (** A singleton environment contains only a single type *)
-Fixpoint SingletonEnv (e : Env) : Prop :=
+Fixpoint SingletonEnv (e : Env) (T : TUsage) : Prop :=
   match e with
   | nil => False
-  | None :: e' => SingletonEnv e'
-  | (Some _) :: e' => EmptyEnv e'
+  | None :: e' => SingletonEnv e' T
+  | (Some T') :: e' => if TUsage_eq_dec T T' then EmptyEnv e' else False
   end.
 
 (** Creates an empty environment based on the size of the provided environment *)
@@ -937,6 +937,16 @@ Qed.
     eapply IHSub1. reflexivity. now apply EnvironmentSubtype_nil_right.
   Qed.
 
+  Lemma EnvironmentSubtype_cons_nil : forall env e, ~ (e :: env ≤ₑ []).
+  Proof.
+    intros * Sub.
+    remember (e :: env) as E.
+    remember [] as E'.
+    revert e env HeqE HeqE'.
+    induction Sub; intros; subst; try discriminate.
+    eapply IHSub1. reflexivity. now apply EnvironmentSubtype_nil_right.
+  Qed.
+
   Lemma EnvironmentSubtype_None_Some : forall env1 env2 T,
     ~ (None :: env1 ≤ₑ Some T :: env2).
   Proof.
@@ -1046,6 +1056,112 @@ Qed.
         now left.
     Qed.
 
+  Lemma EnvironmentSubtype_nil_insert_right : forall env x T, ~ ([] ≤ₑ insert x T env).
+  Proof.
+    induction x; intros * Sub;
+    (rewrite raw_insert_zero in Sub || rewrite raw_insert_successor in Sub);
+    now apply EnvironmentSubtype_nil_left in Sub.
+  Qed.
+
+  Lemma EnvironmentSubtype_nil_insert_left : forall env x T, ~ (insert x T env ≤ₑ []).
+  Proof.
+    induction x; intros * Sub;
+    (rewrite raw_insert_zero in Sub || rewrite raw_insert_successor in Sub).
+    - now apply EnvironmentSubtype_Some_nil in Sub.
+    - now apply EnvironmentSubtype_cons_nil in Sub.
+  Qed.
+
+  Lemma lookup_zero : forall {A} env (e : option A),
+    lookup 0 (e :: env) = e.
+  Proof. reflexivity. Qed.
+
+  Lemma lookup_successor_cons : forall {A} x env (e : option A),
+    lookup (S x) (e :: env) = lookup x env.
+  Proof. reflexivity. Qed.
+
+  Lemma insert_EmptyEnv : forall env T x,
+    ~ EmptyEnv (insert x T env).
+  Proof.
+    intros * Empty.
+    remember (insert x T env) as I.
+    revert x T env HeqI.
+    induction Empty; intros y * Insert.
+    - eauto using insert_nil.
+    - subst.
+      destruct y.
+      + discriminate.
+      + rewrite raw_insert_successor in Insert.
+        inversion Insert; eapply IHEmpty; eassumption.
+  Qed.
+
+  Lemma EnvironmentSubtype_insert_inv : forall env1 env2 x T,
+    insert x T env1 ≤ₑ env2 ->
+    exists env2' T',
+    T ≤ T' /\ env1 ≤ₑ env2' /\
+    ((env2 = raw_insert x None env2' /\ Unrestricted T') \/
+    (env2 = insert x T' env2')).
+  Proof.
+    intros until x.
+    revert env1 env2.
+    induction x; intros * Sub.
+    - rewrite raw_insert_zero in Sub.
+      apply EnvironmentSubtype_Some_inv' in Sub;
+      destruct Sub as [env2' [T' [Sub [EnvSub [[Eq Unr] | Eq]]]]];
+      subst; exists env2', T'; eauto.
+    - rewrite raw_insert_successor in Sub.
+      destruct env1.
+      + rewrite lookup_nil in Sub; simpl in *.
+        apply EnvironmentSubtype_None_inv in Sub.
+        destruct Sub as [env' [Eq Sub]]; subst.
+        generalize (IHx _ _ _ Sub).
+        intros [env2' [T' [Sub' [EnvSub' [[Eq Un] | Eq]]]]].
+        * generalize (EnvironmentSubtype_nil_left _ EnvSub').
+          intros ->.
+          exists [], T'; repeat split; try assumption.
+          repeat rewrite raw_insert_successor; subst; simpl.
+          rewrite lookup_nil; now left.
+        * generalize (EnvironmentSubtype_nil_left _ EnvSub').
+          intros ->.
+          exists [], T'; repeat split; try assumption.
+          repeat rewrite raw_insert_successor; subst; simpl.
+          rewrite lookup_nil; now right.
+      + rewrite lookup_zero in *; simpl in *.
+        destruct o.
+        * apply EnvironmentSubtype_Some_inv' in Sub;
+          destruct Sub as [env2' [T' [Sub [EnvSub [[Eq Unr] | Eq]]]]]; subst.
+          -- generalize (IHx _ _ _ EnvSub).
+             intros [env2'' [T'' [Sub' [EnvSub' [[Eq Un] | Eq]]]]].
+             ++ subst. exists (None :: env2''), T''.
+                repeat rewrite raw_insert_successor;
+                repeat rewrite lookup_zero; simpl; repeat split.
+                assumption.
+                eapply EnvironmentSubtype_trans with (env2 := Some T' :: env1);
+                eauto with environment.
+                now left.
+             ++ subst. exists (None :: env2''), T''.
+                repeat rewrite raw_insert_successor;
+                repeat rewrite lookup_zero; simpl; repeat split.
+                assumption.
+                eapply EnvironmentSubtype_trans with (env2 := Some T' :: env1);
+                eauto with environment.
+                now right.
+          -- generalize (IHx _ _ _ EnvSub).
+             intros [env2'' [T'' [Sub' [EnvSub' [[Eq Un] | Eq]]]]];
+             subst; exists (Some T' :: env2''), T'';
+             repeat rewrite raw_insert_successor;
+             repeat rewrite lookup_zero; simpl; repeat split; eauto;
+             eapply EnvironmentSubtype_trans with (env2 := Some T' :: env2'');
+             eauto with environment.
+        * apply EnvironmentSubtype_None_inv in Sub;
+          destruct Sub as [env' [Eq Sub']]; subst;
+          generalize (IHx _ _ _ Sub');
+          intros [env2'' [T'' [Sub'' [EnvSub' [[Eq Un] | Eq]]]]]; subst;
+          exists (None :: env2''), T'';
+          repeat rewrite raw_insert_successor;
+          repeat rewrite lookup_zero; simpl; repeat split;
+          eauto with environment.
+  Qed.
+
   (*Lemma EnvironmentSubtype_middle : forall env1_1 env1_2 env2 A,*)
   (*  env1_1 ++ Some A :: env1_2 ≤ₑ env2 ->*)
   (*  exists env2_1 env2_2,*)
@@ -1095,3 +1211,8 @@ Qed.
 
 
 End environment_properties.
+
+Hint Resolve create_EmptyEnv_EmptyEnv : environment.
+Hint Resolve SubEnv_EmptyEnv_create_EmptyEnv : environment.
+Hint Resolve EnvironmentSubtype_nil_left : environment.
+Hint Resolve EnvironmentSubtype_nil_right : environment.

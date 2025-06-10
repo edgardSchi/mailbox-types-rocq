@@ -136,6 +136,21 @@ Section MPattern_props.
 
 Context `{MessageInterface : IMessage Message}.
 
+(** Leibniz equality of mailbox patterns is decidable *)
+Lemma MPattern_eq_dec : forall (e f : MPattern), {e = f} + {e <> f}.
+Proof.
+  induction e, f; try (now left);
+  try (right; intros Neg; discriminate);
+  try (case (IHe1 f1); case (IHe2 f2));
+  try (case (IHe f));
+  try (case (eq_dec m m0));
+  intros; subst;
+  try (
+    try (now left);
+    try (right; intros N; inversion N; now exfalso)
+  ).
+Qed.
+
 (** Properties of mailbox patterns showing that they are a commutative Klenee algebra. *)
 
 Example Example1 : ⟨⟩ ∈ (𝟙 ⊕ 𝟘).
