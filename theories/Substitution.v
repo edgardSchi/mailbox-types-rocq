@@ -35,15 +35,15 @@ Section subs_def.
 Fixpoint traverse_Term (f : nat -> nat -> Value) l t :=
     match t with
     | TValue v => TValue (traverse_Value f l v)
-    | TLet t1 t2  => TLet (traverse_Term f l t1) (traverse_Term f (l+1) t2)
+    | TLet t1 t2  => TLet (traverse_Term f l t1) (traverse_Term f (1 + l) t2)
     | TApp def v => TApp def (traverse_Value f l v)
-   | TSpawn t1 => TSpawn (traverse_Term f l t1)
+    | TSpawn t1 => TSpawn (traverse_Term f l t1)
     | TNew => TNew
     | TSend v1 m v2 => TSend (traverse_Value f l v1) m (traverse_Value f l v2)
     | TGuard v e guards => TGuard (traverse_Value f l v) e (List.map (traverse_Guard f l) guards)
-    end
+  end
   with traverse_Guard (f : nat -> nat -> Value) l g :=
-match g with
+    match g with
     | GFail => GFail
     | GFree t1 => GFree (traverse_Term f l t1)
     (* Assumption: we only receive one value in the message *)
@@ -51,7 +51,7 @@ match g with
     end.
 
   Instance Traverse_Value_Value : Traverse Value Value :=
-  {
+{
     traverse := traverse_Value
   }.
 
@@ -692,7 +692,7 @@ match g with
   Proof.
     induction x; intros * Empty.
     - rewrite raw_insert_zero; now constructor.
-    -  rewrite raw_insert_successor.
+    - rewrite raw_insert_successor.
       inversion Empty; subst.
       + rewrite lookup_nil; simpl.
         constructor.
@@ -702,6 +702,23 @@ match g with
         constructor.
         reflexivity.
         now apply IHx.
+  Qed.
+
+  Lemma EmptyEnv_raw_insert_None_inv : forall x env,
+    EmptyEnv (raw_insert x None env) ->
+    EmptyEnv env.
+  Proof.
+    induction x; intros * Empty.
+    - rewrite raw_insert_zero in Empty; now inversion Empty.
+    - rewrite raw_insert_successor in Empty.
+      inversion Empty; subst.
+      destruct env.
+      + constructor.
+      + rewrite lookup_zero in *; subst.
+        constructor.
+        reflexivity.
+        apply IHx.
+        assumption.
   Qed.
 
   Lemma EnvironmentSubtype_raw_insert_insert : forall x v T env1 env2,
@@ -906,6 +923,21 @@ match g with
     eapply SUB; try eassumption; now constructor.
   Qed.
 
+  (*Lemma weakening: forall p env t T,*)
+  (*  WellTypedTerm p env t T ->*)
+  (*  forall x v env',*)
+  (*  insert x v env = env' ->*)
+  (*  WellTypedTerm p env' (shift x t) T.*)
+  (*Proof.*)
+  (*  intros * WT.*)
+  (*  induction WT; intros * Eq; subst.*)
+  (*  - simpl_lift_goal. simpl.*)
+
+  Lemma WellTypedTerm_raw_insert_None : forall p env t x T,
+    WellTypedTerm p env t T ->
+    WellTypedTerm p (raw_insert x None env) (shift x t) T.
+  Admitted.
+
   Lemma subst_insert_TValue_None : forall p env v1 v2 x T,
     WellTypedTerm p (raw_insert x None env) (TValue v1) T ->
     WellTypedTerm p env (subst v2 x (TValue v1)) T.
@@ -935,6 +967,55 @@ match g with
       + Search ((?v - 1)).
         now apply WellTypedTerm_TValue_insert_None_gt in WT.
   Qed.
+
+  Lemma subst_insert_None : forall p env t1 v x T,
+    WellTypedTerm p (raw_insert x None env) t1 T ->
+    WellTypedTerm p env (subst v x t1) T.
+  Proof.
+    intros * WT.
+    remember (raw_insert x None env) as E.
+    revert x v env HeqE.
+    induction WT; intros; subst.
+    - apply subst_insert_TValue_None.
+      rewrite <- HeqE.
+      now constructor.
+    - simpl_subst_goal; simpl; simpl_lift_goal.
+      constructor.
+      eauto using EmptyEnv_raw_insert_None_inv.
+    - simpl_subst_goal; simpl; simpl_lift_goal.
+      constructor.
+      eauto using EmptyEnv_raw_insert_None_inv.
+    - simpl_subst_goal; simpl; simpl_lift_goal.
+      constructor.
+      eauto using EmptyEnv_raw_insert_None_inv.
+    - simpl_subst_goal; simpl; simpl_lift_goal.
+      eapply APP.
+      eassumption.
+      generalize (IHWT _ v0 _ eq_refl).
+      simpl_subst_goal; simpl; now simpl_lift_goal.
+    - simpl_subst_goal; simpl.
+      Search (shift).
+      generalize (EnvironmentCombination_raw_insert_None _ _ _ _ H).
+      intros [env1' [env2' [Eq1 Eq2]]].
+      (*eapply LET with (env1 := None :: raw_insert x None env1') (env2 := Some ⌊ T1 ⌋ :: raw_insert x None env2).*)
+      eapply LET with (env2 := env2).
+      + admit.
+      + generalize (IHWT1 x v _ Eq1).
+        simpl_subst_goal; simpl; simpl_lift_goal; eauto.
+      + rewrite raw_insert_zero in *.
+        rewrite Eq2 in IHWT2.
+        assert (Eq : Some ⌊ T1 ⌋ :: raw_insert x None env2' = raw_insert (S x) None (Some ⌊ T1 ⌋ :: env2')).
+        {
+          rewrite raw_insert_successor; now rewrite lookup_zero.
+        }
+        generalize (IHWT2 (S x) v).
+        intros.
+        (*apply WellTypedTerm_raw_insert_None with (x := x) in H0.*)
+        (*generalize H0.*)
+        simpl_subst_goal; simpl; simpl_lift_goal; simpl.
+        unfold subst_idx; simpl.
+        dblib_by_cases.
+      Admitted.
 
   Lemma subst_lemma_TValue : forall p env1 env2 env A A' B v1 v2 x,
     WellTypedTerm p (insert x A env1) (TValue v1) B ->
@@ -990,6 +1071,56 @@ match g with
         assumption.
   Qed.
 
+  Lemma subst_TLet : forall t1 t2 v x,
+    subst v x (TLet t1 t2) = TLet (subst v x t1) (subst (shift 0 v) (1 + x) t2).
+  Proof.
+    intros.
+    simpl_subst_goal; simpl; simpl_lift_goal.
+    f_equal.
+    Search (traverse).
+    generalize (traverse_relative (fun l x0 : nat => subst_idx (lift l 0 v) (l + x) x0) (fun l x0 : nat => subst_idx (lift l 0 (traverse_Value (fun l' x0' : nat => ValueVar (shift (l' + 0) x0')) 0 v)) (l + S x) x0) 1 t2).
+    intros H.
+    assert (H1 : forall l y : nat,
+      subst_idx (lift (l + 1) 0 v) (l + 1 + x) y =
+      subst_idx
+      (lift l 0
+          (traverse_Value (fun l0 x0 : nat => ValueVar (shift (l0 + 0) x0)) 0 v))
+      (l + S x) y
+    ).
+    {
+      intros. simpl_lift_goal. unfold subst_idx. dblib_by_cases.
+      - reflexivity.
+      - generalize (traverse_functorial (fun l0 x0 : nat => ValueVar (shift (l0 + 0) x0)) (fun l0 x0 : nat => ValueVar (lift l (l0 + 0) x0)) v).
+        intros.
+        rewrite H0.
+        simpl_lift_goal; simpl.
+        assert (forall l' x', (fun l0 x0 : nat => ValueVar (lift (l + 1) (l0 + 0) x0)) l' x' = (fun l0 x0 : nat => ValueVar (lift l (l0 + 0) (shift (l0 + 0) x0))) l' x').
+        {
+          intros. f_equal. repeat rewrite <- plus_n_O.
+          symmetry.
+          replace (l + 1) with (S l).
+          apply lift_lift_fuse_successor.
+          rewrite PeanoNat.Nat.add_comm.
+          reflexivity.
+        }
+        generalize (traverse_extensional _ _ _ H1 v 0); eauto.
+      - reflexivity.
+    }
+    generalize (H 1 0 H1 eq_refl); auto.
+  Qed.
+
+  Lemma subst_TSpawn : forall v x t,
+    subst v x (TSpawn t) = TSpawn (subst v x t).
+  Proof.
+    intros; now simpl_subst_goal.
+  Qed.
+
+  Lemma subst_TSend : forall t1 t2 v x m,
+    subst v x (TSend t1 m t2) = TSend (subst v x t1) m (subst v x t2).
+  Proof.
+    intros; now simpl_subst_goal.
+  Qed.
+
   Lemma subst_lemma : forall p env1 env2 env A A' B t v x,
     WellTypedTerm p (insert x A env1) t B ->
     WellTypedTerm p env2 (TValue v) A' ->
@@ -1007,26 +1138,131 @@ match g with
       + destruct HeqE1 as [-> [-> Empty]].
         now constructor.
       + assumption.
-    - admit.
-    - admit.
-    - admit.
-    - simpl_subst_goal; simpl; simpl_lift_goal; simpl.
+    - now apply insert_EmptyEnv in H.
+    - now apply insert_EmptyEnv in H.
+    - now apply insert_EmptyEnv in H.
+    - simpl_subst_goal; simpl; simpl_lift_goal; simpl. 
       eapply APP.
       eassumption.
       generalize (IHWT1 _ _ _ _ _ _ _ eq_refl eq_refl WT2 H0 H1).
-      simpl_subst_goal; simpl. easy.
+      now simpl_subst_goal.
+    - rewrite subst_TLet.
+      generalize (EnvironmentCombination_insert _ _ _ _ _ H).
+      intros [env1' [env2' [[Eq1 Eq2] | [[Eq1 Eq2] | [T1' [T2' [Eq1 [Eq2 Comb']]]]]]]];
+      subst.
+      (* x is in the left term *)
+      + apply EnvironmentDis_Comb_comm in H1.
+        assert (Dis' : env1' ▷ₑ env2' ~= env3). admit.
+        generalize (EnvironmentDis_Comb env4 env1' env2' env3 env0 H1 Dis').
+        intros [envT [CombT DisT]].
+        eapply LET with (env1 := envT) (env2 := env2').
+        * assumption.
+        * eapply IHWT1_1; try eauto using EnvironmentDis_Comb_comm.
+        * subst.
+          apply subst_insert_None.
+          rewrite raw_insert_successor.
+          repeat rewrite raw_insert_zero.
+          rewrite lookup_zero.
+          simpl.
+          now rewrite raw_insert_zero in WT1_2.
+      (* x is in the right term *)
+      + rewrite insert_insert in WT1_2 by lia.
+        rewrite raw_insert_successor in WT1_2.
+        repeat rewrite raw_insert_zero in WT1_2.
+        rewrite lookup_zero in WT1_2.
+        simpl in WT1_2.
+        assert (Dis' : env1' ▷ₑ env2' ~= env3). admit.
+        apply EnvironmentDis_Comb_comm in H1.
+        generalize (EnvironmentDis_Comb env4 env1' env2' env3 env0 H1 Dis').
+        intros [envT [CombT DisT]].
+        eapply LET with (env1 := env1') (env2 := insert x A env2') (T1 := T1).
+        * admit.
+        * now apply subst_insert_None.
+        * admit.
+      (* x is in both terms *)
+      + apply EnvironmentDis_Comb_comm in H1.
+        assert (Dis' : env1' ▷ₑ env2' ~= env3). admit.
+        generalize (EnvironmentDis_Comb env4 env1' env2' env3 env0 H1 Dis').
+        intros [envT [CombT DisT]].
+        eapply LET with (env1 := envT) (env2 := env2').
+        * assumption.
+        * eapply IHWT1_1.
+          -- reflexivity.
+          -- reflexivity.
+          -- apply WT2.
+          -- admit.
+          -- admit.
+        * admit.
     - admit.
-    - simpl_subst_goal; simpl; simpl_lift_goal; simpl.
-      admit.
-    - constructor; now apply insert_EmptyEnv in H.
-    - admit.
-    - admit.
-    - apply EnvironmentSubtype_insert_inv in H.
-      destruct H as [env2' [T' [Sub' [EnvSub' [[Eq Un] | Eq]]]]].
-      + subst. admit.
-      + subst. generalize (IHWT1 l).
-      Search ((insert _ _ _) ≤ₑ _).
-      
+    - now apply insert_EmptyEnv in H.
+    - rewrite subst_TSend.
+      generalize (EnvironmentDisCombination_insert _ _ _ _ _ H0).
+      intros [env1' [env2' [[Eq1 Eq2] | [[Eq1 Eq2] | [BT [Eq1 Eq2]]]]]].
+      (* x in the left term *)
+      + subst.
+        apply EnvironmentDis_Comb_comm in H2.
+        assert (Dis' : env1' +ₑ env2' ~= env3). admit.
+        generalize (EnvironmentDis_assoc env4 env1' env2' env3 env0 H2 Dis').
+        intros [envT [DisT1 DisT2]].
+        eapply SEND with (env1 := envT) (env2 := env2').
+        apply EnvironmentDis_Comb_comm in DisT2.
+        * generalize (subst_lemma_TValue _ _ _ envT _ _ _ _ _ _ WT1_1 WT2 H1 DisT2).
+          now simpl_subst_goal.
+        * reflexivity.
+        * assumption.
+        * eapply subst_insert_None with (v := v) in WT1_2.
+          generalize WT1_2; now simpl_subst_goal.
+      (* x in the right term *)
+      + subst.
+        assert (Dis' : env1' +ₑ env2' ~= env3). admit.
+        generalize (EnvironmentDis_assoc_rev _ _ _ _ _ H2 Dis').
+        intros [envT [DisT1 DisT2]].
+        eapply SEND with (env1 := env1') (env2 := envT).
+        * eapply subst_insert_None with (v := v) in WT1_1.
+          generalize WT1_1; now simpl_subst_goal.
+        * reflexivity.
+        * assumption.
+        * apply EnvironmentDis_Comb_comm in DisT2.
+          generalize (subst_lemma_TValue _ _ _ envT _ _ _ _ _ _ WT1_2 WT2 H1 DisT2).
+          now simpl_subst_goal.
+      (* x in the both terms *)
+      + subst.
+        assert (Dis' : env1' +ₑ env2' ~= env3). admit.
+        assert (A = TUBase BT). admit.
+        subst.
+        generalize (EnvironmentDis_assoc_rev _ _ _ _ _ H2 Dis').
+        intros [envT2 [DisT1_2 DisT2_2]].
+        apply EnvironmentDis_Comb_comm in H2.
+        generalize (EnvironmentDis_assoc _ _ _ _ _ H2 Dis').
+        intros [envT1 [DisT1_1 DisT2_1]].
+        eapply SEND with (env1 := envT1) (env2 := envT2).
+        * apply EnvironmentDis_Comb_comm in DisT2_1.
+          generalize (subst_lemma_TValue _ _ _ envT1 _ _ _ _ _ _ WT1_1 WT2 H1 DisT2_1).
+          now simpl_subst_goal.
+        * reflexivity.
+        * admit. (* This holds *)
+        * apply EnvironmentDis_Comb_comm in DisT2_2.
+          generalize (subst_lemma_TValue _ _ _ envT2 _ _ _ _ _ _ WT1_2 WT2 H1 DisT2_2).
+          now simpl_subst_goal.
+    - admit. (* Need to fix induction principle *)
+    - apply EnvironmentSubtype_insert_inv in H;
+      destruct H as [env2' [T' [Sub' [EnvSub' [[Eq Un] | Eq]]]]];
+      subst.
+      + apply subst_insert_None with (v := v) in WT1.
+        eapply WellTypedTerm_TValue_Un in WT2.
+        * destruct WT2 as [env'' [Empty'' EnvSub'']].
+          generalize (EnvDis_Sub env0 env3 env2' env'' env EnvSub' EnvSub'' H2).
+          intros [envE [SubE DisE]].
+          generalize (EnvDis_EmptyEnv_right _ _ _ Empty'' DisE); intros ->.
+          eapply SUB; eassumption.
+        * eapply Subtype_trans with (t2 := A); eassumption.
+        * eassumption.
+      + generalize (EnvDis_Sub env0 env3 env2' env3 env EnvSub' (EnvironmentSubtype_refl env3) H2).
+        intros [env'' [EnvSub'' Dis'']].
+        eapply SUB.
+        eassumption.
+        eassumption.
+        eapply IHWT1; eauto using Subtype_trans with environment.
   Admitted.
 
 

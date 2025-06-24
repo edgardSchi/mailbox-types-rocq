@@ -871,6 +871,13 @@ Proof.
   intros * Dis; induction Dis; now repeat constructor.
 Qed.
 
+  Lemma EnvironmentDis_Comb_comm : forall env1 env2 env,
+    env1 +ₑ env2 ~= env -> env2 +ₑ env1 ~= env.
+  Proof.
+    intros * Dis.
+    induction Dis; eauto with environment.
+  Qed.
+
   Lemma EnvironmentSubtype_None_inv : forall env1 env2,
     None :: env1 ≤ₑ env2 ->
     exists env2',
@@ -1161,6 +1168,230 @@ Qed.
           repeat rewrite lookup_zero; simpl; repeat split;
           eauto with environment.
   Qed.
+
+  Lemma EnvironmentCombination_insert : forall x env1 env2 env T,
+    env1 ▷ₑ env2 ~= insert x T env ->
+    exists env1' env2',
+      (env1 = insert x T env1' /\ env2 = raw_insert x None env2') \/
+      (env1 = raw_insert x None env1' /\ env2 = insert x T env2') \/
+      exists T1 T2, (env1 = insert x T1 env1' /\ env2 = insert x T2 env2' /\ T1 ▷ T2 ~= T).
+  Proof.
+    induction x; intros * Comb.
+    - rewrite raw_insert_zero in Comb.
+      inversion Comb; subst; exists env0, env3.
+      + left; now repeat rewrite raw_insert_zero.
+      + right; left; now repeat rewrite raw_insert_zero.
+      + repeat right; repeat rewrite raw_insert_zero.
+        now exists T1, T2.
+    - rewrite raw_insert_successor in *.
+      destruct (lookup 0 env).
+      + inversion Comb; subst.
+        * apply IHx in H2;
+          destruct H2 as [env1' [env2' [[Eq1 Eq2] | [[Eq1 Eq2] | [T1' [T2' [Eq1 [Eq2 Comb']]]]]]]];
+          subst; exists (Some t :: env1'), (None :: env2');
+          try (repeat right; exists T1', T2');
+          repeat rewrite raw_insert_successor;
+          repeat rewrite lookup_zero; auto.
+        * apply IHx in H2;
+          destruct H2 as [env1' [env2' [[Eq1 Eq2] | [[Eq1 Eq2] | [T1' [T2' [Eq1 [Eq2 Comb']]]]]]]];
+          subst; exists (None :: env1'), (Some t :: env2');
+          try (repeat right; exists T1', T2');
+          repeat rewrite raw_insert_successor;
+          repeat rewrite lookup_zero; auto.
+        * apply IHx in H3;
+          destruct H3 as [env1' [env2' [[Eq1 Eq2] | [[Eq1 Eq2] | [T1' [T2' [Eq1 [Eq2 Comb']]]]]]]];
+          subst; exists (Some T1 :: env1'), (Some T2 :: env2');
+          try (repeat right; exists T1', T2');
+          repeat rewrite raw_insert_successor;
+          repeat rewrite lookup_zero; auto.
+      + inversion Comb; subst.
+        apply IHx in H2;
+        destruct H2 as [env1' [env2' [[Eq1 Eq2] | [[Eq1 Eq2] | [T1' [T2' [Eq1 [Eq2 Comb']]]]]]]];
+        subst; exists (None :: env1'), (None :: env2');
+        try (repeat right; exists T1', T2');
+        repeat rewrite raw_insert_successor;
+        repeat rewrite lookup_zero; auto.
+  Qed.
+
+  Lemma EnvironmentCombination_raw_insert_None : forall x env1 env2 env,
+    env1 ▷ₑ env2 ~= raw_insert x None env ->
+    exists env1' env2', (env1 = raw_insert x None env1' /\ env2 = raw_insert x None env2').
+  Proof.
+    induction x; intros * Comb.
+    - rewrite raw_insert_zero in Comb.
+      inversion Comb; subst.
+      setoid_rewrite raw_insert_zero; eauto.
+    - rewrite raw_insert_successor in Comb.
+      inversion Comb as [| envA envB ? Comb'   | envA envB ? T Comb'
+                         | envA envB ? T Comb' | envA envB ? ? T1 T2 Comb'];
+      subst;
+      setoid_rewrite raw_insert_successor;
+      generalize (IHx _ _ _ Comb');
+      intros [env1' [env2' [Eq1 Eq2]]]; subst.
+      1: exists (None :: env1'), (None :: env2').
+      2: exists (Some T :: env1'), (None :: env2').
+      3: exists (None :: env1'), (Some T :: env2').
+      4: exists (Some T1 :: env1'), (Some T2 :: env2').
+      all: subst; simpl; now repeat rewrite lookup_zero.
+  Qed.
+
+  Lemma EnvironmentDisCombination_insert : forall x env1 env2 env T,
+    env1 +ₑ env2 ~= insert x T env ->
+    exists env1' env2',
+      (env1 = insert x T env1' /\ env2 = raw_insert x None env2') \/
+      (env1 = raw_insert x None env1' /\ env2 = insert x T env2') \/
+      exists BT, (env1 = insert x (TUBase BT) env1' /\ env2 = insert x (TUBase BT) env2').
+  Proof.
+    induction x; intros * Comb.
+    - rewrite raw_insert_zero in Comb.
+      inversion Comb; subst; exists env0, env3.
+      + left; now repeat rewrite raw_insert_zero.
+      + right; left; now repeat rewrite raw_insert_zero.
+      + repeat right; repeat rewrite raw_insert_zero. eauto using raw_insert_zero.
+    - rewrite raw_insert_successor in *.
+      destruct (lookup 0 env).
+      + inversion Comb; subst.
+        * apply IHx in H2;
+          destruct H2 as [env1' [env2' [[Eq1 Eq2] | [[Eq1 Eq2] | [BT [Eq1 Eq2 ]]]]]];
+          subst;
+          exists (Some t :: env1'), (None :: env2');
+          try (repeat right; exists BT);
+          repeat rewrite raw_insert_successor;
+          repeat rewrite lookup_zero;
+          eauto.
+        * apply IHx in H2;
+          destruct H2 as [env1' [env2' [[Eq1 Eq2] | [[Eq1 Eq2] | [BT [Eq1 Eq2 ]]]]]];
+          subst;
+          exists (None :: env1'), (Some t :: env2');
+          try (repeat right; exists BT);
+          repeat rewrite raw_insert_successor;
+          repeat rewrite lookup_zero;
+          eauto.
+        * apply IHx in H2;
+          destruct H2 as [env1' [env2' [[Eq1 Eq2] | [[Eq1 Eq2] | [BT' [Eq1 Eq2 ]]]]]];
+          subst;
+          exists (Some (TUBase BT) :: env1'), (Some (TUBase BT) :: env2');
+          try (repeat right; exists BT');
+          repeat rewrite raw_insert_successor;
+          repeat rewrite lookup_zero;
+          eauto.
+      + inversion Comb; subst.
+        apply IHx in H2;
+        destruct H2 as [env1' [env2' [[Eq1 Eq2] | [[Eq1 Eq2] | [BT' [Eq1 Eq2 ]]]]]];
+        subst; exists (None :: env1'), (None :: env2');
+        try (repeat right; exists BT');
+        repeat rewrite raw_insert_successor;
+        repeat rewrite lookup_zero; auto.
+  Qed.
+
+  Lemma EnvironmentDis_Comb : forall env1 env2 env3 env2' env,
+    env1 +ₑ env2' ~= env ->
+    env2 ▷ₑ env3 ~= env2' ->
+    exists env1', env1' ▷ₑ env3 ~= env /\ env1 +ₑ env2 ~= env1'.
+  Proof.
+    intros * Comb Dis.
+    revert env1 env Comb.
+    induction Dis; intros.
+    - inversion Comb; subst; eauto with environment.
+    - inversion Comb as [| ? ? ? Comb' | ? ? ? ? Comb' | |]; subst.
+      + apply IHDis in Comb'.
+        destruct Comb' as [env3' [Comb' Dis']].
+        exists (None :: env3'); eauto with environment.
+      + apply IHDis in Comb'.
+        destruct Comb' as [env3' [Comb' Dis']].
+        eauto with environment.
+    - inversion Comb; subst.
+      + apply IHDis in H3.
+        destruct H3 as [env3' [Comb' Dis']].
+        eauto with environment.
+      + apply IHDis in H3.
+        destruct H3 as [env3' [Comb' Dis']].
+        eauto with environment.
+    - inversion Comb; subst.
+      + apply IHDis in H3.
+        destruct H3 as [env3' [Comb' Dis']].
+        eauto with environment.
+      + apply IHDis in H3.
+        destruct H3 as [env3' [Comb' Dis']].
+        exists (Some (TUBase BT) :: env3'); split;
+        repeat constructor; assumption.
+    - inversion Comb; subst.
+      + apply IHDis in H4.
+        destruct H4 as [env3' [Comb' Dis']].
+        eauto with environment.
+      + apply IHDis in H4.
+        destruct H4 as [env3' [Comb' Dis']].
+        inversion H; subst.
+        exists (Some (TUBase BT) :: env3'); split;
+        repeat constructor; assumption.
+  Qed.
+
+  Lemma EnvironmentDis_assoc : forall env1 env2 env3 env2' env,
+    env1 +ₑ env2' ~= env ->
+    env2 +ₑ env3 ~= env2' ->
+    exists env1', env1' +ₑ env3 ~= env /\ env1 +ₑ env2 ~= env1'.
+  Proof.
+    intros * Dis1; revert env2 env3;
+    induction Dis1; intros * Dis2; inversion Dis2; subst;
+    try match goal with
+    | H : ?env1 +ₑ ?env2 ~= ?env3 |- _ =>
+      apply IHDis1 in H; destruct H as [env3' [Dis1' Dis2']]
+    end;
+    eauto with environment.
+  Qed.
+
+  Lemma EnvironmentDis_assoc_rev : forall env1 env2 env3 env1' env,
+    env1' +ₑ env2 ~= env ->
+    env1 +ₑ env3 ~= env1' ->
+    exists env2', env1 +ₑ env2' ~= env /\ env2 +ₑ env3 ~= env2'.
+  Proof.
+    intros * Dis1; revert env1 env3;
+    induction Dis1; intros * Dis2; inversion Dis2; subst;
+    try match goal with
+    | H : ?env1 +ₑ ?env2 ~= ?env3 |- _ =>
+      apply IHDis1 in H; destruct H as [env3' [Dis1' Dis2']]
+    end;
+    eauto with environment.
+  Qed.
+
+  (*Lemma EnvironmentDis_Comb_rev : forall env1 env2 env3 env1' env,*)
+  (*  env1' ▷ₑ env3 ~= env ->*)
+  (*  env1 +ₑ env2 ~= env1' ->*)
+  (*  exists env2', env1 +ₑ env2' ~= env /\ env2 ▷ₑ env3 ~= env2'.*)
+  (*Proof.*)
+  (*  intros * Dis1; revert env1 env2;*)
+  (*  induction Dis1; intros * Dis2; inversion Dis2; subst;*)
+  (*  try match goal with*)
+  (*  | H : ?env1 +ₑ ?env2 ~= ?env3 |- _ =>*)
+  (*    apply IHDis1 in H; destruct H as [env3' [Dis1' Dis2']]*)
+  (*  end;*)
+  (*  eauto with environment.*)
+  (*Qed.*)
+
+  (*Lemma EnvironmentDis_Comb_inv : forall env1 env2 env3 env1' env,*)
+  (*  env1 +ₑ env2 ~= env1' ->*)
+  (*  env1' ▷ₑ env3 ~= env ->*)
+  (*  exists env2', env1 +ₑ env2' ~= env /\ env2 ▷ₑ env3 ~= env2'.*)
+  (*Proof.*)
+  (*  intros * Dis.*)
+  (*  revert env3 env.*)
+  (*  induction Dis; intros * Comb.*)
+  (*  - inversion Comb; subst; eauto with environment.*)
+  (*  - inversion Comb; subst.*)
+  (*    + apply IHDis in H0.*)
+  (*      destruct H0 as [env3' [Comb' Dis']].*)
+  (*      exists (None :: env3').*)
+  (*      eauto with environment.*)
+  (*    + apply IHDis in H0.*)
+  (*      destruct H0 as [env3' [Comb' Dis']].*)
+  (*      exists (Some T :: env3').*)
+  (*      eauto with environment.*)
+  (*  - inversion Comb; subst.*)
+  (*    + apply IHDis in H3.*)
+  (*      destruct H3 as [env3' [Comb' Dis']].*)
+  (*      exists (None :: env3').*)
+  (*      eauto with environment.*)
+  (*    + *)
 
   (*Lemma EnvironmentSubtype_middle : forall env1_1 env1_2 env2 A,*)
   (*  env1_1 ++ Some A :: env1_2 ≤ₑ env2 ->*)
