@@ -100,15 +100,16 @@ Inductive WellTypedProgram (prog : Prog) : Prop :=
     (forall def, WellTypedDefinition prog (definitions prog def)) ->
     WellTypedTerm prog nil (initialTerm prog) (TUBase BTUnit) -> WellTypedProgram prog.
 
-  Scheme WellTypedTerm_ind3 := Minimality for WellTypedTerm Sort Prop
-    with WellTypedGuards_ind3 := Minimality for WellTypedGuards Sort Prop
-    with WellTypedGuard_ind3 := Minimality for WellTypedGuard Sort Prop.
+  Scheme WellTypedTerm_ind3 := Induction for WellTypedTerm Sort Prop
+    with WellTypedGuards_ind3 := Induction for WellTypedGuards Sort Prop
+    with WellTypedGuard_ind3 := Induction for WellTypedGuard Sort Prop.
+  Combined Scheme WellTypedTerm_mutind from WellTypedTerm_ind3, WellTypedGuards_ind3, WellTypedGuard_ind3.
 
 End typing_rules_def.
 
 Hint Constructors WellTypedTerm : environment.
 
-(*
+
 Section well_typed_ind'.
 
   Generalizable All Variables.
@@ -120,21 +121,19 @@ Section well_typed_ind'.
   Variable PGs : Env -> list Guard -> TUsage -> MPattern -> Prop.
   Variable PG : Env -> Guard -> TUsage -> MPattern -> Prop.
 
-  Hypothesis VAR_case : forall v env T,
-    SingletonEnv env ->
-    lookup v env = Some T ->
-    P env (TValue (ValueVar (Var v))) T.
+  Hypothesis VAR_case : forall x v env T,
+    EmptyEnv env ->
+    P (insert x T env) (TValue (ValueVar v)) T.
   Hypothesis TRUE_case : forall env,
     EmptyEnv env -> P env (TValue (ValueBool true)) (TUBase BTBool).
   Hypothesis FALSE_case : forall env,
     EmptyEnv env -> P env (TValue (ValueBool false)) (TUBase BTBool).
   Hypothesis UNIT_case : forall env,
     EmptyEnv env -> P env (TValue (ValueUnit)) (TUBase BTUnit).
-  Hypothesis APP_case : forall env envList vList definition bodyType argumentTypes term,
-    definitions p definition = FunDef definition argumentTypes bodyType term ->
-    [envList]+ₑ ~= env ->
-    Forall3 P envList (map TValue vList) argumentTypes ->
-    P env (TApp definition vList) bodyType.
+  Hypothesis APP_case : forall env v definition bodyType argumentType term,
+    definitions p definition = FunDef definition argumentType bodyType term ->
+    P env (TValue v) argumentType ->
+    P env (TApp definition v) bodyType.
   Hypothesis LET_case : forall (env env1 env2 : Env) (T1 : TType) (T2 : TUsage) (t1 t2 : Term),
     env1 ▷ₑ env2 ~= env ->
     P env1 t1 ⌊ T1 ⌋ ->
@@ -146,12 +145,12 @@ Section well_typed_ind'.
   Hypothesis NEW_case : forall env,
       EmptyEnv env ->
       P env TNew (? 𝟙 ^^ •).
-  Hypothesis SEND_case : forall env env' envList tList vList m v,
-      P env' (TValue v) (! « m » ^^ ◦) ->
-      signature p m = tList ->
-      [ (env' :: envList) ]+ₑ ~= env ->
-      Forall3 P envList (map TValue vList) (map secondType tList) ->
-      P env (TSend v m vList) (TUBase BTUnit).
+  Hypothesis SEND_case : forall env env1 env2 m v1 v2 T,
+      P env1 (TValue v1) (! « m » ^^ ◦) ->
+      signature p m = T ->
+      env1 +ₑ env2 ~= env ->
+      P env2 (TValue v2) ⌈ T ⌉ ->
+      P env (TSend v1 m v2) (TUBase BTUnit).
   Hypothesis GUARD_case : forall env env1 env2 guards v T e f,
       env1 +ₑ env2 ~= env ->
       P env1 (TValue v) (? f ^^ •) ->
@@ -175,23 +174,24 @@ Section well_typed_ind'.
   Hypothesis FREE_case : forall t env T,
       P env t T ->
       PG env (GFree t) T 𝟙.
-  Hypothesis RECEIVE_case : forall t m env T tList e mailbox,
-      signature p m = tList ->
-      BaseTypes tList \/ BaseEnv env ->
-      P ((toEnv (map secondType tList)) ++ [Some (? e ^^ •)] ++ env) t T ->
-      PG env (GReceive m mailbox t) T (« m » ⊙ e).
+  Hypothesis RECEIVE_case : forall t m env BT T e,
+      signature p m = BT ->
+      BaseType BT \/ BaseEnv env ->
+      P (insert 0 ⌈ BT ⌉ (insert 0 (? e ^^ •) env)) t T ->
+      PG env (GReceive m t) T (« m » ⊙ e).
 
+  (*
   Definition WellTypedTerm_ind' : forall {env t T}, WellTypedTerm p env t T -> P env t T.
   Proof.
     refine(
       fix F {env t T} (WT : WellTypedTerm p env t T) : P env t T :=
         match WT in (WellTypedTerm _ env' t' T') return (P env' t' T') with
-        | VAR _ v env T Single Lookup => VAR_case v env T Single Lookup
+        | VAR _ env v T Empty => VAR_case _ v env T Empty
         | TRUE _ env Empty => TRUE_case env Empty
         | FALSE _ env Empty => FALSE_case env Empty
         | UNIT _ env Empty => UNIT_case env Empty
-        | APP _ env envList vList def bT aT t L Dis F3 =>
-            APP_case env envList vList def bT aT t L Dis
+        | APP _ env v definition bodyType argumentType term Dis F3 =>
+            APP_case env v definition bodyType argumentType term Dis (F _)
               ((fix F3_ind {envList2 vList2 aT2} (F3_WT : Forall3 _ envList2 vList2 aT2) {struct F3_WT} : Forall3 P envList2 vList2 aT2 :=
                  match F3_WT in (Forall3 _ envList' vList' aT') return (Forall3 P envList' vList' aT') with
                  | Forall3_nil _ => Forall3_nil _
@@ -202,8 +202,8 @@ Section well_typed_ind'.
             LET_case env env1 env2 T1 T2 t1 t2 Dis (F WT1) (F WT2)
         | SPAWN _ env t WT => SPAWN_case env t (F WT)
         | NEW _ env Empty => NEW_case env Empty
-        | SEND _ env env' envList tList vList m v WT s Dis F3 =>
-            SEND_case env env' envList tList vList m v (F WT) s Dis
+        | SEND _ env env1 env2 T m v1 v2 WT s Dis F3 =>
+            SEND_case env env1 env2 m v1 v2 T (F WT) s Dis _
               ((fix F3_ind {envList2 vList2 tList2} (F3_WT : Forall3 _ envList2 vList2 tList2) {struct F3_WT} : Forall3 P envList2 vList2 tList2 :=
                  match F3_WT in (Forall3 _ envList' vList' tList') return (Forall3 P envList' vList' tList') with
                  | Forall3_nil _ => Forall3_nil _
@@ -223,14 +223,13 @@ Section well_typed_ind'.
         match WTG in (WellTypedGuard _ env' g' T' e') return (PG env' g' T' e') with
         | FAIL _ env t => FAIL_case env t
         | FREE _ t env T WT' => FREE_case t env T (F WT')
-        | RECEIVE _ _ _ _ _ _ _ _ s Base WT' => RECEIVE_case _ _ _ _ _ _ _ s Base (F WT')
+        | RECEIVE _ _ _ _ _ _ _ s Base WT' => RECEIVE_case _ _ _ _ _ _ _ s Base (F WT')
         end
       for F
     ).
-  Defined.
+  Defined. *)
 
 End well_typed_ind'.
-*)
 
 Section well_typed_def.
 

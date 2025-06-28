@@ -202,12 +202,12 @@ Section mailbox_combinations.
 *)
   Inductive TypeCombination : TType -> TType -> TType -> Prop :=
       TCombBase : forall c, TypeCombination (TTBase c) (TTBase c) (TTBase c)
-    | TCombOut_1 : forall e f, TypeCombination (TTMailbox (! e)) (TTMailbox (! f)) (TTMailbox (! (e ⊙ f)))
-    | TCombOut_2 : forall e f, TypeCombination (TTMailbox (! e)) (TTMailbox (! f)) (TTMailbox (! (f ⊙ e)))
-    | TCombInOut_1 : forall e f, TypeCombination (TTMailbox (! e)) (TTMailbox (? (e ⊙ f))) (TTMailbox (? f))
-    | TCombInOut_2 : forall e f, TypeCombination (TTMailbox (! e)) (TTMailbox (? (f ⊙ e))) (TTMailbox (? f))
-    | TCombOutIn_1 : forall e f, TypeCombination (TTMailbox (? (e ⊙ f))) (TTMailbox (! e)) (TTMailbox (? f))
-    | TCombOutIn_2 : forall e f, TypeCombination (TTMailbox (? (f ⊙ e))) (TTMailbox (! e)) (TTMailbox (? f)).
+    | TCombOut : forall e f, TypeCombination (TTMailbox (! e)) (TTMailbox (! f)) (TTMailbox (! (e ⊙ f)))
+    (*| TCombOut_2 : forall e f, TypeCombination (TTMailbox (! e)) (TTMailbox (! f)) (TTMailbox (! (f ⊙ e)))*)
+    | TCombInOut : forall e f, TypeCombination (TTMailbox (! e)) (TTMailbox (? (e ⊙ f))) (TTMailbox (? f))
+    (*| TCombInOut_2 : forall e f, TypeCombination (TTMailbox (! e)) (TTMailbox (? (f ⊙ e))) (TTMailbox (? f))*)
+    | TCombOutIn : forall e f, TypeCombination (TTMailbox (? (e ⊙ f))) (TTMailbox (! e)) (TTMailbox (? f)).
+    (*| TCombOutIn_2 : forall e f, TypeCombination (TTMailbox (? (f ⊙ e))) (TTMailbox (! e)) (TTMailbox (? f)).*)
 
 (** 
    Definition 3.6 of usage combiniations. Again, instead of defining it as a partial function,
@@ -309,11 +309,11 @@ Proof.
   now inversion Sub.
 Qed.
 
-Lemma TypeCombination_comm : forall T1 T2 T3, T1 ⊞ T2 ~= T3 -> T2 ⊞ T1 ~= T3.
-Proof.
-  destruct T1, T2, T3; intros; try inversion H; subst;
-  try assumption; try constructor.
-Qed.
+(*Lemma TypeCombination_comm : forall T1 T2 T3, T1 ⊞ T2 ~= T3 -> T2 ⊞ T1 ~= T3.*)
+(*Proof.*)
+(*  destruct T1, T2, T3; intros; try inversion H; subst;*)
+(*  try assumption; try constructor.*)
+(*Qed.*)
 
 (* TODO: Remove this. Does not hold if Unrestricted is a syntactic check *)
 (*Lemma Subtype_preserves_Unrestricted : forall T1 T2, Unrestricted T2 -> T1 ≤ T2 -> Unrestricted T1.*)

@@ -1284,6 +1284,41 @@ Qed.
         repeat rewrite lookup_zero; auto.
   Qed.
 
+  Lemma EnvironmentDis_raw_insert_None : forall x env1 env2 env,
+    env1 +ₑ env2 ~= raw_insert x None env ->
+    exists env1' env2', (env1 = raw_insert x None env1' /\ env2 = raw_insert x None env2').
+  Proof.
+    induction x; intros * Dis.
+    - setoid_rewrite raw_insert_zero.
+      rewrite raw_insert_zero in Dis.
+      inversion Dis; subst; eauto.
+    - setoid_rewrite raw_insert_successor.
+      rewrite raw_insert_successor in Dis.
+      destruct (lookup 0 env).
+      + inversion Dis; subst.
+        * apply IHx in H2.
+          destruct H2 as [env1' [env2' [Eq1 Eq2]]].
+          subst.
+          exists (Some t :: env1'), (None :: env2').
+          eauto using lookup_zero.
+        * apply IHx in H2.
+          destruct H2 as [env1' [env2' [Eq1 Eq2]]].
+          subst.
+          exists (None :: env1'), (Some t :: env2').
+          eauto using lookup_zero.
+        * apply IHx in H2.
+          destruct H2 as [env1' [env2' [Eq1 Eq2]]].
+          subst.
+          exists (Some (TUBase BT) :: env1'), (Some (TUBase BT) :: env2').
+          eauto using lookup_zero.
+      + inversion Dis; subst.
+        apply IHx in H2.
+        destruct H2 as [env1' [env2' [Eq1 Eq2]]].
+        subst.
+        exists (None :: env1'), (None :: env2').
+        eauto using lookup_zero.
+  Qed.
+
   Lemma EnvironmentDis_Comb : forall env1 env2 env3 env2' env,
     env1 +ₑ env2' ~= env ->
     env2 ▷ₑ env3 ~= env2' ->
@@ -1326,6 +1361,23 @@ Qed.
         repeat constructor; assumption.
   Qed.
 
+  Lemma EnvironmentDis_Comb_rev : forall env1 env2 env3 env1' env,
+    env1' +ₑ env3 ~= env ->
+    env1 ▷ₑ env2 ~= env1' ->
+    exists env2', env1 ▷ₑ env2' ~= env /\ env2 +ₑ env3 ~= env2'.
+  Proof.
+    intros * Dis1; revert env1 env2;
+    induction Dis1; intros * Dis2; inversion Dis2; subst;
+    try match goal with
+    | H : ?env1 ▷ₑ ?env2 ~= ?env3 |- _ =>
+      apply IHDis1 in H; destruct H as [env3' [Dis1' Dis2']]
+    end;
+    eauto with environment.
+    - exists (Some (TUBase BT) :: env3'); now repeat constructor.
+    - inversion H4; subst.
+      exists (Some (TUBase BT) :: env3'); now repeat constructor.
+  Qed.
+
   Lemma EnvironmentDis_assoc : forall env1 env2 env3 env2' env,
     env1 +ₑ env2' ~= env ->
     env2 +ₑ env3 ~= env2' ->
@@ -1354,7 +1406,7 @@ Qed.
     eauto with environment.
   Qed.
 
-  (*Lemma EnvironmentDis_Comb_rev : forall env1 env2 env3 env1' env,*)
+  (*Lemma EnvironmentDis_Comb_rev' : forall env1 env2 env3 env1' env,*)
   (*  env1' ▷ₑ env3 ~= env ->*)
   (*  env1 +ₑ env2 ~= env1' ->*)
   (*  exists env2', env1 +ₑ env2' ~= env /\ env2 ▷ₑ env3 ~= env2'.*)
