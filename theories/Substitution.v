@@ -933,17 +933,17 @@ traverse := traverse_Value
   (*  induction WT; intros * Eq; subst.*)
   (*  - simpl_lift_goal. simpl.*)
 
-  Lemma WellTypedTerm_TValue_raw_insert_None : forall p env v x T,
-    WellTypedTerm p env (TValue v) T ->
-    WellTypedTerm p (raw_insert x None env) (TValue (shift x v)) T.
-  Proof.
-  Admitted.
+  (*Lemma WellTypedTerm_TValue_raw_insert_None : forall p env v x T,*)
+  (*  WellTypedTerm p env (TValue v) T ->*)
+  (*  WellTypedTerm p (raw_insert x None env) (TValue (shift x v)) T.*)
+  (*Proof.*)
+  (*Admitted.*)
 
 
-  Lemma WellTypedTerm_raw_insert_None : forall p env t x T,
-    WellTypedTerm p env t T ->
-    WellTypedTerm p (raw_insert x None env) (shift x t) T.
-  Admitted.
+  (*Lemma WellTypedTerm_raw_insert_None : forall p env t x T,*)
+  (*  WellTypedTerm p env t T ->*)
+  (*  WellTypedTerm p (raw_insert x None env) (shift x t) T.*)
+  (*Admitted.*)
 
   Lemma subst_insert_TValue_None : forall p env v1 v2 x T,
     WellTypedTerm p (raw_insert x None env) (TValue v1) T ->
@@ -1059,9 +1059,9 @@ traverse := traverse_Value
       simpl_subst_goal; simpl; now simpl_lift_goal.
     - rewrite subst_TLet.
       generalize (EnvironmentCombination_raw_insert_None _ _ _ _ e).
-      intros [env1' [env2' [Eq1 Eq2]]].
+      intros [env1' [env2' [Eq1 [Eq2 [L1 [L2 Comb']]]]]].
       eapply LET with (env1 := env1') (env2 := env2').
-      + admit. (* Should hold *)
+      + assumption.
       + now apply IHWT1.
       + apply IHWT2.
         subst.
@@ -1075,25 +1075,23 @@ traverse := traverse_Value
       apply IHWT.
       admit. (* Need proofs about ⌈_⌉ₑ being injective and can be extended by inserting None *)
     - generalize (EnvironmentDis_raw_insert_None _ _ _ _ e0).
-      intros [env1' [env2' [Eq1 Eq2]]].
-      subst.
+      intros [env1' [env2' [Eq1 [Eq2 [L1 [L2 Comb']]]]]]; subst.
       rewrite subst_TSend.
       eapply SEND.
       + generalize (IHWT1 x v _ eq_refl).
         simpl_subst_goal; eauto.
       + reflexivity.
-      + admit. (* Need lemma *)
+      + eassumption.
       + generalize (IHWT2 x v _ eq_refl).
         simpl_subst_goal; eauto.
     - generalize (EnvironmentDis_raw_insert_None _ _ _ _ e0);
-      intros [env1' [env2' [Eq1 Eq2]]]; subst;
-      destruct guards;
-      simpl_subst_goal; simpl;
-      eapply GUARD with (env1 := env1') (env2 := env2'); eauto;
-      try (generalize (IHWT x v0 env1' eq_refl); simpl_subst_goal; eauto; fail);
-      try (generalize (IHWT0 x v0 env2' H0); simpl_subst_goal; eauto; fail);
-      admit. (* Need one more lemma *)
-    - assert (exists env2', env2 = raw_insert x None env2'). admit.
+      intros [env1' [env2' [Eq1 [Eq2 [L1 [L2 Comb']]]]]]; subst.
+      simpl_subst_goal; simpl.
+      eapply GUARD with (env1 := env1') (env2 := env2');
+      try (generalize (IHWT x v0 env1' eq_refl); simpl_subst_goal);
+      try (generalize (IHWT0 v0 x env2'); simpl_subst_goal); eauto.
+    - Search (raw_insert _ _ _ ≤ₑ _).
+      assert (exists env2', env2 = raw_insert x None env2'). admit.
       destruct H as [env2' Eq].
       assert (env ≤ₑ env2'). admit.
       apply IHWT with (v := v) in Eq.
@@ -1101,7 +1099,8 @@ traverse := traverse_Value
     - generalize (IHWT x v env' eq_refl); eauto.
     - simpl_subst_goal; simpl.
       eapply RECEIVE; eauto.
-      + admit.
+      + destruct o; eauto.
+        right; eauto using BaseEnv_raw_insert_None_inv.
       + assert (Eq : insert 0 ⌈ signature p m ⌉ (insert 0 (? e ^^ •) (raw_insert x None env')) = raw_insert (S (S x)) None (insert 0 ⌈ signature p m ⌉ (insert 0 (? e ^^ •) env'))).
         {
           repeat rewrite raw_insert_zero;
