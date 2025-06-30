@@ -238,6 +238,11 @@ Notation "J ▷ K ~= L" := (TypeUsageCombination J K L) (at level 80) : types_sc
 Section mailbox_types_properties.
   Context `{M : IMessage Message}.
 
+  Lemma secondUsage_idem : forall T, ⌈ T ⌉ⁿ = ⌈ ⌈ T ⌉ⁿ ⌉ⁿ.
+  Proof.
+    destruct T; try destruct b; easy.
+  Qed.
+
   (** Subtyping preserves reliability.
       Proof based on Ugo de’Liguoro and Luca Padovani Prop. 26
       In Fowler et al. this is Lemma D.6

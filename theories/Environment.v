@@ -31,19 +31,6 @@ when splitting an environment.
 (*Definition Env := list (option TUsage).*)
 Definition Env := env TUsage.
 
-(** Lookup the type of an variable in an environment *)
-(*Fixpoint lookup (n : nat) (env : Env) : option TUsage :=*)
-(*  match n, env with*)
-(*  | _, nil => None*)
-(*  | 0, (None :: env') => None*)
-(*  | 0, (Some T :: env') => Some T*)
-(*  | S n', (_ :: env') => lookup n' env'*)
-(*  end.*)
-
-(** Convert a list of types to an environment. This reverses the list. *)
-(*Definition toEnv (l : list TUsage) : Env :=*)
-(*  map Some (rev l).*)
-
 (** Definition 3.4 of environment subtyping.
     Subtyping of environments includes weakening for unrestricted types.
     This representation relates two environments of equal length, but
@@ -94,7 +81,6 @@ Inductive EnvironmentSubtypeStrict : Env -> Env -> Prop :=
 Inductive EnvironmentCombination : Env -> Env -> Env -> Prop :=
     EnvCombEmpty : EnvironmentCombination nil nil nil
   (* Special constructor for our representation of environments *)
-  (* TODO: Check if this is correct *)
   | EnvCombNone : forall env1 env2 env,
       EnvironmentCombination env1 env2 env ->
       EnvironmentCombination (None :: env1) (None :: env2) (None :: env)
@@ -116,7 +102,6 @@ Inductive EnvironmentCombination : Env -> Env -> Env -> Prop :=
 Inductive EnvironmentDisjointCombination : Env -> Env -> Env -> Prop :=
     EnvDisCombEmpty : EnvironmentDisjointCombination nil nil nil
   (* Special constructor for our representation of environments *)
-  (* TODO: Check if this is correct *)
   | EnvDisCombNone : forall env1 env2 env,
       EnvironmentDisjointCombination env1 env2 env ->
       EnvironmentDisjointCombination (None :: env1) (None :: env2) (None :: env)
@@ -310,6 +295,16 @@ Context `{M : IMessage Message}.
 (*  intros N; inversion N; subst; inversion H2.*)
 (*Qed.*)
 
+Lemma secondEnvironment_idem : forall env, ⌈ env ⌉ₑ = ⌈ ⌈ env ⌉ₑ ⌉ₑ.
+Proof.
+  induction env.
+  - easy.
+  - simpl. destruct a.
+    + simpl.
+      rewrite <- secondUsage_idem.
+      now f_equal.
+    + simpl. now f_equal.
+Qed.
 
 Lemma EnvironmentSplit_EmptyEnv : forall env, EmptyEnv env -> env,, env ~= env.
 Proof.
@@ -1244,6 +1239,45 @@ Qed.
         try (repeat right; exists T1', T2');
         repeat rewrite raw_insert_successor;
         repeat rewrite lookup_zero; auto.
+  Qed.
+
+  Lemma EnvironmentSubtype_raw_insert_None : forall x env1 env2,
+    raw_insert x None env1 ≤ₑ env2 ->
+    exists env2', env2 = raw_insert x None env2' /\ env1 ≤ₑ env2'.
+  Proof.
+    induction x; intros * Sub.
+    - rewrite raw_insert_zero in Sub.
+      setoid_rewrite raw_insert_zero.
+      now apply EnvironmentSubtype_None_inv in Sub.
+    - destruct env1.
+      + rewrite raw_insert_successor in Sub.
+        setoid_rewrite raw_insert_successor.
+        rewrite lookup_nil in Sub; simpl in *.
+        apply EnvironmentSubtype_None_inv in Sub.
+        destruct Sub as [env2' [Eq Sub]].
+        apply IHx in Sub.
+        destruct Sub as [env' [Eq' Sub']].
+        exists (env').
+        destruct env'; try rewrite lookup_nil; subst; simpl; eauto.
+        apply EnvironmentSubtype_nil_left in Sub'; discriminate.
+      + rewrite raw_insert_successor in Sub.
+        rewrite lookup_zero in Sub; simpl in *.
+        destruct o.
+        * apply EnvironmentSubtype_Some_inv' in Sub.
+          destruct Sub as [env2' [T' [Sub [EnvSub [[Eq Unr] | Eq]]]]]; subst;
+          apply IHx in EnvSub;
+          destruct EnvSub as [env' [Eq' EnvSub']].
+          1: exists (None :: env').
+          2: exists (Some T' :: env').
+          all: subst; rewrite raw_insert_successor; rewrite lookup_zero;
+               eauto using EnvironmentSubtype_trans with environment.
+        * apply EnvironmentSubtype_None_inv in Sub.
+          destruct Sub as [env2' [Eq EnvSub]].
+          apply IHx in EnvSub;
+          destruct EnvSub as [env' [Eq' EnvSub']].
+          exists (None :: env').
+          subst; rewrite raw_insert_successor; rewrite lookup_zero;
+          eauto using EnvironmentSubtype_trans with environment.
   Qed.
 
   Lemma EmptyEnv_raw_insert_None : forall x env,

@@ -42,9 +42,10 @@ Inductive WellTypedTerm (prog : Prog) : Env -> Term -> TUsage -> Prop :=
       WellTypedTerm prog (insert 0 ⌊ T1 ⌋ env2) t2 T2 ->
       WellTypedTerm prog env (TLet t1 t2) T2
   (* Spawn *)
-  | SPAWN : forall env t,
+  | SPAWN : forall env env' t,
       WellTypedTerm prog env t (TUBase BTUnit) ->
-      WellTypedTerm prog ⌈ env ⌉ₑ (TSpawn t) (TUBase BTUnit)
+      env' = ⌈ env ⌉ₑ ->
+      WellTypedTerm prog env' (TSpawn t) (TUBase BTUnit)
   (* New *)
   | NEW : forall env, EmptyEnv env -> WellTypedTerm prog env TNew (? 𝟙 ^^ •)
   (* Send *)
