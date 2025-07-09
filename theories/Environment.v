@@ -1676,6 +1676,22 @@ Qed.
              repeat right; exists BT'; eauto.
   Qed.
 
+  Lemma EnvironmentDisCombination_insert_Type_eq : forall x T1 T2 env1 env2 env3,
+    insert x T1 env1 +ₑ insert x T1 env2 ~= insert x T2 env3 ->
+    T1 = T2.
+  Proof.
+    induction x; intros * Dis.
+    - repeat rewrite raw_insert_zero in Dis.
+      inversion Dis; now subst.
+    - repeat rewrite raw_insert_successor in Dis.
+      destruct env1, env2, env3;
+      try (repeat rewrite lookup_nil in Dis);
+      try (repeat rewrite lookup_zero in Dis);
+      simpl in *;
+      inversion Dis as [ Dis' | ? ? ? Dis' | ? ? ? ? Dis' | ? ? ? ? Dis' | ? ? ? ? Dis' ];
+      try (inversion Dis; subst; now apply IHx in Dis').
+  Qed.
+
   (*Lemma EnvironmentDisCombination_insert : forall x env1 env2 env T,*)
   (*  env1 +ₑ env2 ~= insert x T env ->*)
   (*  exists env1' env2',*)
