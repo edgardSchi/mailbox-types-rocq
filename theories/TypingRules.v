@@ -342,6 +342,191 @@ Section well_typed_def.
       + eapply EnvironmentSubtype_trans; eassumption.
   Qed.
 
+  Lemma EnvironmentSubtype_create_EmptyEnv_left : forall env1 env2,
+    env1 ≤ₑ env2 ->
+    env2 ≤ₑ create_EmptyEnv env2 ->
+    env1 ≤ₑ create_EmptyEnv env1.
+  Proof.
+    induction env1, env2; intros EnvSub1 EnvSub2; simpl in *.
+    - constructor.
+    - constructor.
+    - now apply EnvironmentSubtype_cons_nil in EnvSub1.
+    - destruct a, o.
+      + apply EnvironmentSubtype_Some_Some_inv in EnvSub1.
+        destruct EnvSub1 as [Sub EnvSub].
+        apply EnvironmentSubtype_Some_None_inv in EnvSub2.
+        destruct EnvSub2 as [T' [Unr [Sub' EnvSub2]]].
+        eapply EnvSubtypeTrans with (env2 := Some t0 :: env1).
+        * eauto with environment.
+        * eapply EnvSubtypeTrans with (env2 := Some T' :: env1);
+          eauto with environment.
+      + apply EnvironmentSubtype_Some_None_inv in EnvSub1.
+        destruct EnvSub1 as [T' [Unr [Sub' EnvSub1]]].
+        apply EnvironmentSubtype_None_None_inv in EnvSub2.
+        eauto using EnvSubtypeTrans with environment.
+      + now apply EnvironmentSubtype_None_Some in EnvSub1.
+      + apply EnvironmentSubtype_None_None_inv in EnvSub1, EnvSub2.
+        eauto using EnvSubtypeTrans with environment.
+  Qed.
+
+  Lemma EnvironmentSubtype_insert_Empty : forall x env1 env2 T1 T2,
+    insert x T1 env1 ≤ₑ insert x T2 env2 ->
+    env2 ≤ₑ create_EmptyEnv env2 ->
+    env1 ≤ₑ create_EmptyEnv env1.
+  Proof.
+    induction x; intros * EnvSubI EnvSub.
+    - repeat rewrite raw_insert_zero in EnvSubI.
+      apply EnvironmentSubtype_Some_Some_inv in EnvSubI.
+      destruct EnvSubI as [].
+      eauto using EnvironmentSubtype_create_EmptyEnv_left.
+    - repeat rewrite raw_insert_successor in EnvSubI.
+      destruct env1, env2.
+      + constructor.
+      + constructor.
+      + destruct o;
+        repeat rewrite lookup_zero in EnvSubI;
+        repeat rewrite lookup_nil in EnvSubI;
+        simpl in *.
+        * apply EnvironmentSubtype_Some_None_inv in EnvSubI.
+          destruct EnvSubI as [T' [Unr [Sub' EnvSubI]]].
+          eauto using EnvSubtypeTrans with environment.
+        * apply EnvironmentSubtype_None_None_inv in EnvSubI.
+          eauto with environment.
+      + destruct o, o0; simpl in *;
+        repeat rewrite lookup_zero in *;
+        repeat rewrite lookup_nil in *;
+        simpl in *.
+        * apply EnvironmentSubtype_Some_None_inv in EnvSub.
+          destruct EnvSub as [T' [Unr [Sub' EnvSub']]].
+          apply EnvironmentSubtype_Some_Some_inv in EnvSubI.
+          destruct EnvSubI as [Sub EnvSub].
+          eapply EnvSubtypeTrans with (env2 := Some t0 :: env1);
+          eauto using EnvSubtypeTrans with environment.
+        * apply EnvironmentSubtype_Some_None_inv in EnvSubI.
+          destruct EnvSubI as [T' [Unr [Sub' EnvSub']]].
+          apply EnvironmentSubtype_None_None_inv in EnvSub.
+          eauto using EnvSubtypeTrans with environment.
+        * now apply EnvironmentSubtype_None_Some in EnvSubI.
+        * apply EnvironmentSubtype_None_None_inv in EnvSubI, EnvSub.
+          eauto with environment.
+  Qed.
+
+  Lemma weak_ValueVar_3 : forall p env x T,
+    WellTypedTerm p env (TValue (ValueVar x)) T ->
+    exists env' T',
+      env = insert x T' env' /\
+      T' ≤ T /\
+      env' ≤ₑ create_EmptyEnv env' /\
+      WellTypedTerm p (insert x T' env') (TValue (ValueVar x)) T.
+  Proof.
+    intros * WT.
+    remember (TValue (ValueVar x)) as V.
+    revert HeqV.
+    induction WT; intros; try discriminate.
+    - inversion HeqV; subst.
+      exists env, T; repeat split; eauto with environment.
+      apply Subtype_refl.
+    - subst.
+      generalize (IHWT eq_refl).
+      intros [env' [T' [Eq [Sub [EnvSub WT']]]]].
+      subst.
+      generalize (EnvironmentSubtype_insert_right_inv _ _ _ _ H).
+      intros [env1' [T1' [Sub' Eq']]].
+      subst.
+      exists env1', T1'; repeat split; eauto with environment.
+      + eapply Subtype_trans with (t2 := T').
+        assumption.
+        eapply Subtype_trans with (t2 := T1); assumption.
+      + now apply EnvironmentSubtype_insert_Empty in H.
+  Qed.
+
+
+  Lemma WellTypedTerm_TValue_inv : forall p env v T,
+    WellTypedTerm p env (TValue v) T ->
+    (* v is a variable *)
+    (exists x env' T',
+      T' ≤ T /\
+      EmptyEnv env' /\
+      env ≤ₑ insert x T' env' /\
+      v = ValueVar x /\
+      WellTypedTerm p (insert x T' env') (TValue (ValueVar x)) T') \/
+    (* v is a boolean *)
+    (exists b env',
+      T = TUBase BTBool /\
+      EmptyEnv env' /\
+      env ≤ₑ env' /\
+      v = ValueBool b /\
+      WellTypedTerm p env' (TValue (ValueBool b)) (TUBase BTBool)) \/
+    (* v is unit *)
+    (exists env',
+      T = TUBase BTUnit /\
+      EmptyEnv env' /\
+      env ≤ₑ env' /\
+      v = ValueUnit /\
+      WellTypedTerm p env' (TValue ValueUnit) (TUBase BTUnit)).
+  Proof.
+    intros * WT.
+    destruct v.
+    - right; left.
+      generalize (canonical_form_BTBool _ _ _ _ WT); intros ->.
+      apply weak_BTBool_2 in WT.
+      exists b, (create_EmptyEnv env); repeat split; eauto with environment.
+      destruct b; constructor; eauto with environment.
+    - repeat right.
+      generalize (canonical_form_BTUnit _ _ _ WT); intros ->.
+      apply weak_BTUnit_2 in WT.
+      exists (create_EmptyEnv env); repeat split; eauto with environment.
+    - left.
+      apply weak_ValueVar_2 in WT.
+      destruct WT as [env' [T' [Sub [Empty [Sub' WT]]]]].
+      exists v, env', T'; repeat split; eauto.
+  Qed.
+
+  (*Lemma EnvironmentSubtype_insert_Cruft : forall x env1 env2 T1 T2,*)
+  (*  CruftEnv env2 ->*)
+  (*  insert x T1 env1 ≤ₑ insert x T2 env2 ->*)
+  (*  CruftEnv env1.*)
+  (*Proof.*)
+  (*  induction x; intros * Cruft Sub.*)
+  (*  - repeat rewrite raw_insert_zero in Sub.*)
+  (*    inversion Sub; subst.*)
+  (*    + *)
+  (*Admitted.*)
+
+  (*Lemma WellTypedTerm_TValue_inv : forall p env v T,*)
+  (*  WellTypedTerm p env (TValue v) T ->*)
+  (*  exists env', EmptyEnv env' /\*)
+  (*  ((exists b, T = TUBase BTBool /\ v = ValueBool b) \/*)
+  (*  (T = TUBase BTUnit /\ v = ValueUnit) \/*)
+  (*  (exists x T', env = insert x T' env' /\ T' ≤ T /\ v = ValueVar x /\*)
+  (*    WellTypedTerm p (insert x T' env') (TValue (ValueVar x)) T*)
+  (*  )).*)
+  (*Proof.*)
+  (*  intros * WT.*)
+  (*  remember (TValue v) as V.*)
+  (*  revert v HeqV.*)
+  (*  induction WT; intros; try discriminate; inversion HeqV; subst.*)
+  (*  - exists env; split; try assumption.*)
+  (*    repeat right.*)
+  (*    exists x, T; repeat split.*)
+  (*    + apply Subtype_refl.*)
+  (*    + now constructor.*)
+  (*  - generalize (IHWT v eq_refl).*)
+  (*    intros [[b [Eq1 Eq2]] | [[Eq1 Eq2] | [x [env' [T' [Eq1 [Cruft [Sub [Eq2 WT']]]]]]]]].*)
+  (*    + subst; inversion H0; subst; eauto.*)
+  (*    + subst; inversion H0; subst; eauto.*)
+  (*    + subst; repeat right.*)
+  (*      generalize (EnvironmentSubtype_insert_right_inv _ _ _ _ H).*)
+  (*      intros [env1' [T'' [Sub' Eq']]].*)
+  (*      subst.*)
+  (*      exists x, env1', T''; repeat split; eauto.*)
+  (*      * Search (insert _ _ _ ≤ₑ insert _ _ _).*)
+  (*        admit.*)
+  (*      * eauto using Subtype_trans.*)
+  (*      * eapply SUB; eassumption.*)
+  (*Qed.*)
+
+
 (* TODO: Move to environment file *)
 
 (** The domain of an environment is equal to the free variables in a term *)

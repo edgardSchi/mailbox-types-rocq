@@ -334,6 +334,57 @@ Proof.
   intros * Unr; inversion Unr; constructor; reflexivity.
 Qed.
 
+Lemma Subtype_Irrelevant : forall T1 T2 n1 n2,
+  Irrelevant T2 -> T1 ^^ n1  ≤ T2 ^^ n2 -> Irrelevant T1.
+Proof.
+  intros * Irr Sub.
+  unfold Irrelevant in *.
+  intros n'.
+  inversion Sub; subst.
+  - inversion H4; subst.
+    + generalize (Irr SecondClass); intros I; inversion I.
+    + generalize (Irr SecondClass); intros I; inversion I.
+  - destruct n'.
+    assert (SubSecond : ! e ^^ ◦ ≤ ! f ^^ ◦) by now constructor.
+    eauto using Subtype_trans.
+    assert (SubReturn : ! e ^^ • ≤ ! f ^^ •) by now constructor.
+    eauto using Subtype_trans.
+Qed.
+
+(*Lemma Subtype_Cruft : forall T1 T2, TUCruft T2 -> T1 ≤ T2 -> TUCruft T1.*)
+(*Proof.*)
+(*  intros * Cruft Sub.*)
+(*  destruct T2.*)
+(*  - now inversion Sub.*)
+(*  - simpl in Cruft.*)
+(*    destruct u.*)
+(*    + destruct T1.*)
+(*      * constructor.*)
+(*      * generalize (Subtype_Irrelevant _ _ _ _ Cruft Sub).*)
+(*        intros Irr.*)
+(*        destruct u.*)
+(*        -- easy.*)
+(*        -- simpl.*)
+(*           unfold Irrelevant in *.*)
+(*           inversion Sub; subst.*)
+(*           ++ generalize (Cruft SecondClass); intros I; inversion I.*)
+(*           ++ unfold Irrelevant in *.*)
+(**)
+(*      apply Subtype_Irrelevant in Cruft.*)
+(*      inversion Sub; subst.*)
+(*      * generalize (Cruft SecondClass).*)
+(*        intros I; inversion I.*)
+(*      * inversion H3; subst.*)
+(*        -- generalize (Cruft SecondClass).*)
+(*           intros.*)
+(*           inversion H; subst.*)
+(*           simpl. constructor.*)
+(*           ++ eapply MPInclusion_trans; eassumption.*)
+(*           ++ reflexivity.*)
+(*        -- generalize (Cruft SecondClass).*)
+(*           intros.*)
+(*           simpl.*)
+
 (** Leibniz equality of mailbox types is decidable *)
 Lemma MType_eq_dec : forall (T1 T2 : MType), {T1 = T2} + {T1 <> T2}.
 Proof.

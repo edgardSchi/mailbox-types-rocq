@@ -295,6 +295,39 @@ Context `{M : IMessage Message}.
 (*  intros N; inversion N; subst; inversion H2.*)
 (*Qed.*)
 
+Lemma CruftEnv_EnvironmentSubtype_Empty : forall env,
+  CruftEnv env ->
+  exists env', EmptyEnv env' /\ env ≤ₑ env'.
+Proof.
+  induction env; intros CruftE.
+  - exists []; split; repeat constructor.
+  - inversion CruftE; subst.
+    generalize (IHenv H2).
+    intros [env' [Empty Sub]].
+    exists (None :: env'); split.
+    + now constructor.
+    + destruct a; try destruct t; try destruct u.
+      * repeat constructor; assumption.
+      * simpl in H1.
+        unfold Irrelevant in H1.
+        generalize (H1 SecondClass); intros Sub'.
+        eapply EnvSubtypeTrans with (env2 := Some (! 𝟙 ^^ ◦) :: env').
+        now constructor.
+        repeat constructor.
+      * easy.
+      * now constructor.
+Qed.
+
+Lemma EmptyEnv_implies_CruftEnv : forall env, EmptyEnv env -> CruftEnv env.
+Proof.
+  induction env; intros Empty.
+  - constructor.
+  - inversion Empty; subst.
+    constructor.
+    apply I.
+    now apply IHenv.
+Qed.
+
 Lemma secondEnvironment_idem : forall env, ⌈ env ⌉ₑ = ⌈ ⌈ env ⌉ₑ ⌉ₑ.
 Proof.
   induction env.
@@ -1129,6 +1162,84 @@ Qed.
         destruct o; simpl in *; try destruct t; eauto.
     Qed.
 
+  Ltac simpl_SubEnv :=
+    match goal with
+    | H : context [None :: ?env1 ≤ₑ ?env2 ] |- _ =>
+        apply EnvironmentSubtype_None_inv in H;
+        let env2' := fresh "env2'" in
+        let Eq := fresh "Eq" in
+        let Sub := fresh "Sub" in
+        destruct H as [env2' [Eq Sub]]; subst
+    | H : context [Some _ :: ?env1 ≤ₑ ?env2 ] |- _ =>
+        apply EnvironmentSubtype_Some_inv' in H;
+        let env2' := fresh "env2" in
+        let Eq := fresh "Eq" in
+        let EnvSub := fresh "EnvSub" in
+        let T := fresh "T" in
+        let Sub := fresh "Sub" in
+        let Unr := fresh "Unr" in
+        destruct H as [env2' [T [Sub [EnvSub [[Eq Unr] | Eq]]]]]
+    | H : ?env ≤ₑ [] |- _ =>
+        now apply EnvironmentSubtype_nil_right in H
+    | H : context [Some _ :: ?env1 ≤ₑ Some _ :: ?env2 ] |- _ =>
+        apply EnvironmentSubtype_Some_Some_inv in H;
+        let EnvSub := fresh "EnvSub" in
+        let Sub := fresh "Sub" in
+        destruct H as [Sub EnvSub]
+    end.
+
+  Lemma EnvironmentSubtype_insert_right_inv : forall x T env1 env2,
+    env1 ≤ₑ insert x T env2 ->
+    exists env1' T', T' ≤ T /\ env1 = insert x T' env1'.
+  Proof.
+    induction x; intros * Sub.
+    - rewrite raw_insert_zero in *.
+      destruct env1.
+      apply EnvironmentSubtype_nil_left in Sub. discriminate.
+      destruct o.
+      + simpl_SubEnv.
+        discriminate.
+        inversion Eq; subst.
+        exists env1, t.
+        now rewrite raw_insert_zero.
+      + simpl_SubEnv; discriminate.
+    - rewrite raw_insert_successor in Sub.
+      destruct env2.
+      + rewrite lookup_nil in Sub; simpl in *.
+        destruct env1.
+        apply EnvironmentSubtype_nil_left in Sub. discriminate.
+        destruct o; simpl_SubEnv; inversion Eq; subst.
+        * apply IHx in EnvSub.
+          destruct EnvSub as [env1' [T' [Sub' Eq']]]; subst.
+          exists (Some t :: env1'), T'.
+          rewrite raw_insert_successor.
+          now rewrite lookup_zero.
+        * apply IHx in Sub0.
+          destruct Sub0 as [env1' [T' [Sub' Eq']]]; subst.
+          exists (None :: env1'), T'.
+          rewrite raw_insert_successor.
+          now rewrite lookup_zero.
+      + rewrite lookup_zero in Sub; simpl in *.
+        destruct env1.
+        * apply EnvironmentSubtype_nil_left in Sub; discriminate.
+        * destruct o0, o; simpl_SubEnv; inversion Eq; subst.
+          -- apply IHx in EnvSub.
+             destruct EnvSub as [env1' [T' [Sub' Eq']]]; subst.
+             exists (Some t :: env1'), T'.
+             rewrite raw_insert_successor.
+             now rewrite lookup_zero.
+          -- apply IHx in EnvSub.
+             destruct EnvSub as [env1' [T' [Sub' Eq']]]; subst.
+             exists (Some t :: env1'), T'.
+             rewrite raw_insert_successor.
+             now rewrite lookup_zero.
+          -- apply IHx in Sub0.
+             destruct Sub0 as [env1' [T' [Sub' Eq']]]; subst.
+             exists (None :: env1'), T'.
+             rewrite raw_insert_successor.
+             now rewrite lookup_zero.
+  Qed.
+
   Lemma EnvironmentSubtype_insert_inv : forall env1 env2 x T,
     insert x T env1 ≤ₑ env2 ->
     exists env2' T',
@@ -1196,6 +1307,203 @@ Qed.
           repeat rewrite lookup_zero; simpl; repeat split;
           eauto with environment.
   Qed.
+
+  Lemma EnvironmentSubtype_insert_extend : forall x T env1 env2,
+    env1 ≤ₑ env2 ->
+    insert x T env1 ≤ₑ insert x T env2.
+  Proof.
+    induction x; intros * Sub.
+    - repeat rewrite raw_insert_zero.
+      constructor; try apply Subtype_refl; assumption.
+    - repeat rewrite raw_insert_successor.
+      destruct env1, env2;
+      repeat rewrite lookup_nil;
+      repeat rewrite lookup_zero;
+      simpl in *.
+      + repeat constructor.
+      + now apply EnvironmentSubtype_nil_left in Sub.
+      + now apply EnvironmentSubtype_nil_right in Sub.
+      + destruct o, o0.
+        * apply EnvironmentSubtype_Some_Some_inv in Sub.
+          destruct Sub as [? ?].
+          eauto with environment.
+        * apply EnvironmentSubtype_Some_None_inv in Sub.
+          destruct Sub as [? [? [? ?]]].
+          eauto using EnvSubtypeTrans with environment.
+        * now apply EnvironmentSubtype_None_Some in Sub.
+        * apply EnvironmentSubtype_None_None_inv in Sub.
+          eauto with environment.
+  Qed.
+
+  (*Lemma EnvironmentCombination_move_outwards : forall x T1 T2 env1_1 env2 env1_3 env2_1 env2_3 env3,*)
+  (*  env1_1 +ₑ insert x T1 env2 ~= env1_3 ->*)
+  (*  env2_1 +ₑ insert x T2 env2 ~= env2_3 ->*)
+  (*  env1_3 ▷ₑ env2_1 ~= env3 ->*)
+  (*  env1_1 ▷ₑ env2_3 ~= env3 ->*)
+  (*  exists env1_3' env2_3' env3' T,*)
+  (*    env1_1 +ₑ raw_insert x None env2 ~= env1_3' /\*)
+  (*    env2_1 +ₑ raw_insert x None env2 ~= env2_3' /\*)
+  (*    env1_3' ▷ₑ env2_3' ~= env3' /\*)
+  (*    T1 ▷ T2 ~= T /\*)
+  (*    env3 = insert x T env3'.*)
+  (*Proof.*)
+  (*Admitted.*)
+  (**)
+  (*Lemma sdfawef : forall x T1 T2 T envT1 envT2 env1' env2' env4' env,*)
+  (*  env1' ▷ₑ envT2 ~= env ->*)
+  (*  env2' +ₑ insert x T1 env4' ~= envT2 ->*)
+  (*  envT1 ▷ₑ env2' ~= env ->*)
+  (*  env1' +ₑ insert x T2 env4' ~= envT1 ->*)
+  (*  T1 ▷ T2 ~= T ->*)
+  (*  envT1 ▷ₑ envT2 ~= insert x T env.*)
+  (*Proof.*)
+  (*  induction x; intros * Comb1 Dis1 Comb2 Dis2 CombT.*)
+  (*  - rewrite raw_insert_zero in *.*)
+  (*    inversion Dis1; inversion Dis2; subst;*)
+  (*    inversion Comb1; inversion Comb2; subst.*)
+  (*    + inversion H6; subst. constructor.*)
+  (*    + *)
+
+  Lemma EnvironmentCombination_tes : forall x T1 T2 env1 env2 env3,
+    insert x T1 env1 ▷ₑ insert x T2 env2 ~= env3 ->
+    exists env3' T,
+      raw_insert x None env1 ▷ₑ raw_insert x None env2 ~= raw_insert x None env3' /\
+      T1 ▷ T2 ~= T /\
+      env3 = insert x T env3'.
+  Proof.
+    induction x; intros * Dis.
+    - repeat rewrite raw_insert_zero in Dis.
+      inversion Dis; subst.
+      exists env, T.
+      repeat rewrite raw_insert_zero; repeat split; eauto with environment.
+    - repeat rewrite raw_insert_successor in Dis.
+      destruct env1, env2;
+      try rewrite lookup_nil in Dis;
+      try rewrite lookup_zero in Dis;
+      simpl in *.
+      + inversion Dis; subst.
+        generalize (IHx _ _ _ _ _ H1).
+        intros [env3' [T [Dis' [Comb Eq]]]].
+        subst.
+        exists (None :: env3'), T.
+        repeat rewrite raw_insert_successor.
+        try rewrite lookup_nil;
+        try rewrite lookup_zero;
+        eauto with environment.
+      + inversion Dis; subst.
+        * generalize (IHx _ _ _ _ _ H3).
+          intros [env3' [T [Dis' [Comb Eq]]]].
+          subst.
+          exists (None :: env3'), T.
+          repeat rewrite raw_insert_successor;
+          try rewrite lookup_nil;
+          try rewrite lookup_zero;
+          eauto with environment.
+        * generalize (IHx _ _ _ _ _ H3).
+          intros [env3' [T' [Dis' [Comb Eq]]]].
+          subst.
+          exists (Some T :: env3'), T'.
+          repeat rewrite raw_insert_successor.
+          repeat rewrite lookup_nil.
+          repeat rewrite lookup_zero.
+          simpl in *.
+          eauto with environment.
+      + inversion Dis; subst.
+        * generalize (IHx _ _ _ _ _ H3).
+          intros [env3' [T [Dis' [Comb Eq]]]].
+          subst.
+          exists (None :: env3'), T.
+          repeat rewrite raw_insert_successor;
+          try rewrite lookup_nil;
+          try rewrite lookup_zero;
+          eauto with environment.
+        * generalize (IHx _ _ _ _ _ H3).
+          intros [env3' [T' [Dis' [Comb Eq]]]].
+          subst.
+          exists (Some T :: env3'), T'.
+          repeat rewrite raw_insert_successor.
+          repeat rewrite lookup_nil.
+          repeat rewrite lookup_zero.
+          simpl in *.
+          eauto with environment.
+      + inversion Dis; subst; try rewrite lookup_zero in *; subst.
+        * generalize (IHx _ _ _ _ _ H4).
+          intros [env3' [T [Dis' [Comb Eq]]]].
+          subst.
+          exists (None :: env3'), T.
+          repeat rewrite raw_insert_successor;
+          repeat rewrite lookup_nil;
+          repeat rewrite lookup_zero;
+          simpl in *;
+          eauto with environment.
+        * generalize (IHx _ _ _ _ _ H4).
+          intros [env3' [T' [Dis' [Comb Eq]]]].
+          subst.
+          exists (Some T :: env3'), T'.
+          repeat rewrite raw_insert_successor.
+          repeat rewrite lookup_nil.
+          repeat rewrite lookup_zero.
+          simpl in *.
+          eauto with environment.
+        * generalize (IHx _ _ _ _ _ H4).
+          intros [env3' [T' [Dis' [Comb Eq]]]].
+          subst.
+          exists (Some T :: env3'), T'.
+          repeat rewrite raw_insert_successor.
+          repeat rewrite lookup_nil.
+          repeat rewrite lookup_zero.
+          simpl in *.
+          eauto with environment.
+        * generalize (IHx _ _ _ _ _ H4).
+          intros [env3' [T' [Dis' [Comb Eq]]]].
+          subst.
+          exists (Some T :: env3'), T'.
+          repeat rewrite raw_insert_successor.
+          repeat rewrite lookup_nil.
+          repeat rewrite lookup_zero.
+          simpl in *.
+          eauto with environment.
+  Qed.
+
+
+  (*Lemma EnvironmentDis_insert_insert_outwards : forall x T env1 env2 env3,*)
+  (*  env1 +ₑ insert x T env2 ~= env3 ->*)
+  (*  exists env', env1 +ₑ raw_insert x None env2 ~= env'. (*/\ insert x T env' = env3.*)*)
+  (*Proof.*)
+  (*  Search raw_insert.*)
+  (*  induction x; intros * Dis.*)
+  (*  - repeat rewrite raw_insert_zero in *.*)
+  (*    inversion Dis; subst.*)
+  (*    + exists (None :: env).*)
+  (*      rewrite raw_insert_zero.*)
+
+  (*Lemma EnvironmentDis_insert_insert_outwards : forall x T env1 env2 env3,*)
+  (*  env1 +ₑ insert x T env2 ~= env3 ->*)
+  (*  exists env', env1 +ₑ raw_insert x None env2 ~= env'.*)
+  (*Proof.*)
+  (*  induction x; intros * Dis.*)
+  (*  - repeat rewrite raw_insert_zero in *.*)
+  (*    inversion Dis; subst.*)
+  (*    + exists (None :: env). now constructor.*)
+  (*    + exists (Some (TUBase BT) :: env). now constructor.*)
+  (*  - rewrite raw_insert_successor in Dis.*)
+  (*    destruct env2; try rewrite lookup_nil in Dis; try rewrite lookup_zero in Dis;*)
+  (*    simpl in *.*)
+  (*    + inversion Dis; subst.*)
+  (*      * generalize (IHx).*)
+
+
+  (*Lemma EnvironmentDis_insert_replace : forall x T T' env1 env2 env3,*)
+  (*  env1 +ₑ insert x T env2 ~= env3 ->*)
+  (*  exists env3', env1 +ₑ insert x T' env2 ~= env3'.*)
+  (*Proof.*)
+  (*  induction x; intros * Dis.*)
+  (*  - rewrite raw_insert_zero in *.*)
+  (*    inversion Dis; subst.*)
+  (*    + exists (Some T' :: env); now constructor.*)
+  (*    + exists (Some (TUBase BT) :: env). now constructor.*)
+  (*    + *)
+  (*    Search (_ +ₑ Some _ :: _ ~= _).*)
 
   Lemma insert_raw_insert_contra : forall {A} x (T : A) (env1 env2 : env A),
     ~ (insert x T env1 = raw_insert x None env2).
