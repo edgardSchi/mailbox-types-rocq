@@ -2170,6 +2170,24 @@ Qed.
     eauto with environment.
   Qed.
 
+  Lemma EnvironmentCombination_assoc : forall env1 env2 env3 env2' env,
+    env1 ▷ₑ env2' ~= env ->
+    env2 ▷ₑ env3 ~= env2' ->
+    exists env1', env1' ▷ₑ env3 ~= env /\ env1 ▷ₑ env2 ~= env1'.
+  Proof.
+    intros * Comb1; revert env2 env3.
+    induction Comb1; intros * Comb2; inversion Comb2; subst;
+    try match goal with
+    | H : ?env1 ▷ₑ ?env2 ~= ?env3 |- _ =>
+      apply IHComb1 in H; destruct H as [env3' [Comb1' Comb2']]
+    end;
+    eauto with environment.
+    generalize (TypeUsageCombination_assoc _ _ _ _ _ H H5).
+    intros [T' [Comb1'' Comb2'']].
+    exists (Some T' :: env3'); split;
+    eauto with environment.
+  Qed.
+
   (*Lemma EnvironmentDis_Comb_rev' : forall env1 env2 env3 env1' env,*)
   (*  env1' ▷ₑ env3 ~= env ->*)
   (*  env1 +ₑ env2 ~= env1' ->*)

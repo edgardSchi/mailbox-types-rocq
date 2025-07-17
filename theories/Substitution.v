@@ -4,7 +4,7 @@ From MailboxTypes Require Export Environment.
 From MailboxTypes Require Export Syntax.
 From MailboxTypes Require Import Util.
 From MailboxTypes Require Import TypingRules.
-From MailboxTypes Require Import Dblib.DeBruijn.
+From MailboxTypes Require Export Dblib.DeBruijn.
 From MailboxTypes Require Import Dblib.DblibTactics.
 From MailboxTypes Require Import Dblib.Environments.
 
@@ -21,7 +21,7 @@ Section subs_def.
   Context `{M : IMessage Message}.
   Context `{D : IDefinitionName DefinitionName}.
 
-  Instance Var_Value : Var Value :=
+  Global Instance Var_Value : Var Value :=
   {
     var := ValueVar
   }.
@@ -50,22 +50,22 @@ Fixpoint traverse_Term (f : nat -> nat -> Value) l t :=
     | GReceive m t1 => GReceive m (traverse_Term f (l+2) t1)
     end.
 
-  Instance Traverse_Value_Value : Traverse Value Value :=
+  Global Instance Traverse_Value_Value : Traverse Value Value :=
 {
 traverse := traverse_Value
   }.
 
-  Instance Traverse_Value_Term : Traverse Value Term :=
+  Global Instance Traverse_Value_Term : Traverse Value Term :=
   {
     traverse := traverse_Term
   }.
 
-  Instance Traverse_Value_Guard : Traverse Value Guard :=
+  Global Instance Traverse_Value_Guard : Traverse Value Guard :=
   {
     traverse := traverse_Guard
   }.
 
-  Instance TraverseVarInjective_Value : @TraverseVarInjective Value _ Value _.
+  Global Instance TraverseVarInjective_Value : @TraverseVarInjective Value _ Value _.
   Proof.
     constructor; prove_traverse_var_injective.
   Qed.
@@ -134,7 +134,7 @@ traverse := traverse_Value
       * eauto.
   Qed.
 
-  Instance TraverseVarInjective_Term : @TraverseVarInjective Value _ Term _.
+  Global Instance TraverseVarInjective_Term : @TraverseVarInjective Value _ Term _.
   Proof. constructor; apply traverse_Term_injective. Qed.
 
   Lemma traverse_Value_functorial : forall f g (v : Value) l,
@@ -159,13 +159,13 @@ traverse := traverse_Value
       * assumption.
   Qed.
 
-  Instance TraverseFunctorial_Value : @TraverseFunctorial Value _ Value _.
+  Global Instance TraverseFunctorial_Value : @TraverseFunctorial Value _ Value _.
   Proof. constructor; apply traverse_Value_functorial. Qed.
 
-  Instance TraverseFunctorial_Term : @TraverseFunctorial Value _ Term _.
+  Global Instance TraverseFunctorial_Term : @TraverseFunctorial Value _ Term _.
   Proof. constructor; apply traverse_Term_functorial. Qed.
 
-  Instance TraverseIdentifiesVar_Value : TraverseIdentifiesVar.
+  Global Instance TraverseIdentifiesVar_Value : TraverseIdentifiesVar.
   Proof. constructor; prove_traverse_identifies_var. Qed.
 
   Lemma traverse_Value_relative :
@@ -200,10 +200,10 @@ traverse := traverse_Value
       + lia.
   Qed.
 
-  Instance TraverseRelative_Value : @TraverseRelative Value Value _.
+  Global Instance TraverseRelative_Value : @TraverseRelative Value Value _.
   Proof. constructor; apply traverse_Value_relative. Qed.
 
-  Instance TraverseRelative_Term : @TraverseRelative Value Term _.
+  Global Instance TraverseRelative_Term : @TraverseRelative Value Term _.
   Proof. constructor; apply traverse_Term_relative. Qed.
 
   Lemma traverse_Value_identity:
@@ -233,10 +233,10 @@ traverse := traverse_Value
       rewrite EqInd; f_equal; apply IHgs; assumption.
   Qed.
 
-  Instance TraverseVarIsIdentity_Value : @TraverseVarIsIdentity Value _ Value _.
+  Global Instance TraverseVarIsIdentity_Value : @TraverseVarIsIdentity Value _ Value _.
   Proof. constructor; apply traverse_Value_identity. Qed.
 
-  Instance TraverseVarIsIdentity_Term : @TraverseVarIsIdentity Value _ Term _.
+  Global Instance TraverseVarIsIdentity_Term : @TraverseVarIsIdentity Value _ Term _.
   Proof. constructor; apply traverse_Term_identity. Qed.
 
   (* First argument: Value *)

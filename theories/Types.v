@@ -8,6 +8,8 @@ From MailboxTypes Require Export MailboxPatterns.
 
 From Stdlib Require Import List.
 Import ListNotations.
+Require Import Classes.RelationClasses.
+Require Import Classes.Morphisms.
 
 Generalizable All Variables.
 
@@ -23,7 +25,7 @@ Inductive MType : Type :=
 (** Base type definition. For now only unit type and booleans *)
 Inductive BType : Type :=
     BTUnit : BType
-| BTBool : BType.
+  | BTBool : BType.
 
 (** Type definition. A type is either a base type or a mailbox type *)
 Inductive TType : Type :=
@@ -80,6 +82,10 @@ Fixpoint BaseTypes (e : list TType) : Prop :=
   | (TTBase _ :: e') => BaseTypes e'
   | _ => False
   end.
+
+Inductive ReturnableType : TUsage -> Prop :=
+  | ReturnableBase : forall c, ReturnableType (TUBase c)
+  | ReturnableUsage : forall T, ReturnableType (TUUsage Returnable T).
 
 Inductive UsageSubtype : UsageAnnotation -> UsageAnnotation -> Prop :=
     UsageSubtypeRefl : forall n, UsageSubtype n n
@@ -196,6 +202,22 @@ End mailbox_types_classes.
 Section mailbox_combinations.
 
   Context `{M : IMessage Message}.
+
+  Inductive PatternEq : MPattern -> MPattern -> Prop :=
+    | PatternEqRefl : forall e, PatternEq e e
+    | PatternEqComm : forall e f, PatternEq (e ⊙ f) (f ⊙ e)
+    | PatternEqAssoc : forall e f g, PatternEq (e ⊙ (f ⊙ g)) ((e ⊙ f) ⊙ g)
+    | PatternEqSkip : forall e f g, PatternEq f g -> PatternEq (e ⊙ f) (e ⊙ g)
+    | PatternEqSym : forall e f, PatternEq e f -> PatternEq f e
+    | PatternEqTrans : forall e f g, PatternEq e f -> PatternEq f g -> PatternEq e g.
+
+  Inductive TypeEq : TType -> TType -> Prop :=
+    | TypeEqBase : forall b, TypeEq (TTBase b) (TTBase b)
+    | TypeEqInput : forall e f,
+        PatternEq e f -> TypeEq (TTMailbox (! e)) ((TTMailbox (! f)))
+    | TypeEqOutput : forall e f,
+        PatternEq e f -> TypeEq (TTMailbox (? e)) ((TTMailbox (? f))).
+
 (** 
    Definition 3.5 of type combiniations. Instead of defining it as a partial function,
    we define it as a relation between three types.
@@ -206,8 +228,17 @@ Section mailbox_combinations.
     (*| TCombOut_2 : forall e f, TypeCombination (TTMailbox (! e)) (TTMailbox (! f)) (TTMailbox (! (f ⊙ e)))*)
     | TCombInOut : forall e f, TypeCombination (TTMailbox (! e)) (TTMailbox (? (e ⊙ f))) (TTMailbox (? f))
     (*| TCombInOut_2 : forall e f, TypeCombination (TTMailbox (! e)) (TTMailbox (? (f ⊙ e))) (TTMailbox (? f))*)
-    | TCombOutIn : forall e f, TypeCombination (TTMailbox (? (e ⊙ f))) (TTMailbox (! e)) (TTMailbox (? f)).
+    | TCombOutIn : forall e f, TypeCombination (TTMailbox (? (e ⊙ f))) (TTMailbox (! e)) (TTMailbox (? f))
     (*| TCombOutIn_2 : forall e f, TypeCombination (TTMailbox (? (f ⊙ e))) (TTMailbox (! e)) (TTMailbox (? f)).*)
+    (*| TCombComm : forall T1 T2 T3,*)
+    (*    TypeCombination T1 T2 T3 ->*)
+    (*    TypeCombination T2 T1 T3*)
+    | TCombEq : forall T1 T1' T2 T2' T3 T3',
+        TypeEq T1 T1' ->
+        TypeEq T2 T2' ->
+        TypeEq T3 T3' ->
+        TypeCombination T1 T2 T3 ->
+        TypeCombination T1' T2' T3'.
 
 (** 
    Definition 3.6 of usage combiniations. Again, instead of defining it as a partial function,
@@ -314,11 +345,411 @@ Proof.
   now inversion Sub.
 Qed.
 
-(*Lemma TypeCombination_comm : forall T1 T2 T3, T1 ⊞ T2 ~= T3 -> T2 ⊞ T1 ~= T3.*)
+Lemma TypeCombination_comm : forall T1 T2 T3, T1 ⊞ T2 ~= T3 -> T2 ⊞ T1 ~= T3.
+Proof.
+  intros * Comb.
+  induction Comb; try constructor.
+  - econstructor; constructor.
+    + apply PatternEqRefl.
+    + apply PatternEqRefl.
+    + apply PatternEqComm.
+  - econstructor; eassumption.
+Qed.
+
+Lemma TypeEq_sym : forall T1 T2, TypeEq T1 T2 -> TypeEq T2 T1.
+Proof.
+  intros; inversion H; subst; try apply PatternEqSym in H0; now constructor.
+Qed.
+
+Global Instance PatternEq_equiv : Equivalence PatternEq.
+Proof.
+  constructor; constructor.
+  assumption.
+  generalize (PatternEqTrans _ _ _ H H0).
+  intros. now apply PatternEqSym.
+Qed.
+
+
+Global Instance MPComp_PatternEq_Proper : Proper (TypeEq ==> TypeEq ==> TypeEq ==> iff) TypeCombination.
+Proof.
+  intros T1 T2 Eq1 T1' T2' Eq' T1'' T2'' Eq''.
+  split; intros Comb; econstructor; try eassumption; apply TypeEq_sym; assumption.
+Qed.
+
+(*Global Instance MPComp_PatternEq_Proper : Proper (PatternEq ==> PatternEq ==> PatternEq) MPComp.*)
 (*Proof.*)
-(*  destruct T1, T2, T3; intros; try inversion H; subst;*)
-(*  try assumption; try constructor.*)
-(*Qed.*)
+(*  intros e f Eq1.*)
+(*  induction Eq1; intros e' f' Eq2.*)
+(*  - now apply PatternEqSkip.*)
+(*  - eapply PatternEqTrans.*)
+(*    + apply PatternEqSym. apply PatternEqAssoc.*)
+(*    + eapply PatternEqTrans.*)
+(*      * apply PatternEqComm.*)
+(*      * eapply PatternEqTrans.*)
+(*        -- apply PatternEqSym. apply PatternEqAssoc.*)
+(*        -- apply PatternEqSym.*)
+(*           eapply PatternEqTrans.*)
+(*           apply PatternEqSym. apply PatternEqAssoc.*)
+(*           apply PatternEqSkip.*)
+(*           apply PatternEqSym.*)
+(*           eapply PatternEqTrans.*)
+(*           apply PatternEqComm.*)
+(*           now apply PatternEqSkip.*)
+(*  - admit.*)
+(*  - admit.*)
+(*  - generalize (IHEq1 e f Eq1).*)
+(*    intros Eq1'.*)
+(*    inversion Eq1'; subst.*)
+(*    + now apply PatternEqSkip.*)
+(*    + now apply PatternEqSkip.*)
+(*    + *)
+(*    intros Eq1''*)
+
+Lemma TypeEq_trans : forall T1 T2 T3, TypeEq T1 T2 -> TypeEq T2 T3 -> TypeEq T1 T3.
+Proof.
+  intros * Eq1 Eq2.
+  inversion Eq1; subst; inversion Eq2; subst;
+  constructor; eapply PatternEqTrans; eassumption.
+Qed.
+
+Lemma TypeEq_refl : forall T, TypeEq T T.
+Proof.
+  intros.
+  destruct T; try constructor.
+  destruct m; constructor; reflexivity.
+Qed.
+
+Global Instance TypeEq_equiv : Equivalence TypeEq.
+Proof.
+  constructor.
+  - intros T; apply TypeEq_refl.
+  - intros T1 T2 Eq; now apply TypeEq_sym.
+  - intros T1 T2 T3 Eq1 Eq2; eapply TypeEq_trans; eassumption.
+Qed.
+
+Lemma TypeCombination_Base_inv : forall T1 T2 c,
+  T1 ⊞ T2 ~= TTBase c ->
+  T1 = TTBase c /\ T2 = TTBase c.
+Proof.
+  intros * Comb.
+  remember (TTBase c) as C.
+  revert c HeqC.
+  induction Comb; intros; try inversion HeqC; subst.
+  - auto.
+  - inversion H1; subst.
+    generalize (IHComb c eq_refl).
+    intros [-> ->].
+    inversion H; subst.
+    inversion H0; subst.
+    auto.
+Qed.
+
+Lemma PatternEq_1 : forall e f0 e0, PatternEq ((e ⊙ f0) ⊙ e0) (e ⊙ (e0 ⊙ f0)).
+Proof.
+  intros.
+  eapply PatternEqTrans.
+  - apply PatternEqSym. apply PatternEqAssoc.
+  - apply PatternEqSkip. constructor.
+Qed.
+
+Lemma PatternEq_2 : forall e e0 f, PatternEq (e ⊙ (e0 ⊙ f)) (e0 ⊙ (e ⊙ f)).
+Proof.
+  intros.
+  eapply PatternEqTrans.
+  - apply PatternEqComm.
+  - eapply PatternEqTrans.
+    + apply PatternEqSym. apply PatternEqAssoc.
+    + apply PatternEqSkip. constructor.
+Qed.
+
+(*Lemma PatternEq_3 : forall e e1 f0 g, PatternEq (e1 ⊙ g) (e ⊙ (e1 ⊙ f0)).*)
+(*Proof.*)
+(*  intros.*)
+(*  apply PatternEqSym; eapply PatternEqTrans.*)
+(*  - apply PatternEqComm.*)
+(*  - apply PatternEqSym. apply PatternEqAssoc.*)
+(*Admitted.*)
+
+Ltac solve_PatternEq :=
+  match goal with
+  | H : _ |- PatternEq ((?e ⊙ ?f) ⊙ ?g) (?e ⊙ (?g ⊙ ?f)) =>
+    apply PatternEq_1
+  | H : _ |- PatternEq (?e ⊙ (?f ⊙ ?g)) (?f ⊙ (?e ⊙ ?g)) =>
+    apply PatternEq_2
+  | H : _ |- PatternEq (?e ⊙ ?f) (?e ⊙ ?g) =>
+      apply PatternEqSkip
+  end;
+  try (constructor; fail).
+
+
+
+(*Ltac solve_PatternEq :=*)
+(*  match goal with*)
+(*  | H : context [None :: ?env1 ≤ₑ ?env2 ] |- _ =>*)
+(*      apply EnvironmentSubtype_None_inv in H;*)
+(*      let env2' := fresh "env2'" in*)
+(*      let Eq := fresh "Eq" in*)
+(*      let Sub := fresh "Sub" in*)
+(*      destruct H as [env2' [Eq Sub]]; subst*)
+(*  | H : context [Some _ :: ?env1 ≤ₑ ?env2 ] |- _ =>*)
+(*      apply EnvironmentSubtype_Some_inv' in H;*)
+(*      let env2' := fresh "env2" in*)
+(*      let Eq := fresh "Eq" in*)
+(*      let EnvSub := fresh "EnvSub" in*)
+(*      let T := fresh "T" in*)
+(*      let Sub := fresh "Sub" in*)
+(*      let Unr := fresh "Unr" in*)
+(*      destruct H as [env2' [T [Sub [EnvSub [[Eq Unr] | Eq]]]]]*)
+(*  | H : ?env ≤ₑ [] |- _ =>*)
+(*      now apply EnvironmentSubtype_nil_right in H*)
+(*  | H : context [Some _ :: ?env1 ≤ₑ Some _ :: ?env2 ] |- _ =>*)
+(*      apply EnvironmentSubtype_Some_Some_inv in H;*)
+(*      let EnvSub := fresh "EnvSub" in*)
+(*      let Sub := fresh "Sub" in*)
+(*      destruct H as [Sub EnvSub]*)
+(*  end.*)
+
+Lemma TypeCombination_assoc : forall T1 T2 T2' T3 T,
+  T1 ⊞ T2' ~= T ->
+  T2 ⊞ T3 ~= T2' ->
+  exists T1', T1' ⊞ T3 ~= T /\ T1 ⊞ T2 ~= T1'.
+Proof.
+  intros * Comb1.
+  revert T2 T3.
+  induction Comb1; intros * Comb2; inversion Comb2; subst;
+  try match goal with
+  | H : _ ⊞ _ ~= TTBase ?c |- _ =>
+    apply TypeCombination_Base_inv in H;
+    destruct H; subst;
+    exists (TTBase c); split; constructor
+  end.
+  - exists (TTMailbox (! e ⊙ e0)); split.
+    + eapply TCombEq; constructor; try apply PatternEqRefl.
+      apply PatternEqSym.
+      apply PatternEqAssoc.
+    + constructor.
+  - inversion H1; subst.
+    revert e f T3 T2 H0 H H1 H5 Comb2.
+    induction H2; intros; try (inversion H1; fail); subst.
+    + subst.
+      inversion H0; subst.
+      inversion H; subst.
+      inversion H1; subst.
+      exists (TTMailbox (! e1 ⊙ e)); split.
+      * eapply TCombEq; constructor.
+        -- apply PatternEqRefl.
+        -- eassumption.
+        -- apply PatternEqSkip with (e := e1) in H7.
+           eapply PatternEqTrans.
+           apply PatternEqSym.
+           apply PatternEqAssoc.
+           assumption.
+      * eapply TCombEq; constructor.
+        -- apply PatternEqRefl.
+        -- eassumption.
+        -- constructor.
+    + now generalize (IHTypeCombination e f T0 T4
+        (TypeEq_trans _ _ _ H0 H3)
+        (TypeEq_trans _ _ _ H H4)
+        (TypeEq_trans _ _ _ H1 H5)
+        H6 Comb2
+      ).
+  - exists (TTMailbox (! e0 ⊙ e)); split.
+    + econstructor; constructor.
+      * constructor.
+      * apply PatternEqSym. apply PatternEqAssoc.
+      * constructor.
+    + econstructor; constructor;
+      try apply PatternEqRefl.
+      constructor.
+  - exists (TTMailbox (? e0 ⊙ f)); split.
+    + constructor.
+    + econstructor; constructor;
+      try apply PatternEqRefl.
+      solve_PatternEq.
+  - inversion H1; subst.
+    revert e f T2 T3 H H0 H1 H5 Comb2.
+    induction H2; intros; try (inversion H1; fail); subst.
+    + inversion H; subst.
+      inversion H0; subst.
+      inversion H1; subst.
+      exists (TTMailbox (! e1 ⊙ e)); split.
+      * eapply TCombEq; constructor.
+        -- apply PatternEqRefl.
+        -- rewrite <- H4.
+           eapply PatternEqTrans.
+           ++ apply PatternEqSym. apply PatternEqAssoc.
+           ++ eapply PatternEqTrans.
+              ** apply PatternEqComm.
+              ** eapply PatternEqTrans.
+                 apply PatternEqSym. apply PatternEqAssoc.
+                 apply PatternEqSkip.
+                 rewrite H7.
+                 apply PatternEqComm.
+        -- constructor.
+      * econstructor; constructor; try apply PatternEqRefl.
+        now apply PatternEqSkip.
+    + inversion H; subst.
+      inversion H0; subst.
+      inversion H1; subst.
+      exists (TTMailbox (? e ⊙ f0)); split.
+      * econstructor; try constructor.
+        -- apply PatternEqRefl.
+        -- eassumption.
+        -- apply PatternEqRefl.
+      * eapply TCombEq with (T1 := TTMailbox (! e1)) (T2 := TTMailbox (? e ⊙ (e1 ⊙ f0)));
+        try constructor.
+        -- constructor.
+        -- rewrite <- H3.
+           apply PatternEqSkip.
+           now rewrite H7.
+        -- econstructor.
+        -- econstructor; try constructor.
+           ++ constructor.
+           ++ apply PatternEqSym.
+              eapply PatternEqTrans.
+              ** apply PatternEqComm.
+              ** apply PatternEqSym. apply PatternEqAssoc.
+           ++ constructor.
+    + inversion H5; subst.
+      inversion H1; subst.
+      apply IHTypeCombination.
+      * eauto using TypeEq_trans.
+      * eauto using TypeEq_trans.
+      * constructor; rewrite H10; now rewrite H9.
+      * assumption.
+      * assumption.
+  - exists (TTMailbox (? f0 ⊙ f)); split.
+    + constructor.
+    + econstructor; constructor.
+      * apply PatternEqAssoc.
+      * constructor.
+      * constructor.
+  - inversion H1; subst.
+    revert e f T2 T3 H H0 H1 H5 Comb2.
+    induction H2; intros; try (inversion H1; fail); subst.
+    + inversion H; subst.
+      inversion H0; subst.
+      inversion H1; subst.
+      exists (TTMailbox (? f ⊙ f0)); split.
+      * econstructor.
+        reflexivity.
+        eassumption.
+        reflexivity.
+        constructor.
+      * eapply TCombEq with (T1 := TTMailbox (? e ⊙ (f ⊙ f0))) (T2 := TTMailbox (! e)).
+        -- constructor.
+           eapply PatternEqTrans.
+           apply PatternEqAssoc.
+           eapply PatternEqTrans.
+           apply PatternEqComm.
+           apply PatternEqSym.
+           eapply PatternEqTrans.
+           apply PatternEqComm.
+           now apply PatternEqSkip.
+        -- assumption.
+        -- reflexivity.
+        -- constructor.
+    + apply IHTypeCombination; try assumption;
+      eauto using TypeEq_trans.
+  - inversion H0; subst.
+    generalize (IHComb1 (TTBase c) (TTBase c) (TCombBase c)).
+    intros [T1'' [Comb1' Comb2']].
+    exists T1''; split; econstructor; eauto; reflexivity.
+  - inversion H0; subst.
+    assert (TTMailbox (! e) ⊞ TTMailbox (! f) ~= TTMailbox (! e0 )).
+    {
+      econstructor; constructor.
+      constructor.
+      constructor.
+      now apply PatternEqSym.
+    }
+    generalize (IHComb1 _ _ H2).
+    intros [T1'' [Comb1' Comb2']].
+    exists (T1''); split.
+    + eapply TCombEq with (T3 := T3); try reflexivity; assumption.
+    + eapply TCombEq with (T1 := T1); try reflexivity; assumption.
+  - inversion H0; subst.
+    assert (TTMailbox (! e) ⊞ TTMailbox (? e ⊙ f) ~= TTMailbox (? e0 )).
+    {
+      econstructor; try constructor.
+      reflexivity.
+      reflexivity.
+      apply PatternEqSym; eassumption.
+    }
+    generalize (IHComb1 _ _ H2).
+    intros [T1'' [Comb1' Comb2']].
+    exists (T1''); split.
+    + eapply TCombEq with (T3 := T3); try reflexivity; assumption.
+    + eapply TCombEq with (T1 := T1); try reflexivity; assumption.
+  - inversion H0; subst.
+    assert (TTMailbox (? e ⊙ f) ⊞ TTMailbox (! e) ~= TTMailbox (? e0 )).
+    {
+      econstructor; try constructor.
+      reflexivity.
+      reflexivity.
+      apply PatternEqSym; eassumption.
+    }
+    generalize (IHComb1 _ _ H2).
+    intros [T1'' [Comb1' Comb2']].
+    exists (T1''); split.
+    + eapply TCombEq with (T3 := T3); try reflexivity; assumption.
+    + eapply TCombEq with (T1 := T1); try reflexivity; assumption.
+  - assert (T0 ⊞ T4 ~= T2).
+    {
+      econstructor.
+      reflexivity.
+      reflexivity.
+      symmetry. eassumption.
+      assumption.
+    }
+    generalize (IHComb1 T0 T4 H6).
+    intros [T1'' [Comb1' Comb2']].
+    exists (T1''); split.
+    + eapply TCombEq with (T3 := T3); try reflexivity; assumption.
+    + eapply TCombEq with (T1 := T1); try reflexivity; assumption.
+Qed.
+
+Lemma TypeCombination_TTMailbox_inv_left : forall T1 T2 T,
+  T1 ⊞ T2 ~= TTMailbox T ->
+  exists T1', T1 = TTMailbox T1'.
+Proof.
+  intros * Comb.
+  remember (TTMailbox T) as TT.
+  revert T HeqTT.
+  induction Comb; intros; inversion HeqTT; subst; eauto.
+  inversion H1; subst.
+  1: generalize (IHComb (! e) eq_refl).
+  2: generalize (IHComb (? e) eq_refl).
+  all :
+    intros [T1'' Eq]; subst;
+    inversion H; subst;
+    try (now exists (! f0));
+    now exists (? f0).
+Qed.
+
+Lemma TypeUsageCombination_assoc : forall T1 T2 T2' T3 T,
+  T1 ▷ T2' ~= T ->
+  T2 ▷ T3 ~= T2' ->
+  exists T1', T1' ▷ T3 ~= T /\ T1 ▷ T2 ~= T1'.
+Proof.
+  intros * Comb1 Comb2.
+  inversion Comb1; inversion Comb2; subst.
+  - inversion H4; subst.
+    exists (TUBase c); auto.
+  - inversion H6.
+  - inversion H6.
+  - inversion H8; subst.
+    generalize (TypeCombination_assoc _ _ _ _ _ H0 H5).
+    intros [T' [Comb1' Comb2']].
+    generalize (TypeCombination_TTMailbox_inv_left _ _ _ Comb1').
+    intros [T1' ->].
+    inversion H; subst.
+    + inversion H4; subst.
+      exists (T1' ^^ ◦); split; constructor; auto.
+    + inversion H4; subst.
+      exists (T1' ^^ ◦); split; constructor; auto. constructor.
+Qed.
 
 (* TODO: Remove this. Does not hold if Unrestricted is a syntactic check *)
 (*Lemma Subtype_preserves_Unrestricted : forall T1 T2, Unrestricted T2 -> T1 ≤ T2 -> Unrestricted T1.*)

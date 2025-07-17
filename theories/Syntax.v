@@ -177,4 +177,65 @@ with FV_guard (g : Guard) : list nat :=
       (downShift (content_size m) (set_diff Nat.eq_dec (FV t1) (seq 0 ((content_size m)))))
   end.
 
+(** Lower and exchange inspired by "Pi with leftovers" *)
+Definition lower_Var (i : nat) (x : nat) : nat :=
+  if i <? x then (x - 1) else x.
+
+Definition lower_Value (i : nat) (v : Value) : Value :=
+  match v with
+  | ValueVar x => ValueVar (lower_Var i x)
+  | _ => v
+  end.
+
+Fixpoint lower (i : nat) (t : Term) : Term :=
+  match t with
+  | TValue v => TValue (lower_Value i v)
+  | TLet t1 t2  =>
+      TLet (lower i t1) (lower (S i) t2)
+  | TApp d v => TApp d (lower_Value i v)
+  | TSpawn t1 => TSpawn (lower i t1)
+  | TNew => TNew
+  | TSend v m value =>
+      TSend (lower_Value i v) m (lower_Value i value)
+  | TGuard v e guards =>
+      TGuard (lower_Value i v) e (map (fun g => lower_Guard i g) guards)
+  end
+with lower_Guard (i : nat) (g : Guard) : Guard :=
+  match g with
+  | GFail => GFail
+  | GFree t1 => GFree (lower i t1)
+  | GReceive m t1 =>
+      GReceive m (lower (i + 2) t1)
+  end.
+
+Definition exchange_Var (i : nat) (x : nat) : nat :=
+  if x =? i then S x else if x =? (S i) then i else x.
+
+Definition exchange_Value (i : nat) (v : Value) : Value :=
+  match v with
+  | ValueVar x => ValueVar (exchange_Var i x)
+  | v => v
+  end.
+
+Fixpoint exchange (i : nat) (t : Term) : Term :=
+  match t with
+  | TValue v => TValue (exchange_Value i v)
+  | TLet t1 t2  =>
+      TLet (exchange i t1) (exchange (S i) t2)
+  | TApp d v => TApp d (exchange_Value i v)
+  | TSpawn t1 => TSpawn (exchange i t1)
+  | TNew => TNew
+  | TSend v m value =>
+      TSend (exchange_Value i v) m (exchange_Value i value)
+  | TGuard v e guards =>
+      TGuard (exchange_Value i v) e (map (fun g => exchange_Guard i g) guards)
+  end
+with exchange_Guard (i : nat) (g : Guard) : Guard :=
+  match g with
+  | GFail => GFail
+  | GFree t1 => GFree (exchange i t1)
+  | GReceive m t1 =>
+      GReceive m (exchange (i + 2) t1)
+  end.
+
 End free_var_def.
