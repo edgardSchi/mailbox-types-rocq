@@ -30,7 +30,6 @@ Context `{M : IMessage Message}.
 Context `{D : IDefinitionName DefinitionName}.
 
 (** A variable is just a natural number *)
-(*Inductive VarName : Type := Var : nat -> VarName.*)
 Definition VarName := nat.
 
 (** We associated values as relations between environments and types.
@@ -74,12 +73,9 @@ Record Prog : Type :=
   ; initialTerm : Term
   }.
 
-(** Defining the mutual recursion scheme for [Term] *)
-Scheme Term_ind2 := Induction for Term Sort Prop
-  with Guard_ind2 := Induction for Guard Sort Prop.
-
 End syntax_def.
 
+(** ** Custom induction principle for terms *)
 Section term_ind.
 
   Context `{M : IMessage Message}.
@@ -130,6 +126,7 @@ End term_ind.
 From Stdlib Require Import ListSet.
 From Stdlib Require Import PeanoNat.
 
+(** ** Free variables and variable manipulation *)
 Section free_var_def.
 
 Context `{M : IMessage Message}.

@@ -1,8 +1,8 @@
 (** * Syntax and semantics of mailbox patterns *)
 
-Require Import Classes.RelationClasses.
-Require Import Classes.Morphisms.
-Require Import List.
+From Stdlib Require Import Classes.RelationClasses.
+From Stdlib Require Import Classes.Morphisms.
+From Stdlib Require Import List.
 
 From MailboxTypes Require Import Message.
 
@@ -83,9 +83,11 @@ Section MPattern_residuals.
 
 Context `{MessageInterface : IMessage Message}.
 
+
 (** Definition from Fig. 5 of mailbox pattern residiuals.
     Calculates the pattern after a message is consumed
 *)
+(* TODO: We can actually change the type to MPattern -> Message -> MPattern -> Prop *)
 Inductive PatternResidual : MPattern -> MPattern -> MPattern -> Prop :=
     MPResZero : forall m, PatternResidual 𝟘 (« m ») 𝟘
   | MPResOne : forall m, PatternResidual 𝟙 (« m ») 𝟘
@@ -99,13 +101,6 @@ Inductive PatternResidual : MPattern -> MPattern -> MPattern -> Prop :=
       PatternResidual e (« m ») e' ->
       PatternResidual f (« m ») f' ->
       PatternResidual (e ⊙ f) (« m ») ((e' ⊙ f) ⊕ (e ⊙ f'))
-  (* This rule is not included in the paper, but otherwise we can't
-     use the ⋆-operator. TODO: I guess we can use subtyping when needed
-
-     Also, this definition is included in the original paper from
-     2018.
-     TODO: Check if this rule breaks something
-  *)
   | MPResStar : forall e m e',
       PatternResidual e (« m ») e' ->
       PatternResidual (⋆ e) (« m ») (e' ⊙ ⋆ e).
@@ -906,7 +901,7 @@ Qed.
 
 End MPattern_props.
 
-Require Import String.
+From Stdlib Require Import String.
 Open Scope string_scope.
 
 (** Some examples *)
@@ -924,9 +919,3 @@ Proof.
   - apply MPValueMessage.
   - now rewrite mailbox_union_comm.
 Qed.
-
-(* TODO: Some proper relation proof is missing to prove this 
-Example Test2 : MPEqual (𝟙 ⊕ 𝟘 ⊕ (« "m" » ⊙ « "n" »)) (𝟙 ⊕ (« "n" » ⊙ « "m" »)).
-Proof.
-Admitted.
-*)

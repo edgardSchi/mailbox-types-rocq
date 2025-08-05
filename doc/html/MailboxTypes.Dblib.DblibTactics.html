@@ -1,0 +1,90 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<link href="resources/coqdoc.css" rel="stylesheet" type="text/css" />
+<link href="resources/coqdocjs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="resources/config.js"></script>
+<script type="text/javascript" src="resources/coqdocjs.js"></script>
+</head>
+
+<body onload="document.getElementById('content').focus()">
+  <div id="header">
+    <span class="left">
+      <span class="modulename"> <script> document.write(document.title) </script> </span>
+    </span>
+
+    <span class="button" id="toggle-proofs"></span>
+
+    <span class="right">
+      <a href="../">Project Page</a>
+      <a href="./indexpage.html"> Index </a>
+      <a href="./toc.html"> Table of Contents </a>
+    </span>
+</div>
+    <div id="content" tabindex="-1" onblur="document.getElementById('content').focus()">
+    <div id="main">
+<h1 class="libtitle">MailboxTypes.Dblib.DblibTactics</h1>
+
+<div class="code">
+<span class="id" title="keyword">Set Implicit Arguments</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">Stdlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">Compare_dec</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">Stdlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">Peano_dec</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">Stdlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">Lia</span>.<br/>
+
+<br/>
+<span class="comment">(*&nbsp;A&nbsp;hint&nbsp;for&nbsp;invoking&nbsp;<span class="inlinecode"><span class="id" title="tactic">f_equal</span></span>&nbsp;as&nbsp;part&nbsp;of&nbsp;<span class="inlinecode"><span class="id" title="tactic">eauto</span></span>&nbsp;search.&nbsp;*)</span><br/>
+
+<br/>
+<span class="id" title="keyword">Hint Extern</span> 1 =&gt; <span class="id" title="tactic">f_equal</span> : <span class="id" title="tactic">f_equal</span>.<br/>
+
+<br/>
+<span class="comment">(*&nbsp;Hints&nbsp;for&nbsp;invoking&nbsp;omega&nbsp;on&nbsp;arithmetic&nbsp;subgoals.&nbsp;*)</span><br/>
+
+<br/>
+<span class="id" title="keyword">Hint Extern</span> 1 (<span class="id" title="var">_</span> <a class="idref" href="http://coq.inria.fr/doc/V9.0.0/stdlib//Corelib.Init.Logic.html#b8b2ebc8e1a8b9aa935c0702efb5dccf"><span class="id" title="notation">=</span></a> <span class="id" title="var">_</span> <a class="idref" href="http://coq.inria.fr/doc/V9.0.0/stdlib//Corelib.Init.Logic.html#b8b2ebc8e1a8b9aa935c0702efb5dccf"><span class="id" title="notation">:&gt;</span></a> <a class="idref" href="http://coq.inria.fr/doc/V9.0.0/stdlib//Corelib.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) =&gt; <span class="id" title="tactic">reflexivity</span> : <span class="id" title="var">lia</span>.<br/>
+<span class="id" title="keyword">Hint Extern</span> 3 (<span class="id" title="var">_</span> <a class="idref" href="http://coq.inria.fr/doc/V9.0.0/stdlib//Corelib.Init.Logic.html#b8b2ebc8e1a8b9aa935c0702efb5dccf"><span class="id" title="notation">=</span></a> <span class="id" title="var">_</span> <a class="idref" href="http://coq.inria.fr/doc/V9.0.0/stdlib//Corelib.Init.Logic.html#b8b2ebc8e1a8b9aa935c0702efb5dccf"><span class="id" title="notation">:&gt;</span></a> <a class="idref" href="http://coq.inria.fr/doc/V9.0.0/stdlib//Corelib.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) =&gt; <span class="id" title="var">lia</span> : <span class="id" title="var">lia</span>.<br/>
+<span class="id" title="keyword">Hint Extern</span> 3 (<span class="id" title="var">_</span> <a class="idref" href="http://coq.inria.fr/doc/V9.0.0/stdlib//Corelib.Init.Logic.html#::type_scope:x_'&lt;&gt;'_x_':&gt;'_x"><span class="id" title="notation">&lt;&gt;</span></a> <span class="id" title="var">_</span> <a class="idref" href="http://coq.inria.fr/doc/V9.0.0/stdlib//Corelib.Init.Logic.html#::type_scope:x_'&lt;&gt;'_x_':&gt;'_x"><span class="id" title="notation">:&gt;</span></a> <a class="idref" href="http://coq.inria.fr/doc/V9.0.0/stdlib//Corelib.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>) =&gt; <span class="id" title="var">lia</span> : <span class="id" title="var">lia</span>.<br/>
+<span class="id" title="keyword">Hint Extern</span> 3 (<span class="id" title="var">_</span> <a class="idref" href="http://coq.inria.fr/doc/V9.0.0/stdlib//Corelib.Init.Peano.html#::nat_scope:x_'&lt;'_x"><span class="id" title="notation">&lt;</span></a> <span class="id" title="var">_</span>) =&gt; <span class="id" title="var">lia</span> : <span class="id" title="var">lia</span>.<br/>
+<span class="id" title="keyword">Hint Extern</span> 3 (<span class="id" title="var">_</span> <a class="idref" href="http://coq.inria.fr/doc/V9.0.0/stdlib//Corelib.Init.Peano.html#::nat_scope:x_'&gt;'_x"><span class="id" title="notation">&gt;</span></a> <span class="id" title="var">_</span>) =&gt; <span class="id" title="var">lia</span> : <span class="id" title="var">lia</span>.<br/>
+<span class="id" title="keyword">Hint Extern</span> 3 (<span class="id" title="var">_</span> <a class="idref" href="http://coq.inria.fr/doc/V9.0.0/stdlib//Corelib.Init.Peano.html#cb53cf0ee22c036a03b4a9281c68b5a3"><span class="id" title="notation">&lt;=</span></a> <span class="id" title="var">_</span>) =&gt; <span class="id" title="var">lia</span> : <span class="id" title="var">lia</span>.<br/>
+<span class="id" title="keyword">Hint Extern</span> 3 (<span class="id" title="var">_</span> <a class="idref" href="http://coq.inria.fr/doc/V9.0.0/stdlib//Corelib.Init.Peano.html#73030c22bc0b1fa771c65aa5414c65f9"><span class="id" title="notation">&gt;=</span></a> <span class="id" title="var">_</span>) =&gt; <span class="id" title="var">lia</span> : <span class="id" title="var">lia</span>.<br/>
+
+<br/>
+<span class="comment">(*&nbsp;Dealing&nbsp;with&nbsp;integer&nbsp;comparisons.&nbsp;*)</span><br/>
+
+<br/>
+<span class="id" title="keyword">Ltac</span> <span class="id" title="var">dblib_intro_case_clear</span> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">h</span> := <span class="id" title="tactic">fresh</span> <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intro</span> <span class="id" title="var">h</span>; <span class="id" title="tactic">case</span> <span class="id" title="var">h</span>; <span class="id" title="tactic">clear</span> <span class="id" title="var">h</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Ltac</span> <span class="id" title="var">dblib_inspect_cases</span> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="keyword">goal</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;| |- <span class="id" title="keyword">context</span> [<span class="id" title="definition">le_gt_dec</span> ?<span class="id" title="var">n</span> ?<span class="id" title="var">n'</span>] =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">case</span> (<span class="id" title="definition">le_gt_dec</span> <span class="id" title="var">n</span> <span class="id" title="var">n'</span>)<br/>
+&nbsp;&nbsp;| <span class="id" title="var">h</span>: <span class="id" title="keyword">context</span> [<span class="id" title="definition">le_gt_dec</span> ?<span class="id" title="var">n</span> ?<span class="id" title="var">n'</span>] |- <span class="id" title="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">revert</span> <span class="id" title="var">h</span>; <span class="id" title="tactic">case</span> (<span class="id" title="definition">le_gt_dec</span> <span class="id" title="var">n</span> <span class="id" title="var">n'</span>); <span class="id" title="tactic">intro</span> <span class="id" title="var">h</span><br/>
+&nbsp;&nbsp;| |- <span class="id" title="keyword">context</span> [<span class="id" title="abbreviation">eq_nat_dec</span> ?<span class="id" title="var">n</span> ?<span class="id" title="var">n'</span>] =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">case</span> (<span class="id" title="abbreviation">eq_nat_dec</span> <span class="id" title="var">n</span> <span class="id" title="var">n'</span>)<br/>
+&nbsp;&nbsp;| <span class="id" title="var">h</span>: <span class="id" title="keyword">context</span> [<span class="id" title="abbreviation">eq_nat_dec</span> ?<span class="id" title="var">n</span> ?<span class="id" title="var">n'</span>] |- <span class="id" title="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">revert</span> <span class="id" title="var">h</span>; <span class="id" title="tactic">case</span> (<span class="id" title="abbreviation">eq_nat_dec</span> <span class="id" title="var">n</span> <span class="id" title="var">n'</span>); <span class="id" title="tactic">intro</span> <span class="id" title="var">h</span><br/>
+&nbsp;&nbsp;| |- <span class="id" title="keyword">context</span> [(<span class="id" title="definition">lt_eq_lt_dec</span> ?<span class="id" title="var">n</span> ?<span class="id" title="var">n'</span>)] =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">case</span> (<span class="id" title="definition">lt_eq_lt_dec</span> <span class="id" title="var">n</span> <span class="id" title="var">n'</span>); [ <span class="id" title="var">dblib_intro_case_clear</span> | <span class="id" title="tactic">idtac</span> ]<br/>
+&nbsp;&nbsp;| <span class="id" title="var">h</span>: <span class="id" title="keyword">context</span> [(<span class="id" title="definition">lt_eq_lt_dec</span> ?<span class="id" title="var">n</span> ?<span class="id" title="var">n'</span>)] |- <span class="id" title="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">revert</span> <span class="id" title="var">h</span>; <span class="id" title="tactic">case</span> (<span class="id" title="definition">lt_eq_lt_dec</span> <span class="id" title="var">n</span> <span class="id" title="var">n'</span>); [ <span class="id" title="var">dblib_intro_case_clear</span> | <span class="id" title="tactic">idtac</span> ]; <span class="id" title="tactic">intro</span> <span class="id" title="var">h</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Ltac</span> <span class="id" title="var">dblib_by_cases</span> :=<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">repeat</span> <span class="id" title="var">dblib_inspect_cases</span>; <span class="id" title="tactic">try</span> <span class="id" title="tactic">solve</span> [ <span class="id" title="tactic">intros</span>; <span class="id" title="var">exfalso</span>; <span class="id" title="var">lia</span> ]; <span class="id" title="tactic">intros</span>.<br/>
+</div>
+</div>
+<div id="footer">
+  Generated by <a href="http://coq.inria.fr/">coqdoc</a> and improved with <a href="https://github.com/coq-community/coqdocjs">CoqdocJS</a>
+</div>
+</div>
+</body>
+
+</html>

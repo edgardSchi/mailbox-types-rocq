@@ -87,6 +87,10 @@ Inductive ReturnableType : TUsage -> Prop :=
   | ReturnableBase : forall c, ReturnableType (TUBase c)
   | ReturnableUsage : forall T, ReturnableType (TUUsage Returnable T).
 
+Inductive SecondType : TUsage -> Prop :=
+  | SecondBase : forall c, SecondType (TUBase c)
+  | SecondUsage : forall T, SecondType (TUUsage SecondClass T).
+
 Inductive UsageSubtype : UsageAnnotation -> UsageAnnotation -> Prop :=
     UsageSubtypeRefl : forall n, UsageSubtype n n
   | UsageSubtypeLe   : UsageSubtype Returnable SecondClass.
@@ -97,6 +101,13 @@ Inductive Subtype : TUsage -> TUsage -> Prop :=
       MPInclusion e f -> UsageSubtype n1 n2 -> Subtype (TUUsage n1 (MTInput e)) (TUUsage n2 (MTInput f))
   | SubtypeOutput : forall e f n1 n2,
       MPInclusion f e -> UsageSubtype n1 n2 -> Subtype (TUUsage n1 (MTOutput e)) (TUUsage n2 (MTOutput f)).
+
+Inductive RuntimeSubtype : TType -> TType -> Prop :=
+    RuntimeSubtypeBase : forall c, RuntimeSubtype (TTBase c) (TTBase c)
+  | RuntimeSubtypeInput : forall e f,
+      MPInclusion e f -> RuntimeSubtype (TTMailbox (MTInput e)) (TTMailbox (MTInput f))
+  | RuntimeSubtypeOutput : forall e f,
+      MPInclusion f e -> RuntimeSubtype (TTMailbox (MTOutput e)) (TTMailbox (MTOutput f)).
 
 Definition TypeEqual (a b : TUsage) : Prop :=
   Subtype a b /\ Subtype b a.
@@ -124,7 +135,6 @@ Section mailbox_types_classes.
 
 Context `{M : IMessage Message}.
 
-(* TODO: Check if this is correct *)
 Definition Relevant (m : MType) : Prop :=
   forall n, ~ ((TUUsage n m) ≤ (TUUsage n (! 𝟙))).
 
@@ -170,17 +180,12 @@ Inductive Unrestricted : TUsage -> Prop :=
 Definition Linear (m : TUsage) : Prop :=
   ~ Unrestricted m.
 
-(* TODO: Maybe remove these definitions if they are not needed *)
-
-(** After changing the definition of un(-), I think the notion of 
-    Cruft is not needed anymore.
-*)
-
 (** A cruft type is either a base type or irrelevant.
     A cruft type represents a type that can be added
    through the subtyping rule which may not be used
    by a term.
 *)
+(* TODO: Maybe we should define a cruft type as one which super type is 𝟙?*)
 Definition TTCruft (t : TType) : Prop :=
   match t with
   | TTBase _ => True
@@ -225,14 +230,8 @@ Section mailbox_combinations.
   Inductive TypeCombination : TType -> TType -> TType -> Prop :=
       TCombBase : forall c, TypeCombination (TTBase c) (TTBase c) (TTBase c)
     | TCombOut : forall e f, TypeCombination (TTMailbox (! e)) (TTMailbox (! f)) (TTMailbox (! (e ⊙ f)))
-    (*| TCombOut_2 : forall e f, TypeCombination (TTMailbox (! e)) (TTMailbox (! f)) (TTMailbox (! (f ⊙ e)))*)
     | TCombInOut : forall e f, TypeCombination (TTMailbox (! e)) (TTMailbox (? (e ⊙ f))) (TTMailbox (? f))
-    (*| TCombInOut_2 : forall e f, TypeCombination (TTMailbox (! e)) (TTMailbox (? (f ⊙ e))) (TTMailbox (? f))*)
     | TCombOutIn : forall e f, TypeCombination (TTMailbox (? (e ⊙ f))) (TTMailbox (! e)) (TTMailbox (? f))
-    (*| TCombOutIn_2 : forall e f, TypeCombination (TTMailbox (? (f ⊙ e))) (TTMailbox (! e)) (TTMailbox (? f)).*)
-    (*| TCombComm : forall T1 T2 T3,*)
-    (*    TypeCombination T1 T2 T3 ->*)
-    (*    TypeCombination T2 T1 T3*)
     | TCombEq : forall T1 T1' T2 T2' T3 T3',
         TypeEq T1 T1' ->
         TypeEq T2 T2' ->
@@ -376,35 +375,6 @@ Proof.
   split; intros Comb; econstructor; try eassumption; apply TypeEq_sym; assumption.
 Qed.
 
-(*Global Instance MPComp_PatternEq_Proper : Proper (PatternEq ==> PatternEq ==> PatternEq) MPComp.*)
-(*Proof.*)
-(*  intros e f Eq1.*)
-(*  induction Eq1; intros e' f' Eq2.*)
-(*  - now apply PatternEqSkip.*)
-(*  - eapply PatternEqTrans.*)
-(*    + apply PatternEqSym. apply PatternEqAssoc.*)
-(*    + eapply PatternEqTrans.*)
-(*      * apply PatternEqComm.*)
-(*      * eapply PatternEqTrans.*)
-(*        -- apply PatternEqSym. apply PatternEqAssoc.*)
-(*        -- apply PatternEqSym.*)
-(*           eapply PatternEqTrans.*)
-(*           apply PatternEqSym. apply PatternEqAssoc.*)
-(*           apply PatternEqSkip.*)
-(*           apply PatternEqSym.*)
-(*           eapply PatternEqTrans.*)
-(*           apply PatternEqComm.*)
-(*           now apply PatternEqSkip.*)
-(*  - admit.*)
-(*  - admit.*)
-(*  - generalize (IHEq1 e f Eq1).*)
-(*    intros Eq1'.*)
-(*    inversion Eq1'; subst.*)
-(*    + now apply PatternEqSkip.*)
-(*    + now apply PatternEqSkip.*)
-(*    + *)
-(*    intros Eq1''*)
-
 Lemma TypeEq_trans : forall T1 T2 T3, TypeEq T1 T2 -> TypeEq T2 T3 -> TypeEq T1 T3.
 Proof.
   intros * Eq1 Eq2.
@@ -462,14 +432,7 @@ Proof.
     + apply PatternEqSkip. constructor.
 Qed.
 
-(*Lemma PatternEq_3 : forall e e1 f0 g, PatternEq (e1 ⊙ g) (e ⊙ (e1 ⊙ f0)).*)
-(*Proof.*)
-(*  intros.*)
-(*  apply PatternEqSym; eapply PatternEqTrans.*)
-(*  - apply PatternEqComm.*)
-(*  - apply PatternEqSym. apply PatternEqAssoc.*)
-(*Admitted.*)
-
+(* TODO: Extend this tactic *)
 Ltac solve_PatternEq :=
   match goal with
   | H : _ |- PatternEq ((?e ⊙ ?f) ⊙ ?g) (?e ⊙ (?g ⊙ ?f)) =>
@@ -480,34 +443,6 @@ Ltac solve_PatternEq :=
       apply PatternEqSkip
   end;
   try (constructor; fail).
-
-
-
-(*Ltac solve_PatternEq :=*)
-(*  match goal with*)
-(*  | H : context [None :: ?env1 ≤ₑ ?env2 ] |- _ =>*)
-(*      apply EnvironmentSubtype_None_inv in H;*)
-(*      let env2' := fresh "env2'" in*)
-(*      let Eq := fresh "Eq" in*)
-(*      let Sub := fresh "Sub" in*)
-(*      destruct H as [env2' [Eq Sub]]; subst*)
-(*  | H : context [Some _ :: ?env1 ≤ₑ ?env2 ] |- _ =>*)
-(*      apply EnvironmentSubtype_Some_inv' in H;*)
-(*      let env2' := fresh "env2" in*)
-(*      let Eq := fresh "Eq" in*)
-(*      let EnvSub := fresh "EnvSub" in*)
-(*      let T := fresh "T" in*)
-(*      let Sub := fresh "Sub" in*)
-(*      let Unr := fresh "Unr" in*)
-(*      destruct H as [env2' [T [Sub [EnvSub [[Eq Unr] | Eq]]]]]*)
-(*  | H : ?env ≤ₑ [] |- _ =>*)
-(*      now apply EnvironmentSubtype_nil_right in H*)
-(*  | H : context [Some _ :: ?env1 ≤ₑ Some _ :: ?env2 ] |- _ =>*)
-(*      apply EnvironmentSubtype_Some_Some_inv in H;*)
-(*      let EnvSub := fresh "EnvSub" in*)
-(*      let Sub := fresh "Sub" in*)
-(*      destruct H as [Sub EnvSub]*)
-(*  end.*)
 
 Lemma TypeCombination_assoc : forall T1 T2 T2' T3 T,
   T1 ⊞ T2' ~= T ->
@@ -751,14 +686,45 @@ Proof.
       exists (T1' ^^ ◦); split; constructor; auto. constructor.
 Qed.
 
-(* TODO: Remove this. Does not hold if Unrestricted is a syntactic check *)
-(*Lemma Subtype_preserves_Unrestricted : forall T1 T2, Unrestricted T2 -> T1 ≤ T2 -> Unrestricted T1.*)
-(*Proof.*)
-(*  intros * Unr2 Sub.*)
-(*  inversion Unr2; subst.*)
-(*  - inversion Sub; subst; constructor.*)
-(*  - constructor; now apply Subtype_trans with (t2 := T2).*)
-(*Qed.*)
+Lemma TypeCombination_assoc_left : forall T1 T1' T2 T3 T,
+  T1' ⊞ T2 ~= T ->
+  T1 ⊞ T3 ~= T1' ->
+  exists T2', T1 ⊞ T2' ~= T /\ T2 ⊞ T3 ~= T2'.
+Proof.
+  intros * Comb1 Comb2.
+  apply TypeCombination_comm in Comb1.
+  apply TypeCombination_comm in Comb2.
+  generalize (TypeCombination_assoc _ _ _ _ _ Comb1 Comb2).
+  intros [T' [Comb1' Comb2']].
+  exists T'; split.
+  - now apply TypeCombination_comm.
+  - assumption.
+Qed.
+
+Lemma TypeUsageCombination_assoc_left : forall T1 T1' T2 T3 T,
+  T1' ▷ T3 ~= T ->
+  T1 ▷ T2 ~= T1' ->
+  exists T3', T1 ▷ T3' ~= T /\ T2 ▷ T3 ~= T3'.
+Proof.
+  intros * Comb1 Comb2.
+  inversion Comb1; inversion Comb2; subst.
+  - inversion H4; subst; now exists (TUBase c).
+  - inversion H6.
+  - inversion H6.
+  - inversion H8; subst.
+    generalize (TypeCombination_assoc_left _ _ _ _ _ H0 H5).
+    intros [T' [Comb1' Comb2']].
+    apply TypeCombination_comm in Comb1'.
+    generalize (TypeCombination_TTMailbox_inv_left _ _ _ Comb1').
+    intros [T1' ->].
+    apply TypeCombination_comm in Comb1'.
+    apply TypeCombination_comm in Comb2'.
+    inversion H; subst.
+    + inversion H4; subst.
+      exists (T1' ^^ ◦); split; constructor; auto.
+    + inversion H4; subst.
+      exists (T1' ^^ •); split; constructor; auto.
+Qed.
 
 Lemma Unrestricted_implies_Cruft : forall T, Unrestricted T -> TUCruft T.
 Proof.
@@ -782,39 +748,33 @@ Proof.
     eauto using Subtype_trans.
 Qed.
 
-(*Lemma Subtype_Cruft : forall T1 T2, TUCruft T2 -> T1 ≤ T2 -> TUCruft T1.*)
-(*Proof.*)
-(*  intros * Cruft Sub.*)
-(*  destruct T2.*)
-(*  - now inversion Sub.*)
-(*  - simpl in Cruft.*)
-(*    destruct u.*)
-(*    + destruct T1.*)
-(*      * constructor.*)
-(*      * generalize (Subtype_Irrelevant _ _ _ _ Cruft Sub).*)
-(*        intros Irr.*)
-(*        destruct u.*)
-(*        -- easy.*)
-(*        -- simpl.*)
-(*           unfold Irrelevant in *.*)
-(*           inversion Sub; subst.*)
-(*           ++ generalize (Cruft SecondClass); intros I; inversion I.*)
-(*           ++ unfold Irrelevant in *.*)
-(**)
-(*      apply Subtype_Irrelevant in Cruft.*)
-(*      inversion Sub; subst.*)
-(*      * generalize (Cruft SecondClass).*)
-(*        intros I; inversion I.*)
-(*      * inversion H3; subst.*)
-(*        -- generalize (Cruft SecondClass).*)
-(*           intros.*)
-(*           inversion H; subst.*)
-(*           simpl. constructor.*)
-(*           ++ eapply MPInclusion_trans; eassumption.*)
-(*           ++ reflexivity.*)
-(*        -- generalize (Cruft SecondClass).*)
-(*           intros.*)
-(*           simpl.*)
+Lemma Subtype_Second : forall T1 T2,
+  SecondType T1 ->
+  T1 ≤ T2 ->
+  SecondType T2.
+Proof.
+  intros * S Sub.
+  destruct T1; inversion Sub; inversion S; subst.
+  - constructor.
+  - inversion H3; subst; constructor.
+  - inversion H3; subst; constructor.
+Qed.
+
+Lemma Subtype_Returnable : forall T1 T2,
+  T1 ≤ T2 ->
+  ReturnableType T2 ->
+  ReturnableType T1.
+Proof.
+  intros * Sub Ret.
+  destruct T2; inversion Sub; subst.
+  - constructor.
+  - inversion Ret; subst.
+    inversion H3; subst.
+    constructor.
+  - inversion Ret; subst.
+    inversion H3; subst.
+    constructor.
+Qed.
 
 (** Leibniz equality of mailbox types is decidable *)
 Lemma MType_eq_dec : forall (T1 T2 : MType), {T1 = T2} + {T1 <> T2}.

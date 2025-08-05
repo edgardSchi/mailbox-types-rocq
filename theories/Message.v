@@ -15,7 +15,7 @@ Section Message_def.
 *)
 Class IMessage Message : Type :=
   {
-    eq_dec : forall m n, {@eq Message m n} + {~ @eq Message m n}
+    eq_dec : forall m n : Message, {m = n} + {m <> n}
   ; content_size : Message -> nat
   }.
 

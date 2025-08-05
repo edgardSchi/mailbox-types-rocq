@@ -15,17 +15,29 @@ Section runtime_def.
   Context `{M : IMessage Message}.
   Context `{D : IDefinitionName DefinitionName}.
 
-  (**
+
+  Definition Frame := (VarName * Term)%type.
+
+(**
     A stack is a simply a list of terms. Due to the usage of deBruijn indices
     we don't include variable names in frames.
     We will always replace variable 0.
   *)
-  Definition Stack := list Term.
+  (*Definition Stack := list Term.*)
+  Definition Stack := list Frame.
+
+  Definition lift_Frame (f : Frame) :=
+    match f with
+    | (x, t) => (S x, lift 1 0 t)
+    end.
+
+  (*Definition lift_Stack (s : Stack) := map (lift 1 0) s.*)
+  Definition lift_Stack (s : Stack) := map lift_Frame s.
 
   Inductive Configuration : Type :=
     | ConfConf : Term -> Stack -> Configuration
     | ConfMessage : VarName -> Message -> Value -> Configuration
-    | ConfParallel : Configuration -> Configuration -> Configuration
+| ConfParallel : Configuration -> Configuration -> Configuration
     | ConfRestr : Configuration -> Configuration.
 
   Fixpoint lower_conf (i : VarName) (c : Configuration) : Configuration :=
@@ -40,7 +52,7 @@ Section runtime_def.
     match c with
     | ConfConf t s => ConfConf (exchange i t) s
     | ConfMessage x m v => ConfMessage (exchange_Var i x) m (exchange_Value i v)
-| ConfParallel c1 c2 => ConfParallel (exchange_conf i c1) (exchange_conf i c2)
+    | ConfParallel c1 c2 => ConfParallel (exchange_conf i c1) (exchange_conf i c2)
     | ConfRestr c => ConfRestr (exchange_conf (S i) c)
     end.
 
@@ -63,21 +75,33 @@ Section runtime_def.
         StructCongr (ConfRestr (ConfRestr c)) (ConfRestr (ConfRestr (exchange_conf 0 c)))
     | CongrRestrExt : forall c d,
         ~ In 0 (FV_conf d) ->
-        StructCongr (ConfRestr (ConfParallel c d)) (ConfParallel (ConfRestr c) (lower_conf 0 d))
-    | CongrRefl : forall c, StructCongr c c
-    | CongrSym : forall c d, StructCongr c d -> StructCongr d c
-    | CongrTrasn : forall c d e, StructCongr c d -> StructCongr d e -> StructCongr c e.
+        StructCongr (ConfRestr (ConfParallel c d)) (ConfParallel (ConfRestr c) (lower_conf 0 d)).
+
+  Inductive RecTree : Type :=
+    | zero : RecTree
+    | one : RecTree -> RecTree
+    | two : RecTree -> RecTree -> RecTree.
+
+  Inductive StructEq : Configuration -> RecTree -> Configuration -> Prop :=
+    | stop : forall c d, StructCongr c d -> StructEq c zero d
+    (* Properties of equivalence relation *)
+    | CongrRefl : forall c, StructEq c zero c
+    | CongrSym : forall c d r, StructEq c r d -> StructEq d (one r) c
+    | CongrTrans : forall c d e r p, StructEq c r d -> StructEq d p e -> StructEq c (two r p) e
+    (* Properties of congruence relation, i.e. congruence under a context *)
+    | CongrNu : forall c c' r, StructEq c r c' -> StructEq (ConfRestr c) (one r) (ConfRestr c')
+    | CongrPar : forall c c' d r, StructEq c r c' -> StructEq (ConfParallel c d) (one r) (ConfParallel c' d).
 
   Inductive Step (prog : Prog) : Configuration -> Configuration -> Prop :=
     | stepLet : forall t1 t2 stack,
-        Step prog (ConfConf (TLet t1 t2) stack) (ConfConf t1 (t2 :: stack))
-    | stepReturn : forall (v : Value) t stack,
-        Step prog (ConfConf (TValue v) (t :: stack)) (ConfConf (subst v 0 t) stack)
+        Step prog (ConfConf (TLet t1 t2) stack) (ConfConf t1 ((0, t2) :: stack))
+    | stepReturn : forall (v : Value) x t stack,
+        Step prog (ConfConf (TValue v) ((x, t) :: stack)) (ConfConf (subst v x t) stack)
     | stepApp : forall v stack definition bodyType argumentType t,
         definitions prog definition = (FunDef definition argumentType bodyType t) ->
         Step prog (ConfConf (TApp definition v) stack) (ConfConf (subst v 0 t) stack)
     | stepNew : forall stack,
-        Step prog (ConfConf TNew stack) (ConfRestr (ConfConf (TValue (ValueVar 0)) stack))
+        Step prog (ConfConf TNew stack) (ConfRestr (ConfConf (TValue (ValueVar 0)) (lift_Stack stack)))
     | stepSend : forall stack x m v,
         Step prog (ConfConf (TSend (ValueVar x) m v) stack)
                   (ConfParallel (ConfConf (TValue (ValueUnit)) stack) (ConfMessage x m v))
@@ -98,9 +122,9 @@ Section runtime_def.
     | stepPar : forall c c' d,
         Step prog c c' ->
         Step prog (ConfParallel c d) (ConfParallel c' d)
-    | stepStruct : forall c c' d d',
-        StructCongr c c' ->
-        StructCongr d' d ->
+    | stepStruct : forall r c c' d d',
+        StructEq c r c' ->
+        StructEq d' r d ->
         Step prog c' d' ->
         Step prog c d.
 
@@ -153,6 +177,15 @@ Section runtime_def.
         RuntimeEnvironmentSubtype env1 env3
     | EnvSubtypeRefl : forall env, RuntimeEnvironmentSubtype env env.
 
+  Inductive WellTypedStack (prog : Prog) : Env -> TUsage -> Stack -> Prop :=
+    | EMPTY : forall env T, EmptyEnv env -> WellTypedStack prog env T []
+    | CONS : forall x env1 env2 env t T1 T2 stack,
+        WellTypedTerm prog (insert x T1 env1) t T2 ->
+        ReturnableType T2 ->
+        WellTypedStack prog env2 T2 stack ->
+        env1 ▷ₑ env2 ~= env ->
+        WellTypedStack prog env T1 ((x, t) :: stack).
+
   Inductive WellTypedConfig (prog : Prog) : RuntimeEnv -> Configuration -> Prop :=
     | NU : forall env c,
         WellTypedConfig prog (Some (TTMailbox (? 𝟙)) :: env) c ->
@@ -169,20 +202,12 @@ Section runtime_def.
     | THREAD : forall env1 env2 env t T stack,
         env1 ▷ₑ env2 ~= (map_maybe returnType env) ->
         WellTypedTerm prog env1 t T ->
-        WellTypedFrame prog env2 T stack ->
+        WellTypedStack prog env2 T stack ->
         WellTypedConfig prog env (ConfConf t stack)
     | SUBS : forall env env' c,
         RuntimeEnvironmentSubtype env env' ->
         WellTypedConfig prog env' c ->
-        WellTypedConfig prog env c
-  with WellTypedFrame (prog : Prog) : Env -> TUsage -> Stack -> Prop :=
-    | EMPTY : forall T, WellTypedFrame prog [] T []
-    | CONS : forall env1 env2 env t T1 T2 stack,
-        WellTypedTerm prog (Some T1 :: env1) t T2 ->
-        ReturnableType T2 ->
-        WellTypedFrame prog env2 T2 stack ->
-        env1 ▷ₑ env2 ~= env ->
-        WellTypedFrame prog env T1 (t :: stack).
+        WellTypedConfig prog env c.
 
 End runtime_def.
 
@@ -201,6 +226,13 @@ Section runtime_props.
   Proof.
     destruct env; constructor.
   Qed.
+
+  Lemma RuntimeEnvironmentSubtype_trans : forall env1 env2 env3,
+    RuntimeEnvironmentSubtype env1 env2 ->
+    RuntimeEnvironmentSubtype env2 env3 ->
+    RuntimeEnvironmentSubtype env1 env3.
+  Proof.
+  Admitted.
 
   Lemma RuntimeEnvironmentCombination_comm : forall env1 env2 env3,
     env1 ⨝ₑ env2 ~= env3 -> env2 ⨝ₑ env1 ~= env3.
@@ -234,30 +266,82 @@ Section runtime_props.
   Proof.
   Admitted.
 
-  Lemma WellTypedConfig_exchange : forall x prog T c env,
-    WellTypedConfig prog (insert x T (insert x T env)) c ->
-    WellTypedConfig prog (insert x T (insert x T env)) (exchange_conf x c).
-  Proof.
-    intros * WT.
-    remember (insert x T (insert x T env)) as E.
-    revert x env T HeqE.
-    induction WT; intros; inversion HeqE; subst; simpl in *.
-    - assert (Eq : Some (TTMailbox (? 𝟙)) :: insert x T (insert x T env0) = insert (S x) T (insert (S x) T (Some (TTMailbox (? 𝟙)) :: env0))).
-      {
-        repeat rewrite raw_insert_successor.
-        now repeat rewrite lookup_zero.
-      }
-      generalize (IHWT (S x) (Some (TTMailbox (? 𝟙)) :: env0) T Eq).
-      intros WT'.
-      now constructor.
-    - econstructor.
-      + eapply IHWT1. admit.
-      + admit.
-      + admit.
-    - admit.
-    - admit.
-    - admit.
-  Admitted.
+  (*Lemma ConfMessage_exchange : forall x y prog v env env' m T1 T2,*)
+  (*  insert x (TTMailbox (! « m »)) env = insert y T1 (insert y T1 env') ->*)
+  (*  WellTypedTerm prog (map_maybe secondType env) (TValue v) T2 ->*)
+  (*  T2 ≤ ⌈ signature prog m ⌉ ->*)
+  (*  WellTypedConfig prog (insert x (TTMailbox (! « m »)) env) (ConfMessage (exchange_Var y x) m (exchange_Value y v)).*)
+  (*Proof.*)
+  (*  intros * Eq WT2 Sub.*)
+  (*  rewrite insert_insert in Eq by reflexivity.*)
+  (*  rewrite Eq.*)
+  (*  destruct v.*)
+  (*  + admit.*)
+  (*  + admit.*)
+  (*  + simpl.*)
+  (*    unfold exchange_Var.*)
+  (*    destruct (Nat.eq_dec x y); destruct (Nat.eq_dec v y).*)
+  (*    * subst.*)
+  (*      apply MESSAGE.*)
+  (*      rewrite raw_insert_successor.*)
+  (*  unfold exchange_Value.*)
+  (*  Print MESSAGE.*)
+  (*  constructor.*)
+  (*Admitted.*)
+
+  (*Lemma WellTypedConfig_exchange : forall x prog T c env,*)
+  (*  WellTypedConfig prog (insert x T (insert x T env)) c ->*)
+  (*  WellTypedConfig prog (insert x T (insert x T env)) (exchange_conf x c).*)
+  (*Proof.*)
+  (*  intros * WT.*)
+  (*  remember (insert x T (insert x T env)) as E.*)
+  (*  revert x env T HeqE.*)
+  (*  induction WT; intros; inversion HeqE; subst; simpl in *.*)
+  (*  - assert (Eq : Some (TTMailbox (? 𝟙)) :: insert x T (insert x T env0) = insert (S x) T (insert (S x) T (Some (TTMailbox (? 𝟙)) :: env0))).*)
+  (*    {*)
+  (*      repeat rewrite raw_insert_successor.*)
+  (*      now repeat rewrite lookup_zero.*)
+  (*    }*)
+  (*    generalize (IHWT (S x) (Some (TTMailbox (? 𝟙)) :: env0) T Eq).*)
+  (*    intros WT'.*)
+  (*    now constructor.*)
+  (*  - admit.*)
+  (*  - rewrite HeqE.*)
+  (*    unfold exchange_Var.*)
+  (*    destruct (PeanoNat.Nat.eq_dec x0 x).*)
+  (*    + replace (if Nat.eq_dec x x0 then S x else if x =? S x0 then x0 else x) with (S x).*)
+  (*      * subst.*)
+  (*        generalize (insert_eq_insert_1 _ _ _ _ _ HeqE).*)
+  (*        intros; subst.*)
+  (*        rewrite HeqE.*)
+  (*        rewrite insert_insert by reflexivity.*)
+  (*        eapply MESSAGE with (T := T).*)
+  (*        -- destruct v; simpl.*)
+  (*           ++ generalize (canonical_form_BTBool _ _ _ _ H).*)
+  (*              intros ->.*)
+  (*              inversion H0; subst.*)
+  (*              (* Impossible due to TUBase BTBool ≤ ⌈ signature prog m ⌉*)*)
+  (*              admit.*)
+  (*           ++ admit.*)
+  (*           ++ unfold exchange_Var.*)
+  (*              destruct (PeanoNat.Nat.eq_dec v x).*)
+  (*              ** subst.*)
+  (*                 (* Should be possible to prove *)*)
+  (*                 admit.*)
+  (*              ** destruct (v =? (S x)).*)
+  (*                 --- admit.*)
+  (*                 --- Search (insert _ _ _).*)
+  (**)
+  (*      admit.*)
+  (*      subst. simpl.*)
+  (*      destruct (Nat.eq_dec x x).*)
+  (*      * reflexivity.*)
+  (*      * exfalso; apply n; reflexivity.*)
+  (*      subst. simpl.*)
+  (*    +*)
+  (*  - admit.*)
+  (*  - admit.*)
+  (*Admitted.*)
 
   Lemma WellTypedConfig_PAR_inv : forall env c1 c2 prog,
     WellTypedConfig prog env (ConfParallel c1 c2) ->
@@ -329,120 +413,348 @@ Section runtime_props.
   (*    + admit.*)
   (*  - eapply MESSAGE.*)
 
+  Lemma Par_comm : forall prog env c d,
+    WellTypedConfig prog env (ConfParallel c d) ->
+    WellTypedConfig prog env (ConfParallel d c).
+  Proof.
+    intros * WT.
+    remember (ConfParallel c d) as C.
+    revert c d HeqC.
+    induction WT; intros; inversion HeqC; subst.
+    + eapply PAR; try eassumption.
+      now apply RuntimeEnvironmentCombination_comm.
+    + eapply SUBS; try eassumption; now apply IHWT.
+  Qed.
 
-  Lemma preservation_equiv : forall prog env c d,
+  Lemma Par_assoc : forall prog env c d e,
+    WellTypedConfig prog env (ConfParallel c (ConfParallel d e)) ->
+    WellTypedConfig prog env (ConfParallel (ConfParallel c d) e).
+  Proof.
+    intros * WT.
+    remember (ConfParallel c (ConfParallel d e)) as C.
+    revert c d e HeqC.
+    induction WT; intros; inversion HeqC; subst.
+    + remember (ConfParallel d0 e) as E'.
+      revert env d0 e HeqE' H.
+      clear IHWT1 IHWT2.
+      induction WT2; intros; inversion HeqE'; subst.
+      * generalize (RuntimeEnvironmentCombination_assoc _ _ _ _ _ H0 H).
+        intros [env' [Comb1 Comb2]].
+        eapply PAR; try eapply PAR; eassumption.
+      * generalize (RuntimeEnvironmentCombination_Subtype_right env1 env env' env0 H0 H).
+        intros [env'' [Comb' Sub']].
+        eapply SUBS; try eassumption.
+        apply IHWT2; auto.
+    + eapply SUBS; try eassumption; now apply IHWT.
+  Qed.
+
+  Lemma Nu_exchange : forall prog env c,
+    WellTypedConfig prog env (ConfRestr (ConfRestr c)) ->
+    WellTypedConfig prog env (ConfRestr (ConfRestr (exchange_conf 0 c))).
+  Proof.
+    intros * WT.
+    remember (ConfRestr (ConfRestr c)) as C.
+    revert c HeqC.
+    induction WT; intros; inversion HeqC; subst.
+    - remember (ConfRestr c0) as C'.
+      remember (Some (TTMailbox (? 𝟙)) :: env) as E.
+      revert env c0 HeqC' HeqE.
+      induction WT; intros; inversion HeqC'; subst.
+      + repeat constructor.
+        Admitted.
+
+  Lemma preservation_equiv : forall prog env r c d,
     WellTypedConfig prog env c ->
-    StructCongr c d ->
+    StructEq c r d ->
     WellTypedConfig prog env d.
   Proof.
-    intros * WTc Congr.
-    revert env WTc.
-    induction Congr; intros.
-    - remember (ConfParallel c d) as C.
-      revert c d HeqC.
-      induction WTc; intros; inversion HeqC; subst.
-      + eapply PAR; try eassumption.
-        now apply RuntimeEnvironmentCombination_comm.
-      + eapply SUBS; try eassumption.
-        now apply IHWTc.
-    - remember (ConfParallel c (ConfParallel d e)) as C.
-      revert c d e HeqC.
-      induction WTc; intros; inversion HeqC; subst.
-      + remember (ConfParallel d0 e) as E'.
-        revert env d0 e HeqE' H.
-        clear IHWTc1 IHWTc2.
-        induction WTc2; intros; inversion HeqE'; subst.
-        * generalize (RuntimeEnvironmentCombination_assoc _ _ _ _ _ H0 H).
-          intros [env' [Comb1 Comb2]].
-          eapply PAR; try eapply PAR; eassumption.
-        * generalize (RuntimeEnvironmentCombination_Subtype_right _ _ env' _ H0 H).
-          intros [env'' [Comb' Sub']].
-          eapply SUBS; try eassumption.
-          apply IHWTc2; auto.
-      + eapply SUBS; try eassumption.
-        now apply IHWTc.
-    - remember (ConfRestr (ConfRestr c)) as C.
-      revert c HeqC.
-      induction WTc; intros; inversion HeqC; subst.
-      + do 2 apply NU.
-        replace (Some (TTMailbox (? 𝟙)) :: Some (TTMailbox (? 𝟙)) :: env) with (insert 0 (TTMailbox (? 𝟙)) (insert 0 (TTMailbox (? 𝟙)) env)) by now repeat rewrite raw_insert_zero.
-        apply WellTypedConfig_exchange.
-        repeat rewrite raw_insert_zero.
-        clear IHWTc HeqC.
-        remember (ConfRestr c0) as C'.
-        revert c0 HeqC'.
-        induction WTc; intros; inversion HeqC'; subst.
-        * easy.
-        * eapply SUBS with (env' := Some (TTMailbox (? 𝟙)) :: env').
-          -- constructor.
-             apply RuntimeSubtype_refl.
-             assumption.
-          -- now apply IHWTc.
-      + eapply SUBS; try eassumption.
-        now apply IHWTc.
-    - remember (ConfRestr (ConfParallel c d)) as C.
-      revert c HeqC.
-      induction WTc; intros; inversion HeqC; subst.
-      + inversion WTc; subst.
-        * inversion H5; subst.
-          -- eapply PAR.
-             ++ apply NU. apply H2.
-             ++ admit.
-             ++ apply H6.
-          -- eapply PAR.
-             ++ apply NU. admit.
-             ++ admit.
-             ++ apply H6.
-          -- inversion H8; subst.
-             ++ eapply PAR.
-                ** apply NU.
-                   admit.
-                ** admit.
-                ** admit.
-             ++ admit.
-        * admit.
+    intros * WT Struct.
+    induction Struct.
+    - destruct H.
+      + now apply Par_comm.
+      + now apply Par_assoc.
+        Admitted.
 
 
-      (**)
-      (**)
-      (*+ clear HeqC IHWTc.*)
-      (*  remember (Some (TTMailbox (? 𝟙)) :: env) as E.*)
-      (*  remember (ConfParallel c0 d) as C.*)
-      (*  revert env c0 HeqC HeqE.*)
-      (*  induction WTc; intros; inversion HeqC; subst.*)
-      (*  * inversion H0; subst.*)
-      (*    -- eapply PAR with (env1 := env3) (env2 := env4).*)
-      (*       ++ now apply NU.*)
-      (*       ++ admit.*)
-      (*       ++ eassumption.*)
-      (*    -- eapply PAR with (env2 := env4).*)
-      (*       ++ apply NU.*)
-      (*          eapply SUBS with (env' := None :: env3).*)
-      (*          ** constructor; apply RuntimeEnvironmentSubtype_refl.*)
-      (*          ** assumption.*)
-      (*       ++ admit.*)
-      (*       ++ eassumption.*)
-      (*    -- inversion H6; subst.*)
-      (*       ++ eapply PAR with (env1 := env3) (env2 := env4).*)
-      (*          ** apply NU. admit.*)
-      (*          ** admit.*)
-      (*          ** assumption.*)
-      (*       ++ eapply PAR with (env1 := env3) (env2 := env4).*)
-      (*          ** apply NU. admit.*)
-      (*          ** admit.*)
-      (*          ** assumption.*)
-      (*  * *)
-      (**)
-      (*    clear IHWTc H1.*)
-      (*    remember (Some (TTMailbox (? 𝟙)) :: env0) as E.*)
-      (*    remember (ConfParallel c0 d) as C.*)
-      (*    revert env0 c0 HeqC HeqE.*)
-      (*    induction WTc; intros; inversion HeqC; subst.*)
-      (*    -- eapply PAR.*)
+  (*Lemma preservation_equiv : forall prog env c d,*)
+  (*  WellTypedConfig prog env c ->*)
+  (*  StructCongr c d ->*)
+  (*  WellTypedConfig prog env d.*)
+  (*Proof.*)
+  (*  intros * WTc Congr.*)
+  (*  revert env WTc.*)
+  (*  induction Congr; intros.*)
+  (*  - remember (ConfParallel c d) as C.*)
+  (*    revert c d HeqC.*)
+  (*    induction WTc; intros; inversion HeqC; subst.*)
+  (*    + eapply PAR; try eassumption.*)
+  (*      now apply RuntimeEnvironmentCombination_comm.*)
+  (*    + eapply SUBS; try eassumption.*)
+  (*      now apply IHWTc.*)
+  (*  - remember (ConfParallel c (ConfParallel d e)) as C.*)
+  (*    revert c d e HeqC.*)
+  (*    induction WTc; intros; inversion HeqC; subst.*)
+  (*    + remember (ConfParallel d0 e) as E'.*)
+  (*      revert env d0 e HeqE' H.*)
+  (*      clear IHWTc1 IHWTc2.*)
+  (*      induction WTc2; intros; inversion HeqE'; subst.*)
+  (*      * generalize (RuntimeEnvironmentCombination_assoc _ _ _ _ _ H0 H).*)
+  (*        intros [env' [Comb1 Comb2]].*)
+  (*        eapply PAR; try eapply PAR; eassumption.*)
+  (*      * generalize (RuntimeEnvironmentCombination_Subtype_right _ _ env' _ H0 H).*)
+  (*        intros [env'' [Comb' Sub']].*)
+  (*        eapply SUBS; try eassumption.*)
+  (*        apply IHWTc2; auto.*)
+  (*    + eapply SUBS; try eassumption.*)
+  (*      now apply IHWTc.*)
+  (*  - remember (ConfRestr (ConfRestr c)) as C.*)
+  (*    revert c HeqC.*)
+  (*    induction WTc; intros; inversion HeqC; subst.*)
+  (*    + do 2 apply NU.*)
+  (*      replace (Some (TTMailbox (? 𝟙)) :: Some (TTMailbox (? 𝟙)) :: env) with (insert 0 (TTMailbox (? 𝟙)) (insert 0 (TTMailbox (? 𝟙)) env)) by now repeat rewrite raw_insert_zero.*)
+  (*      apply WellTypedConfig_exchange.*)
+  (*      repeat rewrite raw_insert_zero.*)
+  (*      clear IHWTc HeqC.*)
+  (*      remember (ConfRestr c0) as C'.*)
+  (*      revert c0 HeqC'.*)
+  (*      induction WTc; intros; inversion HeqC'; subst.*)
+  (*      * easy.*)
+  (*      * eapply SUBS with (env' := Some (TTMailbox (? 𝟙)) :: env').*)
+  (*        -- constructor.*)
+  (*           apply RuntimeSubtype_refl.*)
+  (*           assumption.*)
+  (*        -- now apply IHWTc.*)
+  (*    + eapply SUBS; try eassumption.*)
+  (*      now apply IHWTc.*)
+  (*  - admit.*)
+  (*  - assumption.*)
+  (*  -*)
+  (*Admitted.*)
 
-      + eapply SUBS; try eassumption.
-        now apply IHWTc.
+  Ltac destruct_and H :=
+    try lazymatch type of H with
+    | True => clear H
+    | exists _, _ =>
+        let H1 := fresh in
+        let H2 := fresh in
+        destruct H as [H1 H2];
+        destruct_and H2
+    | _ /\ _ =>
+      let H1 := fresh in
+      let H2 := fresh in
+      destruct H as [ H1 H2 ];
+      destruct_and H1; destruct_and H2
+    end.
+
+  Lemma ConfConf_TLet_inv : forall prog env t1 t2 stack,
+    WellTypedConfig prog env (ConfConf (TLet t1 t2) stack) ->
+    exists env' env1 env2 T env4 T' env3,
+      RuntimeEnvironmentSubtype env env' /\
+      WellTypedConfig prog env' (ConfConf (TLet t1 t2) stack) /\
+      env1 ▷ₑ env2 ~= map_maybe returnType env' /\
+      WellTypedTerm prog env1 (TLet t1 t2) T /\
+      WellTypedStack prog env2 T stack /\
+      WellTypedTerm prog (insert 0 ⌊ T' ⌋ env4) t2 T /\
+      env3 ▷ₑ env4 ~= env1.
+  Proof.
+    intros * WT.
+    remember (ConfConf (TLet t1 t2) stack) as C.
+    revert t1 t2 stack HeqC.
+    induction WT; intros; inversion HeqC; subst.
+    - generalize (TLet_inv _ _ _ _ _ H0).
+      intros [env' [T' [T1' [env1' [env2' [? [? [? [? ?]]]]]]]]].
+      (*assert (SecondEnv env1). admit. (* This should hold *)*)
+      (*assert (SecondEnv env'). admit. (* This should hold *)*)
+      (*assert (SecondEnv env1'). admit. (* This should hold *)*)
+      (*assert (SecondEnv env2'). admit. (* This should hold *)*)
+      exists env, env1, env2, T, env2', T1', env1'; repeat split.
+      + apply RuntimeEnvironmentSubtype_refl.
+      + econstructor; eassumption.
+      + assumption.
+      + assumption.
+      + assumption.
+      + eapply SUB; eauto with environment.
+      + admit.
+    - generalize (IHWT _ _ _ eq_refl).
+      intros E'.
+      destruct_and E'.
+      repeat eexists;
+      try eapply EnvSubtypeTrans; eassumption.
   Admitted.
+
+  Lemma WellTypedConfig_ConfConf_inv : forall prog env t stack,
+    WellTypedConfig prog env (ConfConf t stack) ->
+    exists env' T env1 env2,
+      env1 ▷ₑ env2 ~= map_maybe returnType env' /\
+      WellTypedTerm prog env1 t T /\
+      WellTypedStack prog env2 T stack /\
+      RuntimeEnvironmentSubtype env env'.
+  Proof.
+    intros * WT.
+    remember (ConfConf t stack) as C.
+    revert t stack HeqC.
+    induction WT; intros; inversion HeqC; subst.
+    - exists env, T, env1, env2; repeat split; try assumption.
+      apply RuntimeEnvironmentSubtype_refl.
+    - generalize (IHWT _ _ eq_refl).
+      intros [envT [T [env1 [env2 [Comb [WT1 [WT2 Sub]]]]]]].
+      exists envT, T, env1, env2; repeat split; try assumption.
+      eapply RuntimeEnvironmentSubtype_trans; eassumption.
+  Qed.
+
+  Lemma TypeCombination_Sub : forall j j' k t,
+    RuntimeSubtype (TTMailbox (? j)) (TTMailbox j') ->
+    TTMailbox (? j) ⊞ TTMailbox k ~= TTMailbox t ->
+    exists k' t',
+      RuntimeSubtype (TTMailbox k) (TTMailbox k') /\
+      RuntimeSubtype (TTMailbox t) (TTMailbox t') /\
+      TTMailbox j' ⊞ TTMailbox k' ~= TTMailbox t'.
+  Proof.
+    intros * Sub Comb.
+    remember (? j) as J.
+    revert j' HeqJ Sub.
+    induction Comb; intros; inversion HeqJ; subst; inversion Sub; subst.
+    - exists (! f), (! f0 ⊙ f); split; constructor;
+      try reflexivity.
+      + constructor.
+        intros m MIn.
+        inversion MIn; subst.
+        econstructor; eauto.
+      + constructor.
+    (*- exists (? f); split.*)
+    (*  + apply RuntimeSubtype_refl.*)
+    (*  + econstructor.*)
+    (*    * constructor.*)
+    (*      Print PatternEq.*)
+        Admitted.
+
+  Lemma MPInclusion_Comp : forall e1 e2 f,
+    e1 ⊙ e2 ⊑ f ->
+    exists e1' e2', f ≈ e1' ⊙ e2'.
+  Proof.
+    intros * Inc.
+    destruct f.
+    - admit.
+    - exists 𝟙, 𝟙.
+      now rewrite MPComp_unit.
+    - 
+      Search (_ ⊙ _).
+      unfold MPInclusion in *.
+      Admitted.
+
+  Lemma TypeCombination_Sub_OutIn : forall e1 e2 f,
+    e1 ⊙ e2 ⊑ f ->
+    TTMailbox (? e1 ⊙ e2) ⊞ TTMailbox (! e1) ~= TTMailbox (? e2) ->
+    exists e1' e2',
+      e1' ⊑ e1 /\
+      e2 ⊑ e2' /\
+      (*RuntimeSubtype (TTMailbox k) (TTMailbox k') /\*)
+      (*RuntimeSubtype (TTMailbox t) (TTMailbox t') /\*)
+      TTMailbox (? f) ⊞ TTMailbox (! e1') ~= TTMailbox (? e2').
+  Proof.
+    intros * Inc Comb.
+    generalize (MPInclusion_Comp _ _ _ Inc).
+    intros [e1' [e2' [Eq1 Eq2]]].
+    generalize (MPInclusion_trans _ _ _ Inc Eq1).
+    intros Sub'.
+    exists e1, e2'.
+      Admitted.
+
+  Lemma UsageCombination_Sub : forall j j' k t,
+    j ≤ j' ->
+    j ▷ k ~= t ->
+    exists k' t',
+      k ≤ k' /\
+      t ≤ t' /\
+      j' ▷ k' ~= t'.
+  Proof.
+    intros * Sub Comb.
+    induction Comb; inversion Sub; subst.
+    - repeat exists (TUBase c); repeat constructor.
+    - inversion H0; subst.
+      + rename e0 into e1.
+        rename f0 into e2.
+        inversion H; subst.
+        * inversion H5; subst.
+          generalize (TypeCombination_Sub_OutIn e1 e2 f H3 H0).
+          intros [e1' [e2' [Sub1 [Sub2 Comb']]]].
+          exists (! e1' ^^ ◦), (? e2' ^^ ◦); repeat constructor;
+          assumption.
+        * inversion H5; subst.
+          generalize (TypeCombination_Sub_OutIn e1 e2 f H3 H0).
+          intros [e1' [e2' [Sub1 [Sub2 Comb']]]].
+          exists (! e1' ^^ ◦), (? e2' ^^ ◦); repeat constructor;
+          assumption.
+      + admit.
+   Admitted.
+
+  (*Lemma WellTypedStack_sub : forall p env env' T T' stack,*)
+  (*  env ≤ₑ env' ->*)
+  (*  T' ≤ T ->*)
+  (*  WellTypedStack p env T stack ->*)
+  (*  WellTypedStack p env' T' stack.*)
+  (*Proof.*)
+  (*  intros * EnvSub Sub WT.*)
+  (*  revert env' T' Sub EnvSub.*)
+  (*  induction WT; intros.*)
+  (*  - constructor. eapply EmptyEnv_SubEnv_EmptyEnv; eassumption.*)
+  (*  - econstructor.*)
+  (*    Search (?env1 ▷ₑ ?env2 ~= ?env').*)
+  (*    + Search (insert _ _ _).*)
+
+  Lemma EnvironmentSubtype_insert : forall x env T T',
+    T' ≤ T -> insert x T' env ≤ₑ insert x T env.
+  Proof.
+    induction x; intros * Sub.
+    - repeat rewrite raw_insert_zero; eauto with environment.
+    - repeat rewrite raw_insert_successor.
+      destruct env.
+      + rewrite lookup_nil; eauto with environment.
+      + rewrite lookup_zero; simpl.
+        destruct o; eauto using Subtype_refl with environment.
+  Qed.
+
+  Lemma WellTypedTerm_insert_Sub : forall x prog env T1 T1' T2 t,
+    T1' ≤ T1 ->
+    WellTypedTerm prog (insert x T1 env) t T2 ->
+    WellTypedTerm prog (insert x T1' env) t T2.
+  Proof.
+    intros * Sub WT.
+    eapply SUB with (env2 := insert x T1 env).
+    - now apply EnvironmentSubtype_insert.
+    - apply Subtype_refl.
+    - assumption.
+  Qed.
+
+  Lemma WellTypedStack_sub : forall p env T T' stack,
+    T' ≤ T ->
+    WellTypedStack p env T stack ->
+    WellTypedStack p env T' stack.
+  Proof.
+    intros * Sub WT.
+    revert T' Sub.
+    induction WT; intros.
+    - now constructor.
+    - econstructor.
+      + eapply WellTypedTerm_insert_Sub; eassumption.
+      + assumption.
+      + eassumption.
+      + assumption.
+  Qed.
+
+  Lemma WellTypedStack_raw_insert_None : forall p env T stack,
+    WellTypedStack p env T stack ->
+    WellTypedStack p (None :: env) T (lift_Stack stack).
+  Proof.
+    intros * WT.
+    induction WT.
+    - simpl; now repeat constructor.
+    - eapply CONS with (env1 := None :: env1); try eassumption.
+      + apply WellTypedTerm_raw_insert_None with (x := 0) in H.
+        rewrite raw_insert_zero in H.
+        now rewrite raw_insert_successor; rewrite lookup_zero; simpl.
+      + now constructor.
+  Qed.
 
   Theorem preservation : forall prog env c d,
     WellTypedProgram prog ->
@@ -454,25 +766,162 @@ Section runtime_props.
     intros * WTP Reliable WT Step.
     revert env Reliable WT.
     induction Step; intros.
-    - inversion WT; subst.
-      + inversion H3; subst.
-        * generalize (EnvironmentCombination_assoc).
-          econstructor.
+    - remember (ConfConf (TLet t1 t2) stack) as C.
+      revert t1 t2 stack HeqC.
+      induction WT; intros; inversion HeqC; subst.
+      + apply TLet_inv in H0.
+        destruct H0 as [env' [TT [T1' [env3 [env4 [? [? [? [? ?]]]]]]]]].
+        eapply THREAD.
+        * admit.
+        * eassumption.
+        * admit.
+      + eapply SUBS; try eassumption.
+        apply IHWT.
+        admit. (* Need lemma *)
+        reflexivity.
+    - remember (ConfConf (TValue v) ((x, t) :: stack)) as C.
+      revert v t stack HeqC.
+      induction WT; intros; inversion HeqC; subst.
+      + inversion H1; subst.
+        generalize (WellTypedEnvSub _ _ _ _ H0).
+        intros [Pi1 [Pi2 [Pi3 [T' [Split [Sub [WT' [Cruftless [StrSub SubEnv]]]]]]]]].
+        generalize (Subtype_Returnable).
+        admit.
+      + eapply SUBS; try eassumption.
+        apply IHWT.
+        admit. (* Need lemma *)
+        reflexivity.
+    - remember (ConfConf (TApp definition v) stack) as C.
+      revert v stack HeqC.
+      induction WT; intros; inversion HeqC; subst.
+      + inversion H1; subst.
+        * inversion WTP; subst.
+          generalize (H3 definition).
+          intros WTD; inversion WTD; subst.
+          replace [Some argumentType1] with (insert 0 argumentType1 []) in H7 by apply raw_insert_zero.
+          eapply THREAD with (T := T).
+          -- eassumption.
+          -- generalize (subst_lemma prog (create_EmptyEnv env1) env1 env1 argumentType1 argumentType0 T body v 0).
+             admit.
+          -- assumption.
+        * admit.
+      + eapply SUBS; try eassumption.
+        apply IHWT.
+        admit. (* Need lemma *)
+        reflexivity.
+    - remember (ConfConf TNew stack) as C.
+      revert HeqC.
+      induction WT; intros; inversion HeqC; subst.
+      + clear HeqC.
+        remember (TNew) as t.
+        revert env2 H1 H Heqt.
+        generalize dependent env.
+        induction H0; intros; inversion Heqt; subst.
+        * constructor.
+          eapply THREAD with (env1 := Some (? 𝟙 ^^ •) :: env) (env2 := None :: env2) (T := (? 𝟙 ^^ •)).
+          -- now constructor.
+          -- rewrite <- raw_insert_zero.
+             now constructor.
+          -- now apply WellTypedStack_raw_insert_None in H1.
+        * Search (TNew).
+          assert (? 𝟙 ^^ • ≤ T1). admit.
+          assert (env2 ≤ₑ create_EmptyEnv env2). admit.
+          constructor.
+          eapply THREAD with (env1 := Some (? 𝟙 ^^ •) :: env1) (env2 := None :: env0) (T := (? 𝟙 ^^ •)).
+          -- now constructor.
+          -- eapply SUB with (env2 := Some (? 𝟙 ^^ •) :: create_EmptyEnv env2).
+             ++ constructor.
+                apply Subtype_refl.
+                eauto using EnvironmentSubtype_trans with environment.
+             ++ apply Subtype_refl.
+             ++ rewrite <- raw_insert_zero.
+                constructor. apply create_EmptyEnv_EmptyEnv.
           -- admit.
-          -- apply H6.
-          --
-
-
-    induction WT; intros * Reliable Step.
+      + eapply SUBS; try eassumption.
+        apply IHWT.
+        admit. (* Need lemma *)
+        reflexivity.
     - admit.
-    - inversion Step; subst.
-      + admit.
-      + eapply PAR.
-        * eapply IHWT1.
-          admit. (* Need new lemma *)
-          assumption.
-        * eapply IHWT2.
-          admit. (* Need new lemma *)
-          admit.
+    - admit.
+    - admit.
+    - admit.
+    - remember (ConfRestr c) as C.
+      revert HeqC.
+      induction WT; intros; inversion HeqC; subst.
+      + constructor.
+        apply IHStep; try assumption.
+        admit. (* Need lemma *)
+      + apply SUBS with (env' := env'); try assumption.
+        apply IHWT.
+        admit. (* Need lemma *)
+        reflexivity.
+    - remember (ConfParallel c d) as C.
+      revert HeqC.
+      induction WT; intros; inversion HeqC; subst.
+      + econstructor.
+        * apply IHStep.
+          -- admit. (* Need lemma *)
+          -- eassumption.
+        * eassumption.
+        * assumption.
+      + apply SUBS with (env' := env'); try eassumption.
+        apply IHWT.
+        admit. (* Need lemma *)
+        reflexivity.
+    - admit.
+  Admitted.
+
+  (** Lemma D.25 Progress (Thread Reduction) *)
+  Lemma thread_reduction : forall prog env t stack,
+    WellTypedConfig prog env (ConfConf t stack) ->
+    (exists v, t = TValue v /\ stack = []) \/
+    (exists t' stack', Step prog (ConfConf t stack) (ConfConf t' stack')) \/
+    (t = TNew \/ (exists t', t = TSpawn t') \/ (exists v1 m v2, t = TSend v1 m v2) \/ (exists v e gs, t = TGuard v e gs)).
+  Proof.
+    intros * WT.
+    remember (ConfConf t stack) as C.
+    revert t stack HeqC.
+    induction WT; intros; inversion HeqC; subst.
+    - clear H HeqC.
+      induction H0;
+      try (repeat (right || left; eauto); fail).
+      + destruct stack0.
+        * left; eauto.
+        * right; left.
+          destruct f.
+          exists (subst (ValueVar x) v t).
+          exists stack0.
+          apply stepReturn.
+      + destruct stack0.
+        * left; eauto.
+        * right; left.
+          destruct f.
+          exists (subst (ValueBool true) v t).
+          exists stack0.
+          apply stepReturn.
+      + destruct stack0.
+        * left; eauto.
+        * right; left.
+          destruct f.
+          exists (subst (ValueBool false) v t).
+          exists stack0.
+          apply stepReturn.
+      + destruct stack0.
+        * left; eauto.
+        * right; left.
+          destruct f.
+          exists (subst ValueUnit v t).
+          exists stack0.
+          apply stepReturn.
+      + right; left.
+        eexists; eexists.
+        eapply stepApp; eassumption.
+      + right; left.
+        eexists; eexists.
+        eapply stepLet.
+      + apply IHWellTypedTerm.
+        eapply WellTypedStack_sub; eassumption.
+    - now apply IHWT.
+  Qed.
 
 End runtime_props.
