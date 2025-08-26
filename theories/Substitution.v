@@ -919,59 +919,171 @@ Fixpoint traverse_Term (f : nat -> nat -> Value) l t :=
         generalize (EnvironmentDis_Comb _ _ _ _ _ H0 Comb2).
         intros [envT1 [CombT1 DisT1]].
         destruct v.
-        * admit.
-        * admit.
-        * apply weak_ValueVar_3 in WT2.
-          destruct WT2 as [env4' [T' [Eq [Sub [SubEnv WT2]]]]].
+        * repeat (simpl_lift_goal; simpl).
+          generalize (canonical_form_BTBool _ _ _ _ WT2).
+          intros ->.
+          apply weak_BTBool_2 in WT2.
+          inversion H; subst.
+          inversion TComb; subst.
+          generalize (EnvironmentDisjointCombination_Subtype_Empty _ _ _ _ H0 (create_EmptyEnv_EmptyEnv env4) WT2).
+          intros Sub'.
+          eapply SUB; try apply Subtype_refl; try eassumption.
+          eapply LET.
+          -- eassumption.
+          -- eapply IHWT1_1 with (A' := TUBase BTBool) (env2 := create_EmptyEnv env1').
+             ++ reflexivity.
+             ++ destruct b; eauto with environment.
+             ++ apply Subtype_refl.
+             ++ apply EnvironmentDisjointCombination_Empty; eauto with environment.
+          -- eapply IHWT1_2 with (A' := TUBase BTBool) (env2 := (None :: create_EmptyEnv env2')) (env1 := Some ⌊ T1 ⌋ :: env2').
+             ++ rewrite raw_insert_zero.
+                rewrite raw_insert_successor.
+                rewrite lookup_zero; simpl.
+                reflexivity.
+             ++ destruct b; repeat constructor; apply create_EmptyEnv_EmptyEnv.
+             ++ apply Subtype_refl.
+             ++ rewrite raw_insert_zero.
+                constructor.
+                apply EnvironmentDisjointCombination_Empty; eauto with environment.
+        * repeat (simpl_lift_goal; simpl).
+          generalize (canonical_form_BTUnit _ _ _ WT2).
+          intros ->.
+          apply weak_BTUnit_2 in WT2.
+          inversion H; subst.
+          inversion TComb; subst.
+          generalize (EnvironmentDisjointCombination_Subtype_Empty _ _ _ _ H0 (create_EmptyEnv_EmptyEnv env4) WT2).
+          intros Sub'.
+          eapply SUB; try apply Subtype_refl; try eassumption.
+          eapply LET.
+          -- eassumption.
+          -- eapply IHWT1_1 with (A' := TUBase BTUnit) (env2 := create_EmptyEnv env1').
+             ++ reflexivity.
+             ++ eauto with environment.
+             ++ apply Subtype_refl.
+             ++ apply EnvironmentDisjointCombination_Empty; eauto with environment.
+          -- eapply IHWT1_2 with (A' := TUBase BTUnit) (env2 := (None :: create_EmptyEnv env2')) (env1 := Some ⌊ T1 ⌋ :: env2').
+             ++ rewrite raw_insert_zero.
+                rewrite raw_insert_successor.
+                rewrite lookup_zero; simpl.
+                reflexivity.
+             ++ repeat constructor; apply create_EmptyEnv_EmptyEnv.
+             ++ apply Subtype_refl.
+             ++ rewrite raw_insert_zero.
+                constructor.
+                apply EnvironmentDisjointCombination_Empty; eauto with environment.
+        * repeat (simpl_lift_goal; simpl).
+          apply weak_ValueVar_3 in WT2.
+          destruct WT2 as [env4' [T' [Eq' [Sub [SubEnv WT2]]]]].
           subst.
-          assert (WT1' : WellTypedTerm p (insert v A1 env4') (TValue (ValueVar v)) A1).
-          {
-            eapply SUB.
-            - apply EnvironmentSubtype_insert_extend; eassumption.
-            - apply Subtype_refl.
-            - eauto with environment.
-          }
-          assert (WT2' : WellTypedTerm p (insert v A2 env4') (TValue (ValueVar v)) A2).
-          {
-            eapply SUB.
-            - apply EnvironmentSubtype_insert_extend; eassumption.
-            - apply Subtype_refl.
-            - eauto with environment.
-          }
-          apply EnvironmentDis_Comb_comm in DisT1.
-          destruct T'.
-          -- inversion Sub; subst.
-             inversion H; subst.
-             inversion TComb; subst.
-             assert (Eq : insert 0 ⌊ T1 ⌋ (insert x (TUBase b) env2') = insert (S x) (TUBase b) (insert 0 ⌊ T1 ⌋ env2')).
-             {
-                repeat rewrite raw_insert_zero.
-                repeat rewrite raw_insert_successor.
-                now rewrite lookup_zero.
-             }
-             assert (WT2_shift : WellTypedTerm p (None :: insert v (TUBase b) env4') (TValue (ValueVar (S v))) (TUBase b)).
-             {
-               generalize (WellTypedTerm_TValue_raw_insert_None p (insert v (TUBase b) env4') (ValueVar v) 0 (TUBase b) WT2).
-               rewrite raw_insert_zero.
-               simpl_lift_goal; simpl.
-               now simpl_lift_goal.
-             }
-             assert (Dis2 : insert 0 ⌊ T1 ⌋ env2' +ₑ None :: insert v (TUBase b) env4' ~= Some ⌊ T1 ⌋ :: envT2).
-             {
-               rewrite raw_insert_zero. now constructor.
-             }
-             generalize (IHWT1_1 (ValueVar v) x (TUBase b) (TUBase b) envT1 env1' (insert v (TUBase b) env4') eq_refl WT1' (Subtype_refl (TUBase b)) DisT1).
-             intros WT1P.
-             generalize (IHWT1_2 (ValueVar (S v)) (S x) (TUBase b) (TUBase b) (Some ⌊ T1 ⌋ :: envT2) (insert 0 ⌊ T1 ⌋ env2') (None :: (insert v (TUBase b) env4')) Eq WT2_shift (Subtype_refl (TUBase b)) Dis2).
-             intros WT2P.
-             eapply LET with (env1 := envT1) (env2 := envT2).
-             ++ admit.
-             ++ apply WT1P.
-             ++ simpl_lift_goal; simpl.
-                simpl_lift_goal.
-                rewrite raw_insert_zero.
-                apply WT2P.
-          -- admit.
+          generalize (EnvironmentDisjointCombination_insert_left _ _ _ _ _ H0).
+          intros [env3' [env0' [[-> ->] | [c [-> [-> ->]]]]]].
+          -- generalize (EnvironmentDisjointCombination_Subtype_Empty_insert _ _ _ (create_EmptyEnv env4') _ _ H0 (create_EmptyEnv_EmptyEnv env4') SubEnv).
+             intros Sub'.
+             eapply SUB with (env2 := insert v A env3').
+             ++ eapply EnvironmentSubtype_trans.
+                eassumption.
+                apply EnvironmentSubtype_insert_Subtype.
+                eapply Subtype_trans; eassumption.
+             ++ eapply Subtype_refl.
+             ++ generalize (EnvironmentCombination_raw_insert_None _ _ _ _ Comb2).
+                intros [env1'' [env2'' [Eq1 [? [Eq2 [? Comb']]]]]].
+                eapply LET with (env1 := insert v A1 env1'') (env2 := (insert v A2 env2'')).
+                ** now apply EnvironmentCombination_insert_both.
+                ** eapply IHWT1_1 with (A := A1) (A' := A1) (env2 := insert v A1 (create_EmptyEnv env1'')).
+                   --- reflexivity.
+                   --- eauto with environment.
+                   --- apply Subtype_refl.
+                   --- rewrite Eq1.
+                       apply EnvironmentDisjointCombination_insert_EmptyEnv;
+                       eauto with environment.
+                ** eapply IHWT1_2 with (A := A2) (A' := A2) (env2 := insert (S v) A2 (None :: create_EmptyEnv env2'')) (env1 := Some ⌊ T1 ⌋ :: env2').
+                   --- rewrite raw_insert_successor.
+                       rewrite raw_insert_zero.
+                       now rewrite lookup_zero.
+                   --- repeat constructor; apply create_EmptyEnv_EmptyEnv.
+                   --- apply Subtype_refl.
+                   --- rewrite raw_insert_zero.
+                       rewrite raw_insert_successor.
+                       rewrite lookup_zero.
+                       simpl.
+                       constructor.
+                       rewrite Eq2.
+                       apply EnvironmentDisjointCombination_insert_EmptyEnv;
+                       eauto with environment.
+          -- generalize (EnvironmentDisjointCombination_Subtype_Empty_insert_Base _ _ _ (create_EmptyEnv env4') _ _ H0 (create_EmptyEnv_EmptyEnv env4') SubEnv).
+             intros Sub'.
+             eapply SUB with (env2 := insert v A env3').
+             ++ eapply EnvironmentSubtype_trans.
+                eassumption.
+                apply EnvironmentSubtype_insert_Subtype.
+                eapply Subtype_trans; eassumption.
+             ++ eapply Subtype_refl.
+             ++ inversion Sub; subst.
+                inversion H; subst.
+                inversion TComb; subst.
+                generalize (EnvironmentCombination_raw_insert_Base _ _ _ _ _ Comb2).
+                intros [env1'' [env2'' [Comb' [[-> ->] | [[-> ->] | [-> ->]]]]]].
+                ** eapply LET with (env1 := insert v (TUBase c) env1'') (env2 := (insert v (TUBase c) env2'')).
+                   --- apply EnvironmentCombination_insert_both; auto.
+                   --- eapply IHWT1_1 with (A := TUBase c) (A' := TUBase c) (env2 := insert v (TUBase c) (create_EmptyEnv env1'')).
+                       +++ reflexivity.
+                       +++ eauto with environment.
+                       +++ apply Subtype_refl.
+                       +++ apply EnvironmentDisjointCombination_insert_Base;
+                           eauto with environment.
+                   --- eapply IHWT1_2 with (A := TUBase c) (A' := TUBase c) (env2 := insert (S v) (TUBase c) (None :: create_EmptyEnv env2'')) (env1 := Some ⌊ T1 ⌋ :: (raw_insert v None env2'')).
+                       +++ reflexivity.
+                       +++ repeat constructor; apply create_EmptyEnv_EmptyEnv.
+                       +++ apply Subtype_refl.
+                       +++ rewrite raw_insert_zero.
+                           rewrite raw_insert_successor.
+                           rewrite lookup_zero.
+                           simpl.
+                           constructor.
+                           apply EnvironmentDisjointCombination_insert_EmptyEnv;
+                           eauto with environment.
+                ** eapply LET with (env1 := insert v (TUBase c) env1'') (env2 := (insert v (TUBase c) env2'')).
+                   --- apply EnvironmentCombination_insert_both; auto.
+                   --- eapply IHWT1_1 with (A := TUBase c) (A' := TUBase c) (env2 := insert v (TUBase c) (create_EmptyEnv env1'')).
+                       +++ reflexivity.
+                       +++ eauto with environment.
+                       +++ apply Subtype_refl.
+                       +++ apply EnvironmentDisjointCombination_insert_EmptyEnv;
+                           eauto with environment.
+                   --- eapply IHWT1_2 with (A := TUBase c) (A' := TUBase c) (env2 := insert (S v) (TUBase c) (None :: create_EmptyEnv env2'')) (env1 := Some ⌊ T1 ⌋ :: (insert v (TUBase c) env2'')).
+                       +++ rewrite raw_insert_zero.
+                           rewrite raw_insert_successor.
+                           now rewrite lookup_zero.
+                       +++ repeat constructor; apply create_EmptyEnv_EmptyEnv.
+                       +++ apply Subtype_refl.
+                       +++ rewrite raw_insert_zero.
+                           rewrite raw_insert_successor.
+                           rewrite lookup_zero.
+                           simpl.
+                           constructor.
+                           apply EnvironmentDisjointCombination_insert_Base;
+                           eauto with environment.
+                ** eapply LET with (env1 := insert v (TUBase c) env1'') (env2 := (insert v (TUBase c) env2'')).
+                   --- apply EnvironmentCombination_insert_both; auto.
+                   --- eapply IHWT1_1 with (A := TUBase c) (A' := TUBase c) (env2 := insert v (TUBase c) (create_EmptyEnv env1'')).
+                       +++ reflexivity.
+                       +++ eauto with environment.
+                       +++ apply Subtype_refl.
+                       +++ apply EnvironmentDisjointCombination_insert_Base;
+                           eauto with environment.
+                   --- eapply IHWT1_2 with (A := TUBase c) (A' := TUBase c) (env2 := insert (S v) (TUBase c) (None :: create_EmptyEnv env2'')) (env1 := Some ⌊ T1 ⌋ :: (insert v (TUBase c) env2'')).
+                       +++ rewrite raw_insert_zero.
+                           rewrite raw_insert_successor.
+                           now rewrite lookup_zero.
+                       +++ repeat constructor; apply create_EmptyEnv_EmptyEnv.
+                       +++ apply Subtype_refl.
+                       +++ rewrite raw_insert_zero.
+                           rewrite raw_insert_successor.
+                           rewrite lookup_zero.
+                           simpl.
+                           constructor.
+                           apply EnvironmentDisjointCombination_insert_Base;
+                           eauto with environment.
     - rewrite subst_TSpawn. admit.
     - rewrite subst_TSend.
       generalize (EnvironmentDisCombination_insert _ _ _ _ _ e0).

@@ -32,10 +32,7 @@ Context `{D : IDefinitionName DefinitionName}.
 (** A variable is just a natural number *)
 Definition VarName := nat.
 
-(** We associated values as relations between environments and types.
-    Since variables are treated as values, we need a way to check what
-    their type is.
-*)
+(** Values of the language. Variables are also values *)
 Inductive Value : Type :=
     ValueBool : bool -> Value
   | ValueUnit : Value
@@ -122,6 +119,8 @@ Section term_ind.
 
 End term_ind.
 
+
+Print Term_ind3.
 
 From Stdlib Require Import ListSet.
 From Stdlib Require Import PeanoNat.

@@ -399,6 +399,12 @@ Proof.
   - simpl in *; f_equal; apply IHenv1; eauto.
 Qed.
 
+Lemma create_EmptyEnv_length_same : forall env,
+  length env = length (create_EmptyEnv env).
+Proof.
+  induction env; simpl; auto.
+Qed.
+
 Lemma EnvironmentSubtype_create_EmptyEnv : forall env1 env2,
   env1 ≤ₑ env2 ->
   create_EmptyEnv env1 ≤ₑ create_EmptyEnv env2.
@@ -1323,6 +1329,51 @@ Qed.
           simpl; try rewrite L1, L2; repeat split; eauto with environment.
   Qed.
 
+  Lemma EnvironmentCombination_raw_insert_Base : forall x c env1 env2 env,
+    env1 ▷ₑ env2 ~= insert x (TUBase c) env ->
+    exists env1' env2',
+      env1' ▷ₑ env2' ~= env /\
+      ((env1 = insert x (TUBase c) env1' /\ env2 = raw_insert x None env2') \/
+       (env1 = raw_insert x None env1' /\ env2 = insert x (TUBase c) env2') \/
+       (env1 = insert x (TUBase c) env1' /\ env2 = insert x (TUBase c) env2')).
+  Proof.
+    induction x; intros * Comb.
+    - rewrite raw_insert_zero in *.
+      inversion Comb; subst; exists env0, env3; split;
+      try assumption.
+      + left; now repeat rewrite raw_insert_zero.
+      + right; left; now repeat rewrite raw_insert_zero.
+      + inversion H4; subst; repeat right; now repeat rewrite raw_insert_zero.
+    - rewrite raw_insert_successor in *.
+      destruct env.
+      + rewrite lookup_nil in *; simpl in *.
+        inversion Comb; subst.
+        generalize (IHx c _ _ _ H2).
+        intros [env1' [env2' [Comb' [[-> ->] | [[-> ->] | [-> ->]]]]]];
+        inversion Comb'; subst; exists [], []; split; try assumption;
+        repeat rewrite raw_insert_successor;
+        repeat rewrite lookup_nil; simpl; auto.
+      + rewrite lookup_zero in Comb; simpl in *.
+        inversion Comb; subst.
+        * generalize (IHx c _ _ _ H2).
+          intros [env1' [env2' [Comb' [[-> ->] | [[-> ->] | [-> ->]]]]]];
+          exists (None :: env1'), (None :: env2'); split; try (constructor; assumption);
+          repeat rewrite raw_insert_successor; repeat rewrite lookup_zero; simpl; auto.
+        * generalize (IHx c _ _ _ H2).
+          intros [env1' [env2' [Comb' [[-> ->] | [[-> ->] | [-> ->]]]]]];
+          exists (Some T :: env1'), (None :: env2'); split; try (constructor; assumption);
+          repeat rewrite raw_insert_successor; repeat rewrite lookup_zero; simpl; auto.
+        * generalize (IHx c _ _ _ H2).
+          intros [env1' [env2' [Comb' [[-> ->] | [[-> ->] | [-> ->]]]]]];
+          exists (None :: env1'), (Some T :: env2'); split; try (constructor; assumption);
+          repeat rewrite raw_insert_successor; repeat rewrite lookup_zero; simpl; auto.
+        * generalize (IHx c _ _ _ H3).
+          intros [env1' [env2' [Comb' [[-> ->] | [[-> ->] | [-> ->]]]]]];
+          exists (Some T1 :: env1'), (Some T2 :: env2'); split; try (constructor; assumption);
+          repeat rewrite raw_insert_successor; repeat rewrite lookup_zero; simpl; auto.
+  Qed.
+
+
   Lemma EnvironmentDis_raw_insert_None : forall x env1 env2 env,
     env1 +ₑ env2 ~= raw_insert x None env ->
     exists env1' env2',
@@ -2129,9 +2180,601 @@ Qed.
       + destruct o, o0; simpl_SubEnv; try inversion Eq; subst;
         eauto.
   Qed.
+
+  Lemma EnvironmentDisjointCombination_remove_weaken_first : forall x env1 env2 env3 T1 T2,
+    insert 0 T1 env1 +ₑ insert (S x) T2 (raw_insert 0 None env2) ~= insert 0 T1 env3 ->
+    env1 +ₑ insert x T2 env2 ~= env3.
+  Proof.
+    induction x; intros * Dis.
+    - repeat rewrite raw_insert_zero in *.
+      rewrite raw_insert_successor in *; simpl in *.
+      rewrite raw_insert_zero in *.
+      rewrite lookup_zero in *.
+      now inversion Dis; subst.
+    - repeat rewrite raw_insert_zero in *.
+      rewrite raw_insert_successor in *; simpl in *.
+      repeat rewrite raw_insert_successor in *; simpl in *.
+      destruct env2.
+      + repeat rewrite lookup_zero in *; simpl in *.
+        now inversion Dis; subst.
+      + repeat rewrite lookup_zero in *; simpl in *.
+        now inversion Dis; subst.
+  Qed.
+
+  Lemma EnvironmentCombination_Disjoint_Empty : forall env1 env2 env env3 env1' env2',
+    EmptyEnv env ->
+    env1 +ₑ env ~= env1' ->
+    env2 +ₑ env ~= env2' ->
+    env1' ▷ₑ env2' ~= env3 ->
+    env1 ▷ₑ env2 ~= env3 /\ env3 +ₑ env ~= env3.
+  Proof.
+    intros * Empty Dis1 Dis2 Comb.
+    Search (EmptyEnv).
+    generalize (EnvDis_EmptyEnv_right _ _ _ Empty Dis1).
+    generalize (EnvDis_EmptyEnv_right _ _ _ Empty Dis2).
+    intros -> ->; split.
+    assumption.
+    (* TODO: Create lemma *)
+    revert env Dis1 Dis2 Empty.
+    induction Comb; intros; inversion Dis1; subst; inversion Dis2; subst;
+    try constructor;
+    try apply IHComb; try assumption; try now inversion Empty; subst.
+  Qed.
+
+  Lemma asdfefayx : forall x T1 T2 T env1 env2 env3,
+    T1 ▷ T2 ~= T ->
+    raw_insert x None env1 ▷ₑ raw_insert x None env2 ~= raw_insert x None env3 ->
+    insert x T1 env1 ▷ₑ insert x T2 env2 ~= insert x T env3.
+  Proof.
+    induction x; intros * CombT Comb.
+    - repeat rewrite raw_insert_zero in *.
+      inversion Comb; subst.
+      now constructor.
+    - repeat rewrite raw_insert_successor in *.
+      destruct env1, env2, env3; simpl in *;
+      try repeat rewrite lookup_nil in *;
+      try repeat rewrite lookup_zero in *;
+      inversion Comb; subst;
+      try constructor; try now apply IHx.
+      assumption.
+  Qed.
+
+  Lemma EnvironmentDisjointCombination_insert_left : forall x T env1 env2 env3,
+    insert x T env1 +ₑ env2 ~= env3 ->
+    exists env2' env3',
+      (env2 = raw_insert x None env2' /\ env3 = insert x T env3') \/
+      (exists c, env2 = insert x T env2' /\ env3 = insert x T env3' /\ T = TUBase c).
+  Proof.
+    induction x; intros * Dis.
+    - rewrite raw_insert_zero in Dis.
+      inversion Dis; subst; exists env4, env.
+      + left; now repeat rewrite raw_insert_zero.
+      + right; exists BT; now repeat rewrite raw_insert_zero.
+    - rewrite raw_insert_successor in Dis.
+      destruct env1.
+      + rewrite lookup_nil in *; simpl in *.
+        inversion Dis; subst.
+        * generalize (IHx _ _ _ _ H0).
+          intros [env2' [env3' [[-> ->] | [c [-> [-> ->]]]]]];
+          exists (None :: env2'), (None :: env3').
+          -- left; repeat rewrite raw_insert_successor; now repeat rewrite lookup_zero.
+          -- right; exists c; repeat rewrite raw_insert_successor; now repeat rewrite lookup_zero.
+        * generalize (IHx _ _ _ _ H0).
+          intros [env2' [env3' [[-> ->] | [c [-> [-> ->]]]]]];
+          exists (Some T0 :: env2'), (Some T0 :: env3').
+          -- left; repeat rewrite raw_insert_successor; now repeat rewrite lookup_zero.
+          -- right; exists c; repeat rewrite raw_insert_successor; now repeat rewrite lookup_zero.
+      + rewrite lookup_zero in *; simpl in *.
+        inversion Dis; subst.
+        * generalize (IHx _ _ _ _ H3).
+          intros [env2' [env3' [[-> ->] | [c [-> [-> ->]]]]]];
+          exists (None :: env2'), (None :: env3').
+          -- left; repeat rewrite raw_insert_successor; now repeat rewrite lookup_zero.
+          -- right; exists c; repeat rewrite raw_insert_successor; now repeat rewrite lookup_zero.
+        * generalize (IHx _ _ _ _ H3).
+          intros [env2' [env3' [[-> ->] | [c [-> [-> ->]]]]]];
+          exists (None :: env2'), (Some T0 :: env3').
+          -- left; repeat rewrite raw_insert_successor; now repeat rewrite lookup_zero.
+          -- right; exists c; repeat rewrite raw_insert_successor; now repeat rewrite lookup_zero.
+        * generalize (IHx _ _ _ _ H3).
+          intros [env2' [env3' [[-> ->] | [c [-> [-> ->]]]]]];
+          exists (Some T0 :: env2'), (Some T0 :: env3').
+          -- left; repeat rewrite raw_insert_successor; now repeat rewrite lookup_zero.
+          -- right; exists c; repeat rewrite raw_insert_successor; now repeat rewrite lookup_zero.
+        * generalize (IHx _ _ _ _ H3).
+          intros [env2' [env3' [[-> ->] | [c [-> [-> ->]]]]]];
+          exists (Some (TUBase BT) :: env2'), (Some (TUBase BT) :: env3').
+          -- left; repeat rewrite raw_insert_successor; now repeat rewrite lookup_zero.
+          -- right; exists c; repeat rewrite raw_insert_successor; now repeat rewrite lookup_zero.
+  Qed.
+
+  Lemma EnvironmentCombination_insert_insert_None : forall x v A1 A2 A env1 env2 env3,
+    insert x A1 env1 ▷ₑ insert x A2 env2 ~= insert x A (raw_insert v None env3) ->
+    exists env1' env2',
+      insert x A1 env1 = insert x A1 (raw_insert v None env1') /\
+      insert x A2 env2 = insert x A2 (raw_insert v None env2').
+  Proof.
+    induction x; intros * Comb.
+    - repeat rewrite raw_insert_zero in *.
+      inversion Comb; subst.
+      apply EnvironmentCombination_raw_insert_None in H2.
+      destruct H2 as [env1' [env2' [-> [? [-> [? Comb']]]]]].
+      now exists env1', env2'; repeat rewrite raw_insert_zero.
+    - destruct v.
+      + repeat rewrite raw_insert_successor in *.
+        repeat rewrite raw_insert_zero in *.
+        repeat rewrite lookup_zero in *.
+        simpl in *.
+        inversion Comb; subst.
+        exists (tl env1), (tl env2).
+        repeat rewrite raw_insert_successor.
+        repeat rewrite raw_insert_zero.
+        now repeat rewrite lookup_zero.
+      + repeat rewrite raw_insert_successor in *.
+        inversion Comb; subst.
+        * generalize (IHx _ _ _ _ _ _ _ H0).
+          intros [env1' [env2' [Eq1 Eq2]]].
+          rewrite Eq1; rewrite Eq2.
+          exists (None :: env1'), (None :: env2').
+          repeat rewrite raw_insert_successor.
+          now repeat rewrite lookup_zero.
+        * generalize (IHx _ _ _ _ _ _ _ H0).
+          intros [env1' [env2' [Eq1 Eq2]]].
+          rewrite Eq1; rewrite Eq2.
+          exists (Some T :: env1'), (None :: env2').
+          repeat rewrite raw_insert_successor.
+          now repeat rewrite lookup_zero.
+        * generalize (IHx _ _ _ _ _ _ _ H0).
+          intros [env1' [env2' [Eq1 Eq2]]].
+          rewrite Eq1; rewrite Eq2.
+          exists (None :: env1'), (Some T :: env2').
+          repeat rewrite raw_insert_successor.
+          now repeat rewrite lookup_zero.
+        * generalize (IHx _ _ _ _ _ _ _ H2).
+          intros [env1' [env2' [Eq1 Eq2]]].
+          rewrite Eq1; rewrite Eq2.
+          exists (Some T1 :: env1'), (Some T2 :: env2').
+          repeat rewrite raw_insert_successor.
+          now repeat rewrite lookup_zero.
+  Qed.
+
+  Lemma EnvironmentSubtype_tl : forall env1 env2, env1 ≤ₑ env2 -> tl env1 ≤ₑ tl env2.
+  Proof.
+    intros * Sub; induction Sub; eauto using EnvironmentSubtype_trans with environment.
+  Qed.
+
+  Lemma EnvironmentDisjointCombination_second_None : forall T1 T2 env1 env2 env3,
+    T1 :: env1 +ₑ None :: env2 ~= T2 :: env3 -> T1 = T2.
+  Proof.
+    intros * Comb; now inversion Comb; subst.
+  Qed.
+
+  Lemma EnvironmentDisjointCombination_second_Some : forall T1 T2 T3 env1 env2 env3,
+    T1 :: env1 +ₑ Some T2 :: env2 ~= T3 :: env3 ->
+    (T1 = None /\ T3 = Some T2) \/ (exists c, T1 = Some (TUBase c) /\ T2 = TUBase c /\ T3 = Some (TUBase c)).
+  Proof.
+    intros * Comb; inversion Comb; subst.
+    - auto.
+    - right; exists BT; auto.
+  Qed.
+
+  Lemma EnvironmentDisjointCombination_Subtype_Empty : forall env1 env1' env2 env3,
+    env1 +ₑ env2 ~= env3 ->
+    EmptyEnv env1' ->
+    env1 ≤ₑ env1' ->
+    env3 ≤ₑ env2.
+  Proof.
+    intros * Comb; revert env1'.
+    induction Comb; intros * Empty Sub.
+    - constructor.
+    - constructor.
+      apply EnvironmentSubtype_None_inv in Sub.
+      destruct Sub as [env2' [-> Sub]].
+      inversion Empty; eapply IHComb; eassumption.
+    - apply EnvironmentSubtype_Some_inv' in Sub.
+      destruct Sub as [envT [T' [SubT [Sub [[-> Unr] | ->]]]]].
+      + eapply EnvironmentSubtype_trans with (env2 := Some T' :: env);
+        inversion Empty; try constructor; eauto with environment.
+      + inversion Empty; discriminate.
+    - apply EnvironmentSubtype_None_inv in Sub.
+      destruct Sub as [env2' [-> Sub]].
+      constructor; inversion Empty; eauto using Subtype_refl with environment.
+    - apply EnvironmentSubtype_Some_inv' in Sub.
+      destruct Sub as [envT [T' [SubT [Sub [[-> Unr] | ->]]]]].
+      + constructor; inversion Empty; eauto using Subtype_refl with environment.
+      + inversion Empty; discriminate.
+  Qed.
+
+  Lemma EnvironmentDisjointCombination_Subtype_Empty_insert : forall x T env1 env1' env2 env3,
+    insert x T env1 +ₑ raw_insert x None env2 ~= insert x T env3 ->
+    EmptyEnv env1' ->
+    env1 ≤ₑ env1' ->
+    insert x T env3 ≤ₑ insert x T env2.
+  Proof.
+    induction x; intros * Comb Empty Sub .
+    - repeat rewrite raw_insert_zero in *.
+      inversion Comb; subst.
+      constructor; try apply Subtype_refl.
+      revert env1' Sub Empty.
+      induction H0; intros; try rename IHEnvironmentDisjointCombination into IH.
+      + constructor.
+      + constructor.
+        apply EnvironmentSubtype_None_inv in Sub.
+        destruct Sub as [envT [-> Sub]].
+        eapply IH.
+        * now constructor.
+        * eassumption.
+        * now inversion Empty.
+      + apply EnvironmentSubtype_Some_inv' in Sub.
+        destruct Sub as [envT [T' [SubT [Sub [[-> Unr] | ->]]]]].
+        * eapply EnvironmentSubtype_trans with (env2 := Some T' :: env); eauto with environment.
+          constructor; try assumption.
+          eapply IH.
+          -- now constructor.
+          -- eassumption.
+          -- now inversion Empty.
+        * inversion Empty; discriminate.
+      + constructor; try apply Subtype_refl.
+        apply EnvironmentSubtype_None_inv in Sub.
+        destruct Sub as [envT [-> Sub]].
+        eapply IH.
+        * now constructor.
+        * eassumption.
+        * now inversion Empty.
+      + repeat constructor.
+        apply EnvironmentSubtype_Some_inv' in Sub.
+        destruct Sub as [envT [T' [SubT [Sub [[-> Unr] | ->]]]]].
+        * eapply IH.
+          -- now constructor.
+          -- eassumption.
+          -- now inversion Empty.
+        * inversion Empty; discriminate.
+    - repeat rewrite raw_insert_successor in *.
+      destruct env2, env3; simpl in *.
+      + repeat rewrite lookup_nil in *.
+        now constructor.
+      + repeat rewrite lookup_zero in *.
+        rewrite lookup_nil in *.
+        destruct env1.
+        * apply EnvironmentSubtype_nil_left in Sub.
+          subst.
+          rewrite lookup_nil in Comb.
+          inversion Comb; subst.
+          constructor.
+          eapply IHx; try eassumption; constructor.
+        * rewrite lookup_zero in Comb.
+          simpl in *.
+          generalize (EnvironmentDisjointCombination_second_None _ _ _ _ _ Comb).
+          intros ->.
+          destruct o.
+          -- apply EnvironmentSubtype_Some_inv' in Sub.
+             destruct Sub as [envT [T' [SubT [Sub [[-> Unr] | ->]]]]].
+             ++ eapply EnvironmentSubtype_trans with (env2 := Some T' :: insert x T env3).
+                eauto with environment.
+                constructor; try assumption.
+                eapply IHx.
+                ** inversion Comb; subst; eassumption.
+                ** inversion Empty; subst; apply H2.
+                ** assumption.
+             ++ inversion Empty; discriminate.
+          -- apply EnvironmentSubtype_None_inv in Sub.
+             destruct Sub as [env2' [-> Sub]].
+             inversion Comb; subst; constructor.
+             eapply IHx; try (inversion Empty; subst); eassumption.
+      + repeat rewrite lookup_nil in *.
+        repeat rewrite lookup_zero in *.
+        destruct env1.
+        * rewrite lookup_nil in *.
+          apply EnvironmentSubtype_nil_left in Sub; subst.
+          apply EnvironmentDis_Comb_comm in Comb.
+          generalize (EnvironmentDisjointCombination_second_None _ _ _ _ _ Comb).
+          intros ->; constructor.
+          inversion Comb; subst.
+          apply EnvironmentDis_Comb_comm in H2.
+          eapply IHx; try eassumption; constructor.
+        * rewrite lookup_zero in *; simpl in *.
+          inversion Comb; subst.
+          constructor.
+          apply EnvironmentSubtype_None_inv in Sub.
+          destruct Sub as [env2' [-> Sub]].
+          eapply IHx.
+          -- eassumption.
+          -- inversion Empty; apply H3.
+          -- eassumption.
+      + repeat rewrite lookup_zero in *.
+        destruct env1.
+        * rewrite lookup_nil in *.
+          apply EnvironmentDis_Comb_comm in Comb.
+          generalize (EnvironmentDisjointCombination_second_None _ _ _ _ _ Comb).
+          intros ->.
+          apply EnvironmentSubtype_nil_left in Sub; subst.
+          destruct o0; constructor; try apply Subtype_refl;
+          inversion Comb; subst.
+          -- apply EnvironmentDis_Comb_comm in H0.
+             eapply IHx; try eassumption; constructor.
+          -- apply EnvironmentDis_Comb_comm in H2.
+             eapply IHx; try eassumption; constructor.
+        * rewrite lookup_zero in *; simpl in *.
+          destruct o.
+          -- generalize (EnvironmentDisjointCombination_second_Some _ _ _ _ _ _ Comb).
+             intros [[-> ->] | [c [-> [-> ->]]]].
+             ++ apply EnvironmentSubtype_None_inv in Sub.
+                destruct Sub as [env2' [-> Sub]].
+                inversion Empty.
+                inversion Comb; subst.
+                constructor; try apply Subtype_refl.
+                eapply IHx; try eassumption.
+             ++ inversion Comb; subst.
+                constructor; try apply Subtype_refl.
+                apply EnvironmentSubtype_Some_inv' in Sub.
+                destruct Sub as [envT [T' [SubT [Sub [[-> Unr] | ->]]]]].
+                ** inversion Empty; eapply IHx; try eassumption.
+                ** inversion Empty; discriminate.
+          -- generalize (EnvironmentDisjointCombination_second_None _ _ _ _ _ Comb).
+             intros ->.
+             destruct o0.
+             ++ inversion Comb; subst.
+                apply EnvironmentSubtype_Some_inv' in Sub.
+                destruct Sub as [envT [T' [SubT [Sub [[-> Unr] | ->]]]]].
+                ** eapply EnvironmentSubtype_trans with (env2 := Some T' :: insert x T env3).
+                   eauto with environment.
+                   constructor; try assumption.
+                   inversion Empty.
+                   eapply IHx with (env1' := envT); try eassumption.
+                ** inversion Empty; discriminate.
+             ++ inversion Comb; subst.
+                apply EnvironmentSubtype_None_inv in Sub.
+                destruct Sub as [env2' [-> Sub]].
+                constructor; inversion Empty.
+                eapply IHx with (env1' := env2'); try eassumption.
+  Qed.
+
+  Lemma EnvironmentDisjointCombination_Subtype_Empty_insert_Base : forall x c env1 env1' env2 env3,
+    insert x (TUBase c) env1 +ₑ insert x (TUBase c) env2 ~= insert x (TUBase c) env3 ->
+    EmptyEnv env1' ->
+    env1 ≤ₑ env1' ->
+    insert x (TUBase c) env3 ≤ₑ insert x (TUBase c) env2.
+  Proof.
+    induction x; intros * Comb Empty Sub.
+    - repeat rewrite raw_insert_zero in *.
+      inversion Comb; subst.
+      constructor; try apply Subtype_refl.
+      revert env1' Sub Empty.
+      induction H0; intros; try rename IHEnvironmentDisjointCombination into IH.
+      + constructor.
+      + constructor.
+        apply EnvironmentSubtype_None_inv in Sub.
+        destruct Sub as [envT [-> Sub]].
+        eapply IH.
+        * now constructor.
+        * eassumption.
+        * now inversion Empty.
+      + apply EnvironmentSubtype_Some_inv' in Sub.
+        destruct Sub as [envT [T' [SubT [Sub [[-> Unr] | ->]]]]].
+        * eapply EnvironmentSubtype_trans with (env2 := Some T' :: env); eauto with environment.
+          constructor; try assumption.
+          eapply IH.
+          -- now constructor.
+          -- eassumption.
+          -- now inversion Empty.
+        * inversion Empty; discriminate.
+      + constructor; try apply Subtype_refl.
+        apply EnvironmentSubtype_None_inv in Sub.
+        destruct Sub as [envT [-> Sub]].
+        eapply IH.
+        * now constructor.
+        * eassumption.
+        * now inversion Empty.
+      + repeat constructor.
+        apply EnvironmentSubtype_Some_inv' in Sub.
+        destruct Sub as [envT [T' [SubT [Sub [[-> Unr] | ->]]]]].
+        * eapply IH.
+          -- now constructor.
+          -- eassumption.
+          -- now inversion Empty.
+        * inversion Empty; discriminate.
+    - repeat rewrite raw_insert_successor in *.
+      destruct env2, env3; simpl in *.
+      + repeat rewrite lookup_nil in *.
+        now constructor.
+      + repeat rewrite lookup_zero in *.
+        rewrite lookup_nil in *.
+        destruct env1.
+        * apply EnvironmentSubtype_nil_left in Sub.
+          subst.
+          rewrite lookup_nil in Comb.
+          inversion Comb; subst.
+          constructor.
+          eapply IHx; try eassumption; constructor.
+        * rewrite lookup_zero in Comb.
+          simpl in *.
+          generalize (EnvironmentDisjointCombination_second_None _ _ _ _ _ Comb).
+          intros ->.
+          destruct o.
+          -- apply EnvironmentSubtype_Some_inv' in Sub.
+             destruct Sub as [envT [T' [SubT [Sub [[-> Unr] | ->]]]]].
+             ++ eapply EnvironmentSubtype_trans with (env2 := Some T' :: insert x (TUBase c) env3).
+                eauto with environment.
+                constructor; try assumption.
+                eapply IHx.
+                ** inversion Comb; subst; eassumption.
+                ** inversion Empty; subst; apply H2.
+                ** assumption.
+             ++ inversion Empty; discriminate.
+          -- apply EnvironmentSubtype_None_inv in Sub.
+             destruct Sub as [env2' [-> Sub]].
+             inversion Comb; subst; constructor.
+             eapply IHx; try (inversion Empty; subst); eassumption.
+      + repeat rewrite lookup_nil in *.
+        repeat rewrite lookup_zero in *.
+        destruct env1.
+        * rewrite lookup_nil in *.
+          apply EnvironmentSubtype_nil_left in Sub; subst.
+          apply EnvironmentDis_Comb_comm in Comb.
+          generalize (EnvironmentDisjointCombination_second_None _ _ _ _ _ Comb).
+          intros ->; constructor.
+          inversion Comb; subst.
+          apply EnvironmentDis_Comb_comm in H2.
+          eapply IHx; try eassumption; constructor.
+        * rewrite lookup_zero in *; simpl in *.
+          inversion Comb; subst.
+          constructor.
+          apply EnvironmentSubtype_None_inv in Sub.
+          destruct Sub as [env2' [-> Sub]].
+          eapply IHx.
+          -- eassumption.
+          -- inversion Empty; apply H3.
+          -- eassumption.
+      + repeat rewrite lookup_zero in *.
+        destruct env1.
+        * rewrite lookup_nil in *.
+          apply EnvironmentDis_Comb_comm in Comb.
+          generalize (EnvironmentDisjointCombination_second_None _ _ _ _ _ Comb).
+          intros ->.
+          apply EnvironmentSubtype_nil_left in Sub; subst.
+          destruct o0; constructor; try apply Subtype_refl;
+          inversion Comb; subst.
+          -- apply EnvironmentDis_Comb_comm in H0.
+             eapply IHx; try eassumption; constructor.
+          -- apply EnvironmentDis_Comb_comm in H2.
+             eapply IHx; try eassumption; constructor.
+        * rewrite lookup_zero in *; simpl in *.
+          destruct o.
+          -- generalize (EnvironmentDisjointCombination_second_Some _ _ _ _ _ _ Comb).
+             intros [[-> ->] | [c' [-> [-> ->]]]].
+             ++ apply EnvironmentSubtype_None_inv in Sub.
+                destruct Sub as [env2' [-> Sub]].
+                inversion Empty.
+                inversion Comb; subst.
+                constructor; try apply Subtype_refl.
+                eapply IHx; try eassumption.
+             ++ inversion Comb; subst.
+                constructor; try apply Subtype_refl.
+                apply EnvironmentSubtype_Some_inv' in Sub.
+                destruct Sub as [envT [T' [SubT [Sub [[-> Unr] | ->]]]]].
+                ** inversion Empty; eapply IHx; try eassumption.
+                ** inversion Empty; discriminate.
+          -- generalize (EnvironmentDisjointCombination_second_None _ _ _ _ _ Comb).
+             intros ->.
+             destruct o0.
+             ++ inversion Comb; subst.
+                apply EnvironmentSubtype_Some_inv' in Sub.
+                destruct Sub as [envT [T' [SubT [Sub [[-> Unr] | ->]]]]].
+                ** eapply EnvironmentSubtype_trans with (env2 := Some T' :: insert x (TUBase c) env3).
+                   eauto with environment.
+                   constructor; try assumption.
+                   inversion Empty.
+                   eapply IHx with (env1' := envT); try eassumption.
+                ** inversion Empty; discriminate.
+             ++ inversion Comb; subst.
+                apply EnvironmentSubtype_None_inv in Sub.
+                destruct Sub as [env2' [-> Sub]].
+                constructor; inversion Empty.
+                eapply IHx with (env1' := env2'); try eassumption.
+  Qed.
+
+
+  Lemma EnvironmentCombination_insert_both : forall x env1 env2 env3 T1 T2 T,
+    T1 ▷ T2 ~= T ->
+    env1 ▷ₑ env2 ~= env3 ->
+    insert x T1 env1 ▷ₑ insert x T2 env2 ~= insert x T env3.
+  Proof.
+    induction x; intros * TComb Comb.
+    - repeat rewrite raw_insert_zero; now constructor.
+    - repeat rewrite raw_insert_successor.
+      destruct env1, env2, env3;
+      repeat rewrite lookup_nil in *;
+      repeat rewrite lookup_zero in *;
+      simpl in *;
+      try inversion Comb; subst;
+      constructor; try assumption; now eapply IHx.
+  Qed.
+
+  Lemma EnvironmentDisjointCombination_Empty_right : forall env1 env2,
+    EmptyEnv env2 ->
+    length env1 = length env2 ->
+    env1 +ₑ env2 ~= env1.
+  Proof.
+    induction env1, env2; intros Empty L;
+    try (inversion L; fail); try constructor.
+    destruct o.
+    - inversion Empty; discriminate.
+    - destruct a; inversion Empty; inversion L;
+      constructor; now apply IHenv1.
+  Qed.
+
+  Lemma EnvironmentDisjointCombination_insert_EmptyEnv : forall x env1 env1' T,
+    EmptyEnv env1' ->
+    length env1 = length env1' ->
+    raw_insert x None env1 +ₑ insert x T env1' ~= insert x T env1.
+  Proof.
+    induction x; intros * Empty L.
+    - repeat rewrite raw_insert_zero.
+      constructor.
+      now apply EnvironmentDisjointCombination_Empty_right.
+    - repeat rewrite raw_insert_successor.
+      destruct env1, env1'.
+      + repeat rewrite lookup_nil; constructor; simpl.
+        now apply IHx.
+      + inversion L.
+      + inversion L.
+      + repeat rewrite lookup_zero; simpl in *.
+        inversion Empty; subst.
+        inversion L.
+        destruct o; constructor; now apply IHx.
+  Qed.
+
+  Lemma EnvironmentDisjointCombination_insert_Base : forall x env1 env1' c,
+    EmptyEnv env1' ->
+    length env1 = length env1' ->
+    insert x (TUBase c) env1 +ₑ insert x (TUBase c) env1' ~= insert x (TUBase c) env1.
+  Proof.
+    induction x; intros * Empty L.
+    - repeat rewrite raw_insert_zero.
+      constructor.
+      now apply EnvironmentDisjointCombination_Empty_right.
+    - repeat rewrite raw_insert_successor.
+      destruct env1, env1'.
+      + repeat rewrite lookup_nil; constructor; simpl.
+        now apply IHx.
+      + inversion L.
+      + inversion L.
+      + repeat rewrite lookup_zero; simpl in *.
+        inversion Empty; subst.
+        inversion L.
+        destruct o; constructor; now apply IHx.
+  Qed.
+
+  Lemma EnvironmentSubtype_insert_Subtype : forall x T1 T2 env,
+    T1 ≤ T2 ->
+    insert x T1 env ≤ₑ insert x T2 env.
+  Proof.
+    induction x; intros * Sub.
+    - repeat rewrite raw_insert_zero.
+      constructor; eauto with environment.
+    - repeat rewrite raw_insert_successor.
+      destruct (lookup 0 env);
+      constructor; try apply Subtype_refl; now apply IHx.
+  Qed.
+
+  Lemma EnvironmentDisjointCombination_Empty : forall env1 env2,
+    EmptyEnv env2 ->
+    length env1 = length env2 ->
+    env1 +ₑ env2 ~= env1.
+  Proof.
+    induction env1, env2; intros Empty L.
+    - constructor.
+    - inversion L.
+    - inversion L.
+    - inversion Empty; inversion L; subst;
+      destruct a; constructor;
+      now apply IHenv1.
+  Qed.
+
 End environment_properties.
 
 Hint Resolve create_EmptyEnv_EmptyEnv : environment.
 Hint Resolve SubEnv_EmptyEnv_create_EmptyEnv : environment.
 Hint Resolve EnvironmentSubtype_nil_left : environment.
 Hint Resolve EnvironmentSubtype_nil_right : environment.
+Hint Resolve create_EmptyEnv_length_same : environment.

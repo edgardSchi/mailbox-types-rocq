@@ -1049,6 +1049,126 @@ Deciding whether a type is unrestricted is deciable
 <span class="id" title="keyword">Qed</span>.<br/>
 
 <br/>
+<span class="comment">(*Lemma&nbsp;asdgdf&nbsp;:&nbsp;forall&nbsp;e1&nbsp;e2,&nbsp;e1&nbsp;⊙&nbsp;e2&nbsp;⊑&nbsp;𝟙&nbsp;-&gt;&nbsp;e1&nbsp;≈&nbsp;𝟙&nbsp;/\&nbsp;e2&nbsp;≈&nbsp;𝟙.*)</span><br/>
+<span class="comment">(*Proof.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;intros&nbsp;*&nbsp;In.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;destruct&nbsp;e1,&nbsp;e2.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;-&nbsp;generalize&nbsp;(MPComp_zero_left&nbsp;𝟘).*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;intros&nbsp;Eq.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;inversion&nbsp;Eq.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;generalize&nbsp;(MPInclusion_trans&nbsp;_&nbsp;_&nbsp;_&nbsp;H0&nbsp;In).*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;intros&nbsp;Contra.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;unfold&nbsp;"⊑"&nbsp;in&nbsp;*.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;rewrite&nbsp;Eq&nbsp;in&nbsp;In.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;Search&nbsp;(𝟘&nbsp;⊙&nbsp;_).*)</span><br/>
+
+<br/>
+<span class="comment">(*Lemma&nbsp;syxve&nbsp;:&nbsp;forall&nbsp;e,&nbsp;~&nbsp;e&nbsp;⊑&nbsp;𝟘&nbsp;-&gt;&nbsp;exists&nbsp;m,&nbsp;m&nbsp;∈&nbsp;e.*)</span><br/>
+<span class="comment">(*Proof.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;induction&nbsp;e;&nbsp;intros&nbsp;Not;*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;try&nbsp;(eexists;&nbsp;now&nbsp;constructor).*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;-&nbsp;exfalso;&nbsp;now&nbsp;apply&nbsp;Not.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;-&nbsp;eexists.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;constructor.*)</span><br/>
+<span class="comment">(**)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;assert&nbsp;(~&nbsp;e1&nbsp;⊑&nbsp;𝟘&nbsp;\/&nbsp;~&nbsp;e2&nbsp;⊑&nbsp;𝟘).*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;{*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;constructor.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;intros&nbsp;Inc.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;apply&nbsp;Not.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;intros&nbsp;m&nbsp;mIn.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;inversion&nbsp;mIn;&nbsp;subst.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+&nbsp;apply&nbsp;MPInclusion_zero&nbsp;in&nbsp;Inc.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;now&nbsp;rewrite&nbsp;&lt;-&nbsp;Inc.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Search&nbsp;(_&nbsp;⊑&nbsp;𝟘).*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;}*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;-&nbsp;eexists;&nbsp;constructor.*)</span><br/>
+<span class="comment">(**)</span><br/>
+<span class="comment">(**)</span><br/>
+<span class="comment">(*Lemma&nbsp;asdvxes&nbsp;:&nbsp;forall&nbsp;e1&nbsp;e2&nbsp;m,*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;e1&nbsp;⊙&nbsp;e2&nbsp;⊑&nbsp;𝟙&nbsp;-&gt;*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;~&nbsp;e1&nbsp;⊑&nbsp;𝟘&nbsp;-&gt;*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;~&nbsp;e2&nbsp;⊑&nbsp;𝟘&nbsp;-&gt;*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;m&nbsp;∈&nbsp;e1&nbsp;-&gt;*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;m&nbsp;∈&nbsp;𝟙.*)</span><br/>
+<span class="comment">(*Proof.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;induction&nbsp;e1;&nbsp;intros&nbsp;*&nbsp;Inc&nbsp;Note1&nbsp;Note2&nbsp;In;*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;try&nbsp;(inversion&nbsp;In;&nbsp;fail);*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;try&nbsp;assumption.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;-&nbsp;*)</span><br/>
+<span class="comment">(**)</span><br/>
+<span class="comment">(**)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;induction&nbsp;e1,&nbsp;e2;&nbsp;intros&nbsp;*&nbsp;Inc&nbsp;Note1&nbsp;Note2&nbsp;In;*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;try&nbsp;(inversion&nbsp;In;&nbsp;fail);*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;try&nbsp;assumption.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;-&nbsp;inversion&nbsp;In;&nbsp;subst.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;generalize&nbsp;(MPComp_zero_left&nbsp;«&nbsp;m&nbsp;»).*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;intros&nbsp;<span class="inlinecode"><span class="id" title="var">Inc1</span></span> <span class="inlinecode"><span class="id" title="var">Inc2</span></span>.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;exfalso.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;apply&nbsp;Note2.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;apply&nbsp;reflexivity.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;-&nbsp;generalize&nbsp;(MPComp_unit&nbsp;«&nbsp;m&nbsp;»).*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;intros&nbsp;Eq.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;unfold&nbsp;"⊑"&nbsp;in&nbsp;Inc.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;setoid_rewrite&nbsp;Eq&nbsp;in&nbsp;Inc.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;now&nbsp;apply&nbsp;Inc.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;-&nbsp;inversion&nbsp;In;&nbsp;subst.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;unfold&nbsp;"⊑"&nbsp;in&nbsp;Inc.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;assert&nbsp;((⟨&nbsp;m&nbsp;⟩&nbsp;⊎&nbsp;⟨&nbsp;m0&nbsp;⟩)&nbsp;∈&nbsp;«&nbsp;m&nbsp;»&nbsp;⊙&nbsp;«&nbsp;m0&nbsp;»)&nbsp;by&nbsp;(eapply&nbsp;MPValueComp;&nbsp;now&nbsp;constructor).*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;generalize&nbsp;(Inc&nbsp;_&nbsp;H).*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;intros&nbsp;Contra;&nbsp;inversion&nbsp;Contra.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;-*)</span><br/>
+<span class="comment">(**)</span><br/>
+<span class="comment">(*Lemma&nbsp;sadfegwef&nbsp;:&nbsp;forall&nbsp;e1&nbsp;e2&nbsp;f,*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;~&nbsp;f&nbsp;⊑&nbsp;𝟘&nbsp;-&gt;*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;~&nbsp;e1&nbsp;⊑&nbsp;𝟘&nbsp;-&gt;*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;~&nbsp;e2&nbsp;⊑&nbsp;𝟘&nbsp;-&gt;*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;e1&nbsp;⊙&nbsp;e2&nbsp;⊑&nbsp;f&nbsp;-&gt;*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;exists&nbsp;f1&nbsp;f2,&nbsp;f&nbsp;≈&nbsp;f1&nbsp;⊙&nbsp;f2&nbsp;/\&nbsp;e1&nbsp;⊑&nbsp;f1&nbsp;/\&nbsp;e2&nbsp;⊑&nbsp;f2.*)</span><br/>
+<span class="comment">(*Proof.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;intros&nbsp;*&nbsp;Notf&nbsp;Note1&nbsp;Note2&nbsp;In.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;destruct&nbsp;f.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;-&nbsp;exfalso.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;apply&nbsp;Notf.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;apply&nbsp;MPInclusion_zero.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;intros&nbsp;m&nbsp;mIn.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;inversion&nbsp;mIn.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;-&nbsp;exists&nbsp;𝟙,&nbsp;𝟙;&nbsp;repeat&nbsp;split;&nbsp;intros&nbsp;m&nbsp;mIn.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;+&nbsp;eapply&nbsp;MPValueComp;&nbsp;try&nbsp;constructor.&nbsp;simpl.&nbsp;now&nbsp;inversion&nbsp;mIn.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;+&nbsp;inversion&nbsp;mIn;&nbsp;subst;&nbsp;inversion&nbsp;H1;&nbsp;inversion&nbsp;H3;&nbsp;subst;&nbsp;simpl&nbsp;in&nbsp;*.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;now&nbsp;rewrite&nbsp;H4.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;+&nbsp;admit.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;+&nbsp;*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;Search&nbsp;(_&nbsp;≈&nbsp;𝟙).*)</span><br/>
+<span class="comment">(**)</span><br/>
+<span class="comment">(*Lemma&nbsp;sdfasef&nbsp;:&nbsp;forall&nbsp;T&nbsp;T1&nbsp;T2&nbsp;U&nbsp;U1&nbsp;U2,*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;U1&nbsp;▷&nbsp;U2&nbsp;~=&nbsp;U&nbsp;-&gt;*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;T1&nbsp;≤&nbsp;U&nbsp;-&gt;*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;T1&nbsp;▷&nbsp;T2&nbsp;~=&nbsp;T&nbsp;-&gt;*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;exists&nbsp;U1'&nbsp;U2'&nbsp;T2'&nbsp;A1&nbsp;A2,*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;U2'&nbsp;▷&nbsp;T2'&nbsp;~=&nbsp;A2&nbsp;/\*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;U1'&nbsp;▷&nbsp;A2&nbsp;~=&nbsp;A1&nbsp;/\*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;T&nbsp;≤&nbsp;A1&nbsp;/\*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;U1'&nbsp;≤&nbsp;U1&nbsp;/\*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;U2'&nbsp;≤&nbsp;U2&nbsp;/\*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;T2'&nbsp;≤&nbsp;T2.*)</span><br/>
+<span class="comment">(*Proof.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;intros&nbsp;*&nbsp;Comb1&nbsp;Sub&nbsp;Comb2.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;revert&nbsp;T1&nbsp;T2&nbsp;T&nbsp;Comb2&nbsp;Sub.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;induction&nbsp;Comb1;&nbsp;intros;&nbsp;inversion&nbsp;Comb2;&nbsp;subst.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;-&nbsp;inversion&nbsp;Sub;&nbsp;subst.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;repeat&nbsp;exists&nbsp;(TUBase&nbsp;c);&nbsp;repeat&nbsp;constructor.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;-&nbsp;inversion&nbsp;Sub;&nbsp;subst.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;-&nbsp;inversion&nbsp;Sub;&nbsp;subst.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;-&nbsp;inversion&nbsp;H1;&nbsp;subst.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;+&nbsp;inversion&nbsp;Sub;&nbsp;subst.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;inversion&nbsp;H0;&nbsp;subst;&nbsp;inversion&nbsp;H2;&nbsp;subst.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--&nbsp;inversion&nbsp;H;&nbsp;subst.*)</span><br/>
+<span class="comment">(*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++&nbsp;Search&nbsp;(_&nbsp;⊙&nbsp;_&nbsp;⊑&nbsp;_).*)</span><br/>
+
+<br/>
 <span class="id" title="keyword">End</span> <a class="idref" href="MailboxTypes.Types.html#mailbox_types_properties"><span class="id" title="section">mailbox_types_properties</span></a>.<br/>
 </div>
 </div>

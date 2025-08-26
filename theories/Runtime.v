@@ -20,7 +20,7 @@ Section runtime_def.
 
 (**
     A stack is a simply a list of terms. Due to the usage of deBruijn indices
-    we don't include variable names in frames.
+   we don't include variable names in frames.
     We will always replace variable 0.
   *)
   (*Definition Stack := list Term.*)
@@ -37,7 +37,7 @@ Section runtime_def.
   Inductive Configuration : Type :=
     | ConfConf : Term -> Stack -> Configuration
     | ConfMessage : VarName -> Message -> Value -> Configuration
-| ConfParallel : Configuration -> Configuration -> Configuration
+    | ConfParallel : Configuration -> Configuration -> Configuration
     | ConfRestr : Configuration -> Configuration.
 
   Fixpoint lower_conf (i : VarName) (c : Configuration) : Configuration :=
@@ -48,13 +48,20 @@ Section runtime_def.
     | ConfRestr c => ConfRestr (lower_conf (S i) c)
     end.
 
+  Fixpoint exchange_Stack (i : VarName) (s : Stack) : Stack :=
+    match s with
+    | [] => []
+    | (x, t) :: s' => (exchange_Var i x, exchange i t) :: exchange_Stack i s'
+    end.
+
   Fixpoint exchange_conf (i : VarName) (c : Configuration) : Configuration :=
     match c with
-    | ConfConf t s => ConfConf (exchange i t) s
+    | ConfConf t s => ConfConf (exchange i t) (exchange_Stack i s)
     | ConfMessage x m v => ConfMessage (exchange_Var i x) m (exchange_Value i v)
     | ConfParallel c1 c2 => ConfParallel (exchange_conf i c1) (exchange_conf i c2)
     | ConfRestr c => ConfRestr (exchange_conf (S i) c)
     end.
+
 
   Fixpoint FV_conf (c : Configuration) : set nat :=
     match c with
@@ -165,6 +172,7 @@ Section runtime_def.
         RuntimeEnvironmentSubtype env1 env2 ->
         RuntimeEnvironmentSubtype (None :: env1) (None :: env2)
     | EnvSubtypeDrop : forall env1 env2 T,
+        Unrestricted (⌈ T ⌉) ->
         RuntimeEnvironmentSubtype env1 env2 ->
         RuntimeEnvironmentSubtype (Some T :: env1) (None :: env2)
     | EnvSubtypeSub : forall env1 env2 T1 T2,
@@ -220,6 +228,16 @@ Section runtime_props.
   Lemma RuntimeSubtype_refl : forall T, RuntimeSubtype T T.
   Proof.
     destruct T; try destruct m; try constructor; apply MPInclusion_refl.
+  Qed.
+
+  Lemma RuntimeSubtype_trans : forall T1 T2 T3,
+    RuntimeSubtype T1 T2 ->
+    RuntimeSubtype T2 T3 ->
+    RuntimeSubtype T1 T3.
+  Proof.
+    intros * Sub1 Sub2.
+    inversion Sub1; subst; inversion Sub2; subst;
+    constructor; eapply MPInclusion_trans; eassumption.
   Qed.
 
   Lemma RuntimeEnvironmentSubtype_refl : forall env, RuntimeEnvironmentSubtype env env.
@@ -448,20 +466,778 @@ Section runtime_props.
     + eapply SUBS; try eassumption; now apply IHWT.
   Qed.
 
+  Lemma WellTypedConfig_ConfRestr_inv : forall prog env c,
+    WellTypedConfig prog env (ConfRestr c) ->
+    exists env', RuntimeEnvironmentSubtype env env' /\
+      WellTypedConfig prog (Some (TTMailbox (? 𝟙)) :: env') c.
+  Proof.
+    intros * WT.
+    remember (ConfRestr c) as C.
+    revert c HeqC.
+    induction WT; intros; inversion HeqC; subst.
+    - exists env; split.
+      + apply RuntimeEnvironmentSubtype_refl.
+      + assumption.
+    - generalize (IHWT c0 eq_refl).
+      intros [env'' [Sub' WT']].
+      exists env''; split.
+      + eapply RuntimeEnvironmentSubtype_trans; eassumption.
+      + assumption.
+  Qed.
+
+  Lemma WellTypedConfig_ConfRestr_inv' : forall prog env c,
+    WellTypedConfig prog env (ConfRestr c) ->
+    WellTypedConfig prog (Some (TTMailbox (? 𝟙)) :: env) c \/
+    exists env', RuntimeEnvironmentSubtype env env' /\
+      WellTypedConfig prog env' c.
+  Proof.
+    intros * WT.
+    remember (ConfRestr c) as C.
+    revert c HeqC.
+    induction WT; intros; inversion HeqC; subst.
+    - now left.
+    - generalize (IHWT c0 eq_refl).
+      intros [WT' | [env'' [Sub' WT']]].
+      + left. eapply SUBS with (env' := Some (TTMailbox (? 𝟙)) :: env').
+        * constructor; (apply RuntimeSubtype_refl || assumption).
+        * assumption.
+      + right; exists env''; eauto using RuntimeEnvironmentSubtype_trans.
+  Qed.
+
+  Lemma WellTypedConfig_ConfRestr_inv'' : forall prog env c,
+    WellTypedConfig prog env (ConfRestr c) ->
+    WellTypedConfig prog (Some (TTMailbox (? 𝟙)) :: env) c.
+  Proof.
+    intros * WT.
+    remember (ConfRestr c) as C.
+    revert c HeqC.
+    induction WT; intros; inversion HeqC; subst.
+    - assumption.
+    - generalize (IHWT _ eq_refl).
+      intros WT'.
+      eapply SUBS with (env' := Some (TTMailbox (? 𝟙)) :: env').
+      + constructor; auto using RuntimeSubtype_refl.
+      + assumption.
+  Qed.
+
+  Lemma WellTypedConfig_ConfConf_inv : forall prog env t stack,
+    WellTypedConfig prog env (ConfConf t stack) ->
+    exists env' T env1 env2,
+      env1 ▷ₑ env2 ~= map_maybe returnType env' /\
+      WellTypedTerm prog env1 t T /\
+      WellTypedStack prog env2 T stack /\
+      RuntimeEnvironmentSubtype env env'.
+  Proof.
+    intros * WT.
+    remember (ConfConf t stack) as C.
+    revert t stack HeqC.
+    induction WT; intros; inversion HeqC; subst.
+    - exists env, T, env1, env2; repeat split; try assumption.
+      apply RuntimeEnvironmentSubtype_refl.
+    - generalize (IHWT _ _ eq_refl).
+      intros [envT [T [env1 [env2 [Comb [WT1 [WT2 Sub]]]]]]].
+      exists envT, T, env1, env2; repeat split; try assumption.
+      eapply RuntimeEnvironmentSubtype_trans; eassumption.
+  Qed.
+
+  Lemma WellTypedConfig_ConfConf_inv' : forall prog env t stack,
+    WellTypedConfig prog env (ConfConf t stack) ->
+    (exists T env1 env2,
+      env1 ▷ₑ env2 ~= map_maybe returnType env /\
+      WellTypedTerm prog env1 t T /\
+      WellTypedStack prog env2 T stack) \/
+    (exists env', RuntimeEnvironmentSubtype env env' /\
+      WellTypedConfig prog env' (ConfConf t stack)).
+  Proof.
+    intros * WT.
+    remember (ConfConf t stack) as C.
+    revert t stack HeqC.
+    induction WT; intros; inversion HeqC; subst.
+    - left; exists T, env1, env2; repeat split; try assumption.
+    - generalize (IHWT _ _ eq_refl).
+      intros [[T [env1 [env2 [Comb [WT1 WT2]]]]] | [env'' [Sub WT']]].
+      + right; exists env'; split.
+        * assumption.
+        * econstructor; eassumption.
+      + right; exists env'; split.
+        * eauto using RuntimeEnvironmentSubtype_trans.
+        * eapply SUBS; eassumption.
+  Qed.
+
+  Lemma RuntimeEnvironmentSubtype_None_inv : forall env1 env2,
+    RuntimeEnvironmentSubtype (None :: env1) env2 ->
+    exists env2',
+      RuntimeEnvironmentSubtype env1 env2' /\ env2 = None :: env2'.
+  Proof.
+    intros * Sub.
+    remember (None :: env1) as E.
+    revert env1 HeqE.
+    induction Sub; intros; inversion HeqE; subst.
+    - exists env2; auto.
+    - generalize (IHSub1 _ eq_refl).
+      intros [env2' [Sub' ->]].
+      generalize (IHSub2 _ eq_refl).
+      intros [env2'' [Sub'' ->]].
+      exists env2''; eauto using RuntimeEnvironmentSubtype_trans.
+    - exists env1; eauto using RuntimeEnvironmentSubtype_refl.
+  Qed.
+
+  Lemma RuntimeEnvironmentSubtype_Some_inv : forall env1 env2 T,
+    RuntimeEnvironmentSubtype (Some T :: env1) env2 ->
+    exists env2',
+      RuntimeEnvironmentSubtype env1 env2' /\
+      (env2 = None :: env2' \/
+      exists T', RuntimeSubtype T T' /\ env2 = Some T' :: env2').
+  Proof.
+    intros * Sub.
+    remember (Some T :: env1) as E.
+    revert T env1 HeqE.
+    induction Sub; intros; inversion HeqE; subst.
+    - exists env2; auto.
+    - exists env2; split.
+      + assumption.
+      + right; exists T2; auto.
+    - generalize (IHSub1 _ _ eq_refl).
+      intros [env2' [Sub' [-> | [T' [SubT' ->]]]]].
+      + apply RuntimeEnvironmentSubtype_None_inv in Sub2.
+        destruct Sub2 as [env2'' [Sub'' ->]].
+        exists env2''; split.
+        * eauto using RuntimeEnvironmentSubtype_trans.
+        * now left.
+      + generalize (IHSub2 _ _ eq_refl).
+        intros [env2'' [Sub'' [-> | [T'' [SubT'' ->]]]]].
+        exists env2''; split.
+        * eauto using RuntimeEnvironmentSubtype_trans.
+        * now left.
+        * exists env2''; split.
+          -- eauto using RuntimeEnvironmentSubtype_trans.
+          -- right; exists T''; eauto using RuntimeSubtype_trans.
+    - exists env1; split.
+      + apply RuntimeEnvironmentSubtype_refl.
+      + right; exists T; auto using RuntimeSubtype_refl.
+  Qed.
+
+  Lemma asdveasf : forall env1 env2,
+    RuntimeEnvironmentSubtype (Some (TTMailbox (? 𝟙)) :: Some (TTMailbox (? 𝟙)) :: env1) env2 ->
+    exists env2' T1 T2,
+      env2 = Some T1 :: Some T2 :: env2' /\
+      RuntimeSubtype (TTMailbox (? 𝟙)) T1 /\
+      RuntimeSubtype (TTMailbox (? 𝟙)) T2 /\
+      RuntimeEnvironmentSubtype env1 env2'.
+  Proof.
+    intros * Sub.
+    remember (Some (TTMailbox (? 𝟙)) :: Some (TTMailbox (? 𝟙)) :: env1) as E1.
+    revert env1 HeqE1.
+    induction Sub; intros; inversion HeqE1; subst.
+    - inversion H.
+    - clear IHSub HeqE1.
+      remember (Some (TTMailbox (? 𝟙)) :: env0) as E0.
+      revert env0 HeqE0.
+      induction Sub; intros; inversion HeqE0; subst.
+      + inversion H0.
+      + exists env2, T2, T0; eauto.
+      + generalize (IHSub1 _ eq_refl).
+        intros [env2' [T1 [T3 [Eq [SubT1 [SubT2 Sub]]]]]].
+        eapply IHSub2. inversion Eq; subst.
+  Admitted.
+
+  Lemma sacfewf : forall env1 env2,
+    RuntimeEnvironmentSubtype (Some (TTMailbox (? 𝟙)) :: Some (TTMailbox (? 𝟙)) :: env1) env2 ->
+    exists env2',
+      RuntimeEnvironmentSubtype (Some (TTMailbox (? 𝟙)) :: Some (TTMailbox (? 𝟙)) :: env1) (Some (TTMailbox (? 𝟙)) :: Some (TTMailbox (? 𝟙)) :: env2').
+  Proof.
+    intros * Sub.
+    remember (Some (TTMailbox (? 𝟙)) :: Some (TTMailbox (? 𝟙)) :: env1) as E1.
+    revert env1 HeqE1.
+    induction Sub; intros; inversion HeqE1; subst.
+    - inversion H.
+    - exists env0; repeat constructor; auto using MPInclusion_refl.
+    - exists env0; repeat constructor; auto using MPInclusion_refl.
+    - exists env1; repeat constructor; auto using MPInclusion_refl.
+  Qed.
+
+  Lemma asvaefe : forall x T env1 env2,
+    RuntimeEnvironmentSubtype (raw_insert x T (raw_insert x T env1)) env2 ->
+    exists T1 T2 env2',
+      env2 = raw_insert x T1 (raw_insert x T2 env2').
+  Proof.
+    induction x; intros * Sub.
+    - repeat rewrite raw_insert_zero in *.
+      repeat setoid_rewrite raw_insert_zero.
+      destruct env2.
+      + admit. (* Impossible *)
+      + destruct env2.
+        * admit. (* Impossible *)
+        * eauto.
+    - admit.
+  Admitted.
+
+  (*Lemma asvaefeasdf : forall x T env1 env2,*)
+  (*  RuntimeEnvironmentSubtype (raw_insert x T (raw_insert x T env1)) env2 ->*)
+  (*  exists T1 T2 env2',*)
+  (*    env2 = raw_insert x T1 (raw_insert x T2 env2') /\*)
+  (*    RuntimeSubtype T T1 /\*)
+  (*    RuntimeSubtype T T2.*)
+  (*Proof.*)
+  (*  induction x; intros * Sub.*)
+  (*  - repeat rewrite raw_insert_zero in *.*)
+  (*    repeat setoid_rewrite raw_insert_zero.*)
+  (*    destruct env2.*)
+  (*    + admit. (* Impossible *)*)
+  (*    + destruct env2.*)
+  (*      * admit. (* Impossible *)*)
+  (*      * eauto.*)
+  (*  - admit.*)
+  (*Admitted.*)
+
+  Lemma common_superpattern : forall e f1 f2,
+    e ⊑ f1 ->
+    e ⊑ f2 ->
+    f1 ⊑ f1 ⊕ f2 /\ f2 ⊑ f1 ⊕ f2.
+  Proof.
+    intros * Inc1 Inc2; split.
+    - intros m mIn; now constructor.
+    - intros m mIn; now constructor.
+  Qed.
+
+  (*Lemma contra_zero : forall f,*)
+  (*  ~ f ≈ 𝟘 -> exists mc, mc ∈ f.*)
+  (*Proof.*)
+  (*  induction f; intros Neg;*)
+  (*  try (eexists; constructor; fail).*)
+  (*  - exfalso; now apply Neg.*)
+  (*  - assert (~ f1 ≈ 𝟘 \/ ~ f2 ≈ 𝟘).*)
+  (*    {*)
+  (*      Search (_ ≈ 𝟘).*)
+  (*      inversion Neg.*)
+  (*      intros Eq.*)
+  (*      inversion Eq.*)
+  (*      apply Neg.*)
+  (*      constructor.*)
+  (*      - intros m mIn.*)
+  (*        inversion mIn; subst.*)
+  (*        + now apply H.*)
+  (*        + *)
+  (**)
+  (*      inversion Eq.*)
+  (*    }*)
+
+  (*Lemma contra_zero : forall f,*)
+  (*  f <> 𝟘 -> f ⊑ 𝟘 -> False.*)
+  (*Proof.*)
+  (*  intros * Neg Inc.*)
+  (*  induction f.*)
+  (*  - now apply Neg.*)
+  (*  - assert (⟨⟩ ∈ 𝟙) by constructor.*)
+  (*    generalize (Inc ⟨⟩ H); intros C; inversion C.*)
+  (*  - assert (⟨ m ⟩ ∈ « m ») by constructor.*)
+  (*    generalize (Inc ⟨ m ⟩ H); intros C; inversion C.*)
+  (*  - *)
+
+  (*Lemma common_subpattern : forall e f1 f2,*)
+  (*  f1 ⊑ e ->*)
+  (*  f2 ⊑ e ->*)
+  (*  exists e', ~ e' ⊑ 𝟘 /\ e' ⊑ f1 /\ e' ⊑ f2.*)
+  (*Proof.*)
+  (*  induction e, f1; intros * Inc1 Inc2.*)
+  (*  - *)
+
+  (* TODO: This is not a good lemma *)
+  Lemma common_subpattern : forall e f1 f2,
+    f1 ⊑ e ->
+    f2 ⊑ e ->
+    exists e', e' ⊑ f1 /\ e' ⊑ f2.
+  Proof.
+    intros * Inc1 Inc2; exists 𝟘; split; intros m' mIn; inversion mIn.
+  Qed.
+
+  Lemma MPInclusion_zero : forall e, 𝟘 ⊑ e.
+  Proof.
+    intros e; intros m mIn; inversion mIn.
+  Qed.
+
+  (*Lemma valueOf_dec : forall e mb, {mb ∈ e} + {~ mb ∈ e}.*)
+  (*Proof.*)
+  (*  Ltac impossible := right; intros In; inversion In.*)
+  (*  induction e; intros *.*)
+  (*  - impossible.*)
+  (*  - destruct mb.*)
+  (*    + left; constructor.*)
+  (*    + impossible.*)
+  (*  - destruct mb.*)
+  (*    + impossible.*)
+  (*    + destruct (Message.eq_dec m0 m).*)
+  (*      * subst. destruct mb.*)
+  (*        -- left; constructor.*)
+  (*        -- impossible.*)
+  (*      * impossible; subst; now apply n.*)
+  (*  - generalize (IHe1 mb); generalize (IHe2 mb).*)
+  (*    intros In1 In2.*)
+  (*    destruct In1, In2; try (left; now constructor).*)
+  (*    impossible; subst; auto.*)
+  (*  - destruct mb.*)
+  (*    + generalize (IHe1 []); generalize (IHe2 []).*)
+  (*      intros In1 In2; destruct In1, In2.*)
+  (*      * left; econstructor; try eassumption; constructor.*)
+  (*      * right; intros In. inversion In; subst.*)
+  (*        apply mailbox_union_empty in H4; destruct H4; subst.*)
+  (*        now apply n.*)
+  (*      * right; intros In. inversion In; subst.*)
+  (*        apply mailbox_union_empty in H4; destruct H4; subst.*)
+  (*        now apply n.*)
+  (*      * right; intros In. inversion In; subst.*)
+  (*        apply mailbox_union_empty in H4; destruct H4; subst.*)
+  (*        now apply n.*)
+  (*    + generalize (IHe1 [m]); generalize (IHe2 [m]); generalize (IHe1 mb); generalize (IHe2 mb).*)
+  (*      intros In1 In2 In3 In4.*)
+  (*      destruct In1, In2, In3, In4.*)
+  (*      * left; econstructor.*)
+  (*        apply v2.*)
+  (*        apply v.*)
+  (*        now constructor.*)
+  (*      * left; econstructor.*)
+  (*        apply v0.*)
+  (*        apply v1.*)
+  (*        rewrite mailbox_union_comm; now constructor.*)
+  (*      * left; econstructor.*)
+  (*        apply v1.*)
+  (*        apply v.*)
+  (*        now constructor.*)
+  (*      * right; intros In; inversion In; subst.*)
+  (*        admit.*)
+  (*      * admit.*)
+  (*      * admit.*)
+  (*      * admit.*)
+  (*      * admit.*)
+  (*      * admit.*)
+  (*      * admit.*)
+  (*      * admit.*)
+  (*      * admit.*)
+  (*      * admit.*)
+  (*      * admit.*)
+  (*      * admit.*)
+  (*      * admit.*)
+  (*  - induction mb.*)
+  (*    + left; constructor; exists 0; simpl; constructor.*)
+  (*    + destruct IHmb.*)
+  (*      * generalize (IHe [a]); intros [ In | In ].*)
+  (*        -- left; constructor.*)
+  (*           inversion v; subst; destruct H1.*)
+  (*           exists (S x); simpl.*)
+  (*           econstructor; now try eassumption.*)
+  (*        -- right; intros In'.*)
+  (*           inversion In'; subst; destruct H1.*)
+  (*           destruct x.*)
+  (*           ++ simpl in *; inversion H.*)
+  (*           ++ simpl in *; inversion H; subst.*)
+  (*              admit. *)
+  (*      * generalize (IHe [a]); intros [ In | In ].*)
+  (*        -- *)
+  (*      * left.*)
+  (**)
+  (**)
+  (*    Search (⋆ _).*)
+  (*    generalize (IHe mb).*)
+  (*    intros [In | In].*)
+  (*    + left; constructor; exists 1. simpl.*)
+  (*      now rewrite MPComp_unit.*)
+  (*    + revert e IHe In.*)
+  (*      induction mb; intros.*)
+  (*      * left; constructor; exists 0; simpl; constructor.*)
+  (*      * *)
+  (**)
+  (*      right; intros In'.*)
+  (*      inversion In'; subst.*)
+  (*      destruct H1.*)
+  (*      Search (_ ∈ ⋆ _).*)
+
+  Lemma MPInclusion_dec : forall e f, {e ⊑ f} + {~ e ⊑ f}.
+  Proof.
+    induction e; induction f;
+    try (now left).
+    - right; intros Eq.
+      assert (In : ⟨⟩ ∈ 𝟙) by constructor.
+      generalize (Eq _ In); intros C; inversion C.
+    - right; intros Eq.
+      assert (In : ⟨⟩ ∈ 𝟙) by constructor.
+      generalize (Eq _ In); intros C; inversion C.
+    - destruct IHf1, IHf2.
+      + left; intros m' In.
+        inversion In; subst.
+        constructor.
+        now apply m.
+      + left; intros m' In.
+        inversion In; subst.
+        constructor.
+        now apply m.
+      + left; intros m' In.
+        inversion In; subst.
+        apply MPValueChoiceRight.
+        now apply m.
+      + right.
+        intros Inc.
+        assert (In : ⟨⟩ ∈ 𝟙) by constructor.
+        generalize (Inc _ In).
+        intros.
+        inversion H; subst.
+        * apply n; intros m' mIn; inversion mIn; now subst.
+        * apply n0; intros m' mIn; inversion mIn; now subst.
+    - destruct IHf1, IHf2;
+      try (
+        right; intros Inc;
+        assert (In : ⟨⟩ ∈ 𝟙) by constructor; generalize (Inc _ In); intros InC; inversion InC; subst;
+        apply mailbox_union_empty in H4; destruct H4; subst;
+        apply n; intros m' In'; now inversion In'; subst
+      ).
+      left; intros m' mIn.
+      inversion mIn; subst.
+      econstructor.
+      + apply m; eassumption.
+      + apply m0; eassumption.
+      + constructor.
+    - left. intros m mIn. constructor. now exists 0.
+    - right. intros Inc.
+      assert (⟨ m ⟩ ∈ « m ») by constructor.
+      generalize (Inc ⟨ m ⟩ H); intros C; inversion C.
+    - right. intros Inc.
+      assert (⟨ m ⟩ ∈ « m ») by constructor.
+      generalize (Inc ⟨ m ⟩ H); intros C; inversion C.
+    - destruct (Message.eq_dec m m0).
+      + subst; now left.
+      + right.
+        intros Inc.
+        assert (⟨ m ⟩ ∈ « m ») by constructor.
+        generalize (Inc ⟨ m ⟩ H); intros C; inversion C; subst.
+        now exfalso.
+    - destruct IHf1, IHf2;
+      try(
+        left; intros m' mIn; inversion mIn; subst;
+        constructor; now apply m0
+      ).
+      right. intros Inc.
+      assert (⟨ m ⟩ ∈ « m ») by constructor.
+      generalize (Inc ⟨ m ⟩ H); intros C; inversion C; subst.
+      + apply n; intros m' mIn; inversion mIn; now subst.
+      + apply n0; intros m' mIn; inversion mIn; now subst.
+    - destruct IHf1, IHf2.
+      + right; intros Inc.
+        assert (⟨ m ⟩ ∈ « m ») by constructor.
+        generalize (Inc ⟨ m ⟩ H); intros C; inversion C; subst.
+        assert (Eq : ⟨ m ⟩ ⊎ ⟨⟩ =ᵐᵇ a ⊎ b) by (rewrite mailbox_union_comm; now rewrite <- mailbox_union_empty_left).
+        generalize (mailbox_eq_union_split m ⟨⟩ a b Eq).
+        intros [[a' EqA] | [b' EqB]].
+        * rewrite <- mailbox_union_assoc in EqA.
+          apply Permutation.Permutation_app_inv_l in EqA.
+          apply mailbox_union_empty in EqA; destruct EqA as [-> ->].
+          rewrite <- mailbox_union_empty_right in H5.
+          rewrite <- H5 in H2.
+          generalize (m1 _ H). intros.
+          admit.
+        * admit.
+      + admit.
+      + admit.
+      + admit.
+    - destruct IHf.
+      + left; constructor. exists 1. econstructor.
+        * apply m0; eassumption.
+        * constructor.
+        * apply mailbox_union_empty_right.
+      + right. intros Inc.
+        apply n.
+        intros m' mIn; inversion mIn; subst.
+        generalize (Inc _ mIn).
+        intros InStar.
+        inversion InStar; subst.
+        destruct H1 as [x Pow].
+        inversion Pow; subst.
+        * 
+  Admitted.
+
+
+  Lemma MPEqual_dec : forall e f, {e ≈ f} + {~ e ≈ f}.
+  Proof.
+    intros *.
+    destruct (MPInclusion_dec e f), (MPInclusion_dec f e).
+    - now left.
+    - right; now intros [N1 N2].
+    - right; now intros [N1 N2].
+    - right; now intros [N1 N2].
+  Qed.
+
+  (*Lemma sdfesadsf : forall e,*)
+  (*  ~ e ≈ 𝟘 ->*)
+  (*  exists mc, mc ∈ e.*)
+  (*Proof.*)
+  (*  induction e; intros Neg.*)
+  (*  - exfalso; now apply Neg.*)
+  (*  - eexists; constructor.*)
+  (*  - eexists; constructor.*)
+  (*  - eexists. unfold "≈" in Neg.*)
+  (*    Search (~ (_ /\ _)).*)
+  (*    assert (~ e1 ≈ 𝟘 \/ ~ e2 ≈ 𝟘).*)
+  (*    {*)
+  (*      split.*)
+  (*      - intros Eq.*)
+  (*        rewrite Eq in Neg.*)
+  (*        rewrite MPChoice_comm in Neg.*)
+  (*        rewrite MPChoice_unit in Neg.*)
+  (*        generalize (IHe2 Neg).*)
+  (*        intros [mc In].*)
+  (**)
+  (*    }*)
+  (**)
+  (**)
+  (**)
+  (*Lemma PatternEq_zero : forall e, {e ≈ 𝟘} + {~ e ≈ 𝟘}.*)
+  (*Proof.*)
+  (*  induction e.*)
+  (*  - now left.*)
+  (*  - right; intros Eq; inversion Eq.*)
+  (*    assert (In : ⟨⟩ ∈ 𝟙) by constructor.*)
+  (*    generalize (H ⟨⟩ In); intros C; inversion C.*)
+  (*  - right; intros Eq; inversion Eq.*)
+  (*    assert (In : ⟨ m ⟩ ∈ « m ») by constructor.*)
+  (*    generalize (H ⟨ m ⟩ In); intros C; inversion C.*)
+  (*  - destruct IHe1, IHe2.*)
+  (*    + left. constructor.*)
+  (*      * intros m' mIn.*)
+  (*        inversion mIn; subst.*)
+  (*        -- now rewrite m in H1.*)
+  (*        -- now rewrite m0 in H1.*)
+  (*      * apply MPInclusion_zero.*)
+  (*    + right; intros Eq.*)
+  (*      rewrite m in Eq; rewrite MPChoice_comm in Eq; rewrite MPChoice_unit in Eq.*)
+  (*      auto.*)
+  (*    + right; intros Eq.*)
+  (*      rewrite m in Eq; rewrite MPChoice_unit in Eq.*)
+  (*      auto.*)
+  (*    + right; intros Eq.*)
+  (*      inversion Eq.*)
+
+      
+
+  Lemma MPInclusion_one : forall e, e ⊑ 𝟙 -> e ⊑ 𝟘 \/ 𝟙 ⊑ e.
+  Proof.
+    induction e; intros Inc.
+    - now left.
+    - now right.
+    - assert (⟨ m ⟩ ∈ « m ») by constructor.
+      generalize (Inc ⟨ m ⟩ H); intros C; inversion C.
+    - Search (_ ⊑ _).
+    Admitted.
+
+  Lemma MPInclusion_one' : forall e, e ⊑ 𝟙 -> e ⊑ 𝟘 \/ 𝟙 ⊑ e.
+  Proof.
+    induction e; intros Inc.
+    - left; apply MPInclusion_refl.
+    - right; apply MPInclusion_refl.
+    - assert (⟨ m ⟩ ∈ « m ») by constructor.
+      generalize (Inc ⟨ m ⟩ H); intros C; inversion C.
+    - destruct (MPInclusion_dec e1 𝟙), (MPInclusion_dec e2 𝟙).
+      + generalize (IHe1 m); intros [Inc1_0 | Inc1_1];
+        generalize (IHe2 m0); intros [Inc2_0 | Inc2_1].
+        * left. intros m' mIn; inversion mIn; subst.
+          -- now apply Inc1_0.
+          -- now apply Inc2_0.
+        * right; intros m' mIn; inversion mIn; subst.
+          apply MPValueChoiceRight; now apply Inc2_1.
+        * right; intros m' mIn; inversion mIn; subst.
+          apply MPValueChoiceLeft; now apply Inc1_1.
+        * right; intros m' mIn; inversion mIn; subst.
+          apply MPValueChoiceLeft; now apply Inc1_1.
+      + exfalso; apply n; intros m' mIn.
+        apply Inc; now apply MPValueChoiceRight.
+      + exfalso; apply n; intros m' mIn.
+        apply Inc; now apply MPValueChoiceLeft.
+      + exfalso; apply n; intros m' mIn.
+        apply Inc; now apply MPValueChoiceLeft.
+    - destruct (MPInclusion_dec e1 𝟙), (MPInclusion_dec e2 𝟙).
+      + generalize (IHe1 m); intros [Inc1_0 | Inc1_1];
+        generalize (IHe2 m0); intros [Inc2_0 | Inc2_1].
+        * left; intros m' mIn; inversion mIn; subst.
+          generalize (Inc1_0 _ H1); intros.
+          inversion H.
+        * left; intros m' mIn; inversion mIn; subst.
+          generalize (Inc1_0 _ H1); intros.
+          inversion H.
+        * left; intros m' mIn; inversion mIn; subst.
+          generalize (Inc2_0 _ H3); intros.
+          inversion H.
+        * right; intros m' mIn; inversion mIn; subst.
+          econstructor.
+          -- apply Inc1_1; eassumption.
+          -- apply Inc2_1; eassumption.
+          -- constructor.
+      + Admitted.
+
+  Lemma common_subpattern' : forall e f1 f2,
+    ~ e ⊑ 𝟘 ->
+    f1 ⊑ e ->
+    f2 ⊑ e ->
+    exists e', e' ⊑ f1 /\ e' ⊑ f2.
+  Proof.
+    induction e; induction f1; intros * Contra Inc1 Inc2;
+    try match goal with
+    | H: ~ 𝟘 ⊑ 𝟘 |- _ => exfalso; apply H; intros ? mIn; inversion mIn
+    end.
+    - exists 𝟘; split; try apply MPInclusion_refl; apply MPInclusion_zero.
+    - exists f2; split; eauto using MPInclusion_refl, MPInclusion_trans.
+    - assert (⟨ m ⟩ ∈ « m ») by constructor.
+      generalize (Inc1 ⟨ m ⟩ H); intros C; inversion C.
+    - Search (_ ⊑ 𝟙).
+  Admitted.
+
+  Lemma common_supertype'' : forall e f1 f2,
+    ~ e ⊑ 𝟘 ->
+    e ⊑ f1 ->
+    e ⊑ f2 ->
+    f1 ⊑ f2 \/ f2 ⊑ f1.
+  Proof.
+    induction e; intros * Contra Inc1 Inc2.
+    - exfalso; now apply Contra.
+    - assert (f1 ⊑ f1 ⊙ f1). admit.
+  Admitted.
+
+
+
+  Lemma common_supertype : forall T T1 T2,
+    RuntimeSubtype T T1 ->
+    RuntimeSubtype T T2 ->
+    RuntimeSubtype T1 T2 \/ RuntimeSubtype T2 T1.
+  Proof.
+    intros * Sub1 Sub2.
+    revert T2 Sub2.
+    induction Sub1; intros.
+    - inversion Sub2; subst; now left.
+    - inversion Sub2; subst.
+      left. constructor.
+      admit.
+    - inversion Sub2; subst.
+      admit.
+  Admitted.
+
+  Lemma common_supertype' : forall T T1 T2,
+    RuntimeSubtype T T1 ->
+    RuntimeSubtype T T2 ->
+    exists T', RuntimeSubtype T1 T' /\ RuntimeSubtype T2 T'.
+  Proof.
+    intros * Sub1 Sub2.
+    inversion Sub1; subst; inversion Sub2; subst.
+    - exists (TTBase c); split; apply RuntimeSubtype_refl.
+    - generalize (common_superpattern _ _ _ H H1).
+      intros [Inc1 Inc2].
+      exists (TTMailbox (? f ⊕ f0)); split; now constructor.
+    - eexists; split.
+      + constructor. admit.
+      + constructor. admit.
+  Admitted.
+
+  Lemma WellTypedConfig_exchange : forall prog x env T c,
+    WellTypedConfig prog (raw_insert x T (raw_insert x T env)) c ->
+    WellTypedConfig prog (raw_insert x T (raw_insert x T env)) (exchange_conf x c).
+  Proof.
+    intros *.
+    revert x env T.
+    induction c; intros * WT.
+    - apply WellTypedConfig_ConfConf_inv in WT.
+      destruct WT as [env' [T2 [env1 [env2 [Comb [WT_t [WT_s Sub]]]]]]].
+      generalize (asvaefe _ _ _ _ Sub).
+      intros [T1 [T3 [env2' ->]]].
+      Search ((raw_insert _ _ _) ≤ₑ (raw_insert _ _ _)).
+      destruct T, T1, T3.
+      + assert (RuntimeSubtype t0 t1) by admit.
+        assert (RuntimeSubtype t0 t2) by admit.
+        assert (newEnv1 : exists env1', env1 = (insert x (returnType t1) (insert x (returnType t2) env1'))) by admit.
+        destruct newEnv1 as [env1' ->].
+        assert (newEnv2 : exists env2', env2 = (raw_insert x None (raw_insert x None env2'))) by admit.
+        destruct newEnv2 as [env2'' ->].
+        eapply SUBS.
+        eassumption.
+        econstructor.
+        * eassumption.
+        * 
+    - admit.
+    - admit.
+    - apply WellTypedConfig_ConfRestr_inv'' in WT.
+      simpl; constructor.
+      assert (Eq : Some (TTMailbox (? 𝟙)) :: raw_insert x T (raw_insert x T env) = raw_insert (S x) T (raw_insert (S x) T (Some (TTMailbox (? 𝟙)) :: env)))
+      by (repeat rewrite raw_insert_successor; now repeat rewrite lookup_zero).
+      rewrite Eq; eapply IHc; now rewrite <- Eq.
+
+    intros * WT.
+    remember (raw_insert x T (raw_insert x T env)) as E.
+    revert x T env HeqE.
+    induction WT; intros; inversion HeqE; subst.
+    - simpl.
+      constructor.
+      assert (Eq : Some (TTMailbox (? 𝟙)) :: raw_insert x T (raw_insert x T env0) =
+              raw_insert (S x) T (raw_insert (S x) T (Some (TTMailbox (? 𝟙)) :: env0)))
+      by (repeat rewrite raw_insert_successor; now repeat rewrite lookup_zero).
+      eapply IHWT; eassumption.
+    - simpl.
+      clear H0.
+      admit.
+    - simpl. admit.
+    - simpl. admit.
+    - 
+
+    intros until x.
+    induction x.
+    - intros * WT.
+      repeat rewrite raw_insert_zero in *.
+      remember (T :: T :: env) as E.
+      revert env HeqE.
+      induction c; intros; inversion HeqE; subst.
+      + simpl.
+        apply WellTypedConfig_ConfConf_inv in WT.
+        destruct WT as [env' [T2 [env1 [env2 [Comb [WT_t [WT_s Sub]]]]]]].
+        econstructor.
+        * admit.
+        * admit.
+        * admit.
+      + simpl.
+        admit. (* Need inversion lemma for message composition *)
+      + simpl.
+        admit. (* Need inversion lemma for parallel composition *)
+      +
+
+
+
+
   Lemma Nu_exchange : forall prog env c,
     WellTypedConfig prog env (ConfRestr (ConfRestr c)) ->
     WellTypedConfig prog env (ConfRestr (ConfRestr (exchange_conf 0 c))).
   Proof.
-    intros * WT.
-    remember (ConfRestr (ConfRestr c)) as C.
-    revert c HeqC.
-    induction WT; intros; inversion HeqC; subst.
-    - remember (ConfRestr c0) as C'.
-      remember (Some (TTMailbox (? 𝟙)) :: env) as E.
-      revert env c0 HeqC' HeqE.
-      induction WT; intros; inversion HeqC'; subst.
-      + repeat constructor.
-        Admitted.
+    intros until c.
+    revert env.
+    induction c; intros * WT.
+    - simpl.
+      apply WellTypedConfig_ConfRestr_inv'' in WT.
+      apply WellTypedConfig_ConfRestr_inv'' in WT.
+      apply WellTypedConfig_ConfConf_inv in WT.
+      destruct WT as [env3 [T [env3_1 [env3_2 [Comb [WT_t [WT_s Sub3]]]]]]].
+      repeat constructor.
+      eapply SUBS.
+      + apply Sub3.
+      + econstructor.
+        * eassumption.
+        * admit.
+        * admit.
+    - simpl. admit.
+    - simpl.
+      repeat apply WellTypedConfig_ConfRestr_inv'' in WT.
+      admit. (* Need inversion lemma for parallel composition *)
+    - apply WellTypedConfig_ConfRestr_inv'' in WT.
+      generalize (IHc _ WT).
+      intros WT'.
+      assert (forall i c, exchange_conf i (exchange_conf i c) = c). admit.
+      simpl.
+      repeat apply WellTypedConfig_ConfRestr_inv'' in WT'.
+      simpl.
+      repeat constructor.
+      generalize (H 0 c).
+      admit. (* Need more general induction hypothesis *)
+  Admitted.
 
   Lemma preservation_equiv : forall prog env r c d,
     WellTypedConfig prog env c ->
@@ -473,7 +1249,8 @@ Section runtime_props.
     - destruct H.
       + now apply Par_comm.
       + now apply Par_assoc.
-        Admitted.
+      + now apply Nu_exchange.
+      +
 
 
   (*Lemma preservation_equiv : forall prog env c d,*)
@@ -581,26 +1358,6 @@ Section runtime_props.
       repeat eexists;
       try eapply EnvSubtypeTrans; eassumption.
   Admitted.
-
-  Lemma WellTypedConfig_ConfConf_inv : forall prog env t stack,
-    WellTypedConfig prog env (ConfConf t stack) ->
-    exists env' T env1 env2,
-      env1 ▷ₑ env2 ~= map_maybe returnType env' /\
-      WellTypedTerm prog env1 t T /\
-      WellTypedStack prog env2 T stack /\
-      RuntimeEnvironmentSubtype env env'.
-  Proof.
-    intros * WT.
-    remember (ConfConf t stack) as C.
-    revert t stack HeqC.
-    induction WT; intros; inversion HeqC; subst.
-    - exists env, T, env1, env2; repeat split; try assumption.
-      apply RuntimeEnvironmentSubtype_refl.
-    - generalize (IHWT _ _ eq_refl).
-      intros [envT [T [env1 [env2 [Comb [WT1 [WT2 Sub]]]]]]].
-      exists envT, T, env1, env2; repeat split; try assumption.
-      eapply RuntimeEnvironmentSubtype_trans; eassumption.
-  Qed.
 
   Lemma TypeCombination_Sub : forall j j' k t,
     RuntimeSubtype (TTMailbox (? j)) (TTMailbox j') ->

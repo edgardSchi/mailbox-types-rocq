@@ -56,7 +56,7 @@
 <td>Z</td>
 <td>_</td>
 <td><a href="indexpage.html#global_*">other</a></td>
-<td>(906 entries)</td>
+<td>(925 entries)</td>
 </tr>
 <tr>
 <td>Notation Index</td>
@@ -184,7 +184,7 @@
 <td>Z</td>
 <td>_</td>
 <td>other</td>
-<td>(313 entries)</td>
+<td>(332 entries)</td>
 </tr>
 <tr>
 <td>Constructor Index</td>
@@ -453,6 +453,7 @@
 <a href="MailboxTypes.Dblib.Environments.html#agree_empty_left">agree_empty_left</a> [lemma, in <a href="MailboxTypes.Dblib.Environments.html">MailboxTypes.Dblib.Environments</a>]<br/>
 <a href="MailboxTypes.Dblib.Environments.html#agree_below">agree_below</a> [lemma, in <a href="MailboxTypes.Dblib.Environments.html">MailboxTypes.Dblib.Environments</a>]<br/>
 <a href="MailboxTypes.TypingRules.html#APP">APP</a> [constructor, in <a href="MailboxTypes.TypingRules.html">MailboxTypes.TypingRules</a>]<br/>
+<a href="MailboxTypes.Environment.html#asdfefayx">asdfefayx</a> [lemma, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Substitution.html#asdfwe">asdfwe</a> [lemma, in <a href="MailboxTypes.Substitution.html">MailboxTypes.Substitution</a>]<br/>
 <br/><br/><a id="global_B"></a><h2>B </h2>
 <a href="MailboxTypes.MailboxPatterns.html#Balancing">Balancing</a> [lemma, in <a href="MailboxTypes.MailboxPatterns.html">MailboxTypes.MailboxPatterns</a>]<br/>
@@ -483,6 +484,7 @@
 <a href="MailboxTypes.Dblib.Environments.html#concat_replicate_is_iterated_insert">concat_replicate_is_iterated_insert</a> [lemma, in <a href="MailboxTypes.Dblib.Environments.html">MailboxTypes.Dblib.Environments</a>]<br/>
 <a href="MailboxTypes.Dblib.Environments.html#concat_app">concat_app</a> [lemma, in <a href="MailboxTypes.Dblib.Environments.html">MailboxTypes.Dblib.Environments</a>]<br/>
 <a href="MailboxTypes.Message.html#content_size">content_size</a> [projection, in <a href="MailboxTypes.Message.html">MailboxTypes.Message</a>]<br/>
+<a href="MailboxTypes.Environment.html#create_EmptyEnv_length_same">create_EmptyEnv_length_same</a> [lemma, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#create_EmptyEnv_length">create_EmptyEnv_length</a> [lemma, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#create_EmptyEnv_EmptyEnv">create_EmptyEnv_EmptyEnv</a> [lemma, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#create_EmptyEnv">create_EmptyEnv</a> [definition, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
@@ -529,9 +531,13 @@
 <a href="MailboxTypes.TypingRules.html#EnvEqFV">EnvEqFV</a> [definition, in <a href="MailboxTypes.TypingRules.html">MailboxTypes.TypingRules</a>]<br/>
 <a href="MailboxTypes.Environment.html">Environment</a> [library]<br/>
 <a href="MailboxTypes.Environment.html#EnvironmentCombination">EnvironmentCombination</a> [inductive, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
+<a href="MailboxTypes.Environment.html#EnvironmentCombination_insert_both">EnvironmentCombination_insert_both</a> [lemma, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
+<a href="MailboxTypes.Environment.html#EnvironmentCombination_insert_insert_None">EnvironmentCombination_insert_insert_None</a> [lemma, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
+<a href="MailboxTypes.Environment.html#EnvironmentCombination_Disjoint_Empty">EnvironmentCombination_Disjoint_Empty</a> [lemma, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#EnvironmentCombination_Second">EnvironmentCombination_Second</a> [lemma, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#EnvironmentCombination_assoc_left">EnvironmentCombination_assoc_left</a> [lemma, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#EnvironmentCombination_assoc">EnvironmentCombination_assoc</a> [lemma, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
+<a href="MailboxTypes.Environment.html#EnvironmentCombination_raw_insert_Base">EnvironmentCombination_raw_insert_Base</a> [lemma, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#EnvironmentCombination_raw_insert_None">EnvironmentCombination_raw_insert_None</a> [lemma, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#EnvironmentCombination_app">EnvironmentCombination_app</a> [lemma, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#EnvironmentCombination_app_last">EnvironmentCombination_app_last</a> [lemma, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
@@ -546,6 +552,17 @@
 <a href="MailboxTypes.Environment.html#EnvironmentDisjointCombinationN">EnvironmentDisjointCombinationN</a> [inductive, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#EnvironmentDisjointCombinationN_sind">EnvironmentDisjointCombinationN_sind</a> [definition, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#EnvironmentDisjointCombinationN_ind">EnvironmentDisjointCombinationN_ind</a> [definition, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
+<a href="MailboxTypes.Environment.html#EnvironmentDisjointCombination_Empty">EnvironmentDisjointCombination_Empty</a> [lemma, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
+<a href="MailboxTypes.Environment.html#EnvironmentDisjointCombination_insert_Base">EnvironmentDisjointCombination_insert_Base</a> [lemma, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
+<a href="MailboxTypes.Environment.html#EnvironmentDisjointCombination_insert_EmptyEnv">EnvironmentDisjointCombination_insert_EmptyEnv</a> [lemma, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
+<a href="MailboxTypes.Environment.html#EnvironmentDisjointCombination_Empty_right">EnvironmentDisjointCombination_Empty_right</a> [lemma, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
+<a href="MailboxTypes.Environment.html#EnvironmentDisjointCombination_Subtype_Empty_insert_Base">EnvironmentDisjointCombination_Subtype_Empty_insert_Base</a> [lemma, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
+<a href="MailboxTypes.Environment.html#EnvironmentDisjointCombination_Subtype_Empty_insert">EnvironmentDisjointCombination_Subtype_Empty_insert</a> [lemma, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
+<a href="MailboxTypes.Environment.html#EnvironmentDisjointCombination_Subtype_Empty">EnvironmentDisjointCombination_Subtype_Empty</a> [lemma, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
+<a href="MailboxTypes.Environment.html#EnvironmentDisjointCombination_second_Some">EnvironmentDisjointCombination_second_Some</a> [lemma, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
+<a href="MailboxTypes.Environment.html#EnvironmentDisjointCombination_second_None">EnvironmentDisjointCombination_second_None</a> [lemma, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
+<a href="MailboxTypes.Environment.html#EnvironmentDisjointCombination_insert_left">EnvironmentDisjointCombination_insert_left</a> [lemma, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
+<a href="MailboxTypes.Environment.html#EnvironmentDisjointCombination_remove_weaken_first">EnvironmentDisjointCombination_remove_weaken_first</a> [lemma, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#EnvironmentDisjointCombination_sind">EnvironmentDisjointCombination_sind</a> [definition, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#EnvironmentDisjointCombination_ind">EnvironmentDisjointCombination_ind</a> [definition, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#EnvironmentDis_Some_inv'">EnvironmentDis_Some_inv'</a> [lemma, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
@@ -578,6 +595,8 @@
 <a href="MailboxTypes.Environment.html#EnvironmentSubtypeStrict_ind">EnvironmentSubtypeStrict_ind</a> [definition, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.TypingRules.html#EnvironmentSubtype_insert_Empty">EnvironmentSubtype_insert_Empty</a> [lemma, in <a href="MailboxTypes.TypingRules.html">MailboxTypes.TypingRules</a>]<br/>
 <a href="MailboxTypes.TypingRules.html#EnvironmentSubtype_create_EmptyEnv_left">EnvironmentSubtype_create_EmptyEnv_left</a> [lemma, in <a href="MailboxTypes.TypingRules.html">MailboxTypes.TypingRules</a>]<br/>
+<a href="MailboxTypes.Environment.html#EnvironmentSubtype_insert_Subtype">EnvironmentSubtype_insert_Subtype</a> [lemma, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
+<a href="MailboxTypes.Environment.html#EnvironmentSubtype_tl">EnvironmentSubtype_tl</a> [lemma, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#EnvironmentSubtype_insert_None_Some">EnvironmentSubtype_insert_None_Some</a> [lemma, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#EnvironmentSubtype_raw_insert_insert'">EnvironmentSubtype_raw_insert_insert'</a> [lemma, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#EnvironmentSubtype_raw_insert_insert">EnvironmentSubtype_raw_insert_insert</a> [lemma, in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
@@ -1497,6 +1516,7 @@
 <a href="MailboxTypes.Dblib.Environments.html#agree_empty_right">agree_empty_right</a> [in <a href="MailboxTypes.Dblib.Environments.html">MailboxTypes.Dblib.Environments</a>]<br/>
 <a href="MailboxTypes.Dblib.Environments.html#agree_empty_left">agree_empty_left</a> [in <a href="MailboxTypes.Dblib.Environments.html">MailboxTypes.Dblib.Environments</a>]<br/>
 <a href="MailboxTypes.Dblib.Environments.html#agree_below">agree_below</a> [in <a href="MailboxTypes.Dblib.Environments.html">MailboxTypes.Dblib.Environments</a>]<br/>
+<a href="MailboxTypes.Environment.html#asdfefayx">asdfefayx</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Substitution.html#asdfwe">asdfwe</a> [in <a href="MailboxTypes.Substitution.html">MailboxTypes.Substitution</a>]<br/>
 <br/><br/><a id="lemma_B"></a><h2>B </h2>
 <a href="MailboxTypes.MailboxPatterns.html#Balancing">Balancing</a> [in <a href="MailboxTypes.MailboxPatterns.html">MailboxTypes.MailboxPatterns</a>]<br/>
@@ -1514,6 +1534,7 @@
 <a href="MailboxTypes.Dblib.DeBruijn.html#closed_increment">closed_increment</a> [in <a href="MailboxTypes.Dblib.DeBruijn.html">MailboxTypes.Dblib.DeBruijn</a>]<br/>
 <a href="MailboxTypes.Dblib.Environments.html#concat_replicate_is_iterated_insert">concat_replicate_is_iterated_insert</a> [in <a href="MailboxTypes.Dblib.Environments.html">MailboxTypes.Dblib.Environments</a>]<br/>
 <a href="MailboxTypes.Dblib.Environments.html#concat_app">concat_app</a> [in <a href="MailboxTypes.Dblib.Environments.html">MailboxTypes.Dblib.Environments</a>]<br/>
+<a href="MailboxTypes.Environment.html#create_EmptyEnv_length_same">create_EmptyEnv_length_same</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#create_EmptyEnv_length">create_EmptyEnv_length</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#create_EmptyEnv_EmptyEnv">create_EmptyEnv_EmptyEnv</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#CruftEnv_EnvironmentSubtype_Empty">CruftEnv_EnvironmentSubtype_Empty</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
@@ -1531,9 +1552,13 @@
 <a href="MailboxTypes.Environment.html#EnvDis_nil_left_inv">EnvDis_nil_left_inv</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#EnvDis_EmptyEnv_right">EnvDis_EmptyEnv_right</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#EnvDis_EmptyEnv_left">EnvDis_EmptyEnv_left</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
+<a href="MailboxTypes.Environment.html#EnvironmentCombination_insert_both">EnvironmentCombination_insert_both</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
+<a href="MailboxTypes.Environment.html#EnvironmentCombination_insert_insert_None">EnvironmentCombination_insert_insert_None</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
+<a href="MailboxTypes.Environment.html#EnvironmentCombination_Disjoint_Empty">EnvironmentCombination_Disjoint_Empty</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#EnvironmentCombination_Second">EnvironmentCombination_Second</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#EnvironmentCombination_assoc_left">EnvironmentCombination_assoc_left</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#EnvironmentCombination_assoc">EnvironmentCombination_assoc</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
+<a href="MailboxTypes.Environment.html#EnvironmentCombination_raw_insert_Base">EnvironmentCombination_raw_insert_Base</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#EnvironmentCombination_raw_insert_None">EnvironmentCombination_raw_insert_None</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#EnvironmentCombination_app">EnvironmentCombination_app</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#EnvironmentCombination_app_last">EnvironmentCombination_app_last</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
@@ -1542,6 +1567,17 @@
 <a href="MailboxTypes.Environment.html#EnvironmentCombination_length">EnvironmentCombination_length</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#EnvironmentDisCombination_insert_Type_eq">EnvironmentDisCombination_insert_Type_eq</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#EnvironmentDisCombination_insert">EnvironmentDisCombination_insert</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
+<a href="MailboxTypes.Environment.html#EnvironmentDisjointCombination_Empty">EnvironmentDisjointCombination_Empty</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
+<a href="MailboxTypes.Environment.html#EnvironmentDisjointCombination_insert_Base">EnvironmentDisjointCombination_insert_Base</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
+<a href="MailboxTypes.Environment.html#EnvironmentDisjointCombination_insert_EmptyEnv">EnvironmentDisjointCombination_insert_EmptyEnv</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
+<a href="MailboxTypes.Environment.html#EnvironmentDisjointCombination_Empty_right">EnvironmentDisjointCombination_Empty_right</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
+<a href="MailboxTypes.Environment.html#EnvironmentDisjointCombination_Subtype_Empty_insert_Base">EnvironmentDisjointCombination_Subtype_Empty_insert_Base</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
+<a href="MailboxTypes.Environment.html#EnvironmentDisjointCombination_Subtype_Empty_insert">EnvironmentDisjointCombination_Subtype_Empty_insert</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
+<a href="MailboxTypes.Environment.html#EnvironmentDisjointCombination_Subtype_Empty">EnvironmentDisjointCombination_Subtype_Empty</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
+<a href="MailboxTypes.Environment.html#EnvironmentDisjointCombination_second_Some">EnvironmentDisjointCombination_second_Some</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
+<a href="MailboxTypes.Environment.html#EnvironmentDisjointCombination_second_None">EnvironmentDisjointCombination_second_None</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
+<a href="MailboxTypes.Environment.html#EnvironmentDisjointCombination_insert_left">EnvironmentDisjointCombination_insert_left</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
+<a href="MailboxTypes.Environment.html#EnvironmentDisjointCombination_remove_weaken_first">EnvironmentDisjointCombination_remove_weaken_first</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#EnvironmentDis_Some_inv'">EnvironmentDis_Some_inv'</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#EnvironmentDis_Some_inv">EnvironmentDis_Some_inv</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#EnvironmentDis_assoc_rev">EnvironmentDis_assoc_rev</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
@@ -1561,6 +1597,8 @@
 <a href="MailboxTypes.Environment.html#EnvironmentSubtypeStrict_refl">EnvironmentSubtypeStrict_refl</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.TypingRules.html#EnvironmentSubtype_insert_Empty">EnvironmentSubtype_insert_Empty</a> [in <a href="MailboxTypes.TypingRules.html">MailboxTypes.TypingRules</a>]<br/>
 <a href="MailboxTypes.TypingRules.html#EnvironmentSubtype_create_EmptyEnv_left">EnvironmentSubtype_create_EmptyEnv_left</a> [in <a href="MailboxTypes.TypingRules.html">MailboxTypes.TypingRules</a>]<br/>
+<a href="MailboxTypes.Environment.html#EnvironmentSubtype_insert_Subtype">EnvironmentSubtype_insert_Subtype</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
+<a href="MailboxTypes.Environment.html#EnvironmentSubtype_tl">EnvironmentSubtype_tl</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#EnvironmentSubtype_insert_None_Some">EnvironmentSubtype_insert_None_Some</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#EnvironmentSubtype_raw_insert_insert'">EnvironmentSubtype_raw_insert_insert'</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
 <a href="MailboxTypes.Environment.html#EnvironmentSubtype_raw_insert_insert">EnvironmentSubtype_raw_insert_insert</a> [in <a href="MailboxTypes.Environment.html">MailboxTypes.Environment</a>]<br/>
@@ -2443,7 +2481,7 @@
 <td>Z</td>
 <td>_</td>
 <td><a href="indexpage.html#global_*">other</a></td>
-<td>(906 entries)</td>
+<td>(925 entries)</td>
 </tr>
 <tr>
 <td>Notation Index</td>
@@ -2571,7 +2609,7 @@
 <td>Z</td>
 <td>_</td>
 <td>other</td>
-<td>(313 entries)</td>
+<td>(332 entries)</td>
 </tr>
 <tr>
 <td>Constructor Index</td>
