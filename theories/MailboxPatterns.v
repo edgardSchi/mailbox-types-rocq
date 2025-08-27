@@ -171,6 +171,28 @@ Proof.
   unfold Reflexive; apply MPInclusion_refl.
 Qed.
 
+Lemma MPInclusion_compatable_Comp : forall e1 e2 f1 f2,
+  e1 ⊑ f1 -> e2 ⊑ f2 -> (e1 ⊙ e2) ⊑ (f1 ⊙ f2).
+Proof.
+  intros * Inc1 Inc2.
+  intros m mIn.
+  inversion mIn; subst.
+  eapply MPValueComp.
+  - apply Inc1; eassumption.
+  - apply Inc2; eassumption.
+  - assumption.
+Qed.
+
+Lemma MPInclusion_compatable_Choice : forall e1 e2 f1 f2,
+  e1 ⊑ f1 -> e2 ⊑ f2 -> (e1 ⊕ e2) ⊑ (f1 ⊕ f2).
+Proof.
+  intros * Inc1 Inc2.
+  intros m mIn.
+  inversion mIn; subst.
+  - apply MPValueChoiceLeft; now apply Inc1.
+  - apply MPValueChoiceRight; now apply Inc2.
+Qed.
+
 Lemma MPEqual_refl : forall e, e ≈ e.
 Proof.
   intros.
