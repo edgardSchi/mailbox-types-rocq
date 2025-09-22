@@ -17,151 +17,150 @@ Section environment_def.
 
 Context `{M : IMessage Message}.
 
-(** A type environment is represented as a list of option types.
-    For example the environment [[None, Some Int, Some Bool, None]]
-    represents
-    0 |-> None
-    1 |-> Int
-    2 |-> Bool
-    3 |-> None
+  (** A type environment is represented as a list of option types.
+      For example the environment [[None, Some Int, Some Bool, None]]
+      represents
+      0 |-> None
+      1 |-> Int
+      2 |-> Bool
+      3 |-> None
+    This represented is chosen to keep avoid shifting de Bruijn indices
+    when splitting an environment.
+  *)
 
-   This represented is chosen to keep avoid shifting de Bruijn indices
-when splitting an environment.
-*)
-(*Definition Env := list (option TUsage).*)
-Definition Env := env TUsage.
+  Definition Env := env TUsage.
 
-(** Definition 3.4 of environment subtyping.
-    Subtyping of environments includes weakening for unrestricted types.
-    This representation relates two environments of equal length, but
-    they may contain different amounts of types
-*)
-Inductive EnvironmentSubtype : Env -> Env -> Prop :=
-  | EnvSubtypeNone : forall env1 env2,
-      EnvironmentSubtype env1 env2 ->
-      EnvironmentSubtype (None :: env1) (None :: env2)
-  | EnvSubtypeUn : forall env1 env2 T,
-      Unrestricted T ->
-      EnvironmentSubtype env1 env2 ->
-      EnvironmentSubtype (Some T :: env1) (None :: env2)
-  | EnvSubtypeSub : forall env1 env2 T1 T2,
-      Subtype T1 T2 ->
-      EnvironmentSubtype env1 env2 ->
-      EnvironmentSubtype (Some T1 :: env1) (Some T2 :: env2)
-  | EnvSubtypeTrans : forall env1 env2 env3,
-      EnvironmentSubtype env1 env2 ->
-      EnvironmentSubtype env2 env3 ->
-      EnvironmentSubtype env1 env3
-  | EnvSubtypeRefl : forall env, EnvironmentSubtype env env.
+  (** Definition 3.4 of environment subtyping.
+      Subtyping of environments includes weakening for unrestricted types.
+      This representation relates two environments of equal length, but
+      they may contain different amounts of types
+  *)
+  Inductive EnvironmentSubtype : Env -> Env -> Prop :=
+    | EnvSubtypeNone : forall env1 env2,
+        EnvironmentSubtype env1 env2 ->
+        EnvironmentSubtype (None :: env1) (None :: env2)
+    | EnvSubtypeUn : forall env1 env2 T,
+        Unrestricted T ->
+        EnvironmentSubtype env1 env2 ->
+        EnvironmentSubtype (Some T :: env1) (None :: env2)
+    | EnvSubtypeSub : forall env1 env2 T1 T2,
+        Subtype T1 T2 ->
+        EnvironmentSubtype env1 env2 ->
+        EnvironmentSubtype (Some T1 :: env1) (Some T2 :: env2)
+    | EnvSubtypeTrans : forall env1 env2 env3,
+        EnvironmentSubtype env1 env2 ->
+        EnvironmentSubtype env2 env3 ->
+        EnvironmentSubtype env1 env3
+    | EnvSubtypeRefl : forall env, EnvironmentSubtype env env.
 
-(** Strict environment subtyping.
-    Strict subtyping of environments is same as normal
-    subtyping but the domains of both environments must be
-    equal. In our representation this means that for every
-    index in every list, both contain either None or Some.
-*)
-Inductive EnvironmentSubtypeStrict : Env -> Env -> Prop :=
-  | EnvSubtypeStrNone : forall env1 env2,
-      EnvironmentSubtypeStrict env1 env2 ->
-      EnvironmentSubtypeStrict (None :: env1) (None :: env2)
-  | EnvSubtypeStrSub : forall env1 env2 T1 T2,
-      Subtype T1 T2 ->
-      EnvironmentSubtypeStrict env1 env2 ->
-      EnvironmentSubtypeStrict (Some T1 :: env1) (Some T2 :: env2)
-  | EnvSubtypeStrTrans : forall env1 env2 env3,
-      EnvironmentSubtypeStrict env1 env2 ->
-      EnvironmentSubtypeStrict env2 env3 ->
-      EnvironmentSubtypeStrict env1 env3
-  | EnvSubtypeStrRefl : forall env, EnvironmentSubtypeStrict env env.
+  (** Strict environment subtyping.
+      Strict subtyping of environments is same as normal
+      subtyping but the domains of both environments must be
+      equal. In our representation this means that for every
+      index in every list, both contain either None or Some.
+  *)
+  Inductive EnvironmentSubtypeStrict : Env -> Env -> Prop :=
+    | EnvSubtypeStrNone : forall env1 env2,
+        EnvironmentSubtypeStrict env1 env2 ->
+        EnvironmentSubtypeStrict (None :: env1) (None :: env2)
+    | EnvSubtypeStrSub : forall env1 env2 T1 T2,
+        Subtype T1 T2 ->
+        EnvironmentSubtypeStrict env1 env2 ->
+        EnvironmentSubtypeStrict (Some T1 :: env1) (Some T2 :: env2)
+    | EnvSubtypeStrTrans : forall env1 env2 env3,
+        EnvironmentSubtypeStrict env1 env2 ->
+        EnvironmentSubtypeStrict env2 env3 ->
+        EnvironmentSubtypeStrict env1 env3
+    | EnvSubtypeStrRefl : forall env, EnvironmentSubtypeStrict env env.
 
-(** Definition 3.8 of environment combination.
-    This representation relates three environments of equal length, but
-    they may contain different amounts of types
-*)
-Inductive EnvironmentCombination : Env -> Env -> Env -> Prop :=
-    EnvCombEmpty : EnvironmentCombination nil nil nil
-  (* Special constructor for our representation of environments *)
-  | EnvCombNone : forall env1 env2 env,
-      EnvironmentCombination env1 env2 env ->
-      EnvironmentCombination (None :: env1) (None :: env2) (None :: env)
-  | EnvCombLeft : forall env1 env2 env T,
-      EnvironmentCombination env1 env2 env ->
-      EnvironmentCombination (Some T :: env1) (None :: env2) (Some T :: env)
-  | EnvCombRight : forall env1 env2 env T,
-      EnvironmentCombination env1 env2 env ->
-      EnvironmentCombination (None :: env1) (Some T :: env2) (Some T :: env)
-  | EnvCombBoth : forall T env1 env2 env T1 T2,
-      EnvironmentCombination env1 env2 env ->
-      T1 ▷ T2 ~= T ->
-      EnvironmentCombination (Some T1 :: env1) (Some T2 :: env2) (Some T :: env).
+  (** Definition 3.8 of environment combination.
+      This representation relates three environments of equal length, but
+      they may contain different amounts of types
+  *)
+  Inductive EnvironmentCombination : Env -> Env -> Env -> Prop :=
+      EnvCombEmpty : EnvironmentCombination nil nil nil
+    (* Special constructor for our representation of environments *)
+    | EnvCombNone : forall env1 env2 env,
+        EnvironmentCombination env1 env2 env ->
+        EnvironmentCombination (None :: env1) (None :: env2) (None :: env)
+    | EnvCombLeft : forall env1 env2 env T,
+        EnvironmentCombination env1 env2 env ->
+        EnvironmentCombination (Some T :: env1) (None :: env2) (Some T :: env)
+    | EnvCombRight : forall env1 env2 env T,
+        EnvironmentCombination env1 env2 env ->
+        EnvironmentCombination (None :: env1) (Some T :: env2) (Some T :: env)
+    | EnvCombBoth : forall T env1 env2 env T1 T2,
+        EnvironmentCombination env1 env2 env ->
+        T1 ▷ T2 ~= T ->
+        EnvironmentCombination (Some T1 :: env1) (Some T2 :: env2) (Some T :: env).
 
-(** Definition 3.9 of disjoint environment combination.
-    This representation relates three environments of equal length, but
-    they may contain different amounts of types
-*)
-Inductive EnvironmentDisjointCombination : Env -> Env -> Env -> Prop :=
-    EnvDisCombEmpty : EnvironmentDisjointCombination nil nil nil
-  (* Special constructor for our representation of environments *)
-  | EnvDisCombNone : forall env1 env2 env,
-      EnvironmentDisjointCombination env1 env2 env ->
-      EnvironmentDisjointCombination (None :: env1) (None :: env2) (None :: env)
-  | EnvDisCombLeft : forall env1 env2 env T,
-      EnvironmentDisjointCombination env1 env2 env ->
-      EnvironmentDisjointCombination (Some T :: env1) (None :: env2) (Some T :: env)
-  | EnvDisCombRight : forall env1 env2 env T,
-      EnvironmentDisjointCombination env1 env2 env ->
-      EnvironmentDisjointCombination (None :: env1) (Some T :: env2) (Some T :: env)
-  | EnvDisCombBoth : forall env1 env2 env BT,
-      EnvironmentDisjointCombination env1 env2 env ->
-      EnvironmentDisjointCombination
-        (Some (TUBase BT) :: env1) (Some (TUBase BT) :: env2) (Some (TUBase BT) :: env).
+  (** Definition 3.9 of disjoint environment combination.
+      This representation relates three environments of equal length, but
+      they may contain different amounts of types
+  *)
+  Inductive EnvironmentDisjointCombination : Env -> Env -> Env -> Prop :=
+      EnvDisCombEmpty : EnvironmentDisjointCombination nil nil nil
+    (* Special constructor for our representation of environments *)
+    | EnvDisCombNone : forall env1 env2 env,
+        EnvironmentDisjointCombination env1 env2 env ->
+        EnvironmentDisjointCombination (None :: env1) (None :: env2) (None :: env)
+    | EnvDisCombLeft : forall env1 env2 env T,
+        EnvironmentDisjointCombination env1 env2 env ->
+        EnvironmentDisjointCombination (Some T :: env1) (None :: env2) (Some T :: env)
+    | EnvDisCombRight : forall env1 env2 env T,
+        EnvironmentDisjointCombination env1 env2 env ->
+        EnvironmentDisjointCombination (None :: env1) (Some T :: env2) (Some T :: env)
+    | EnvDisCombBoth : forall env1 env2 env BT,
+        EnvironmentDisjointCombination env1 env2 env ->
+        EnvironmentDisjointCombination
+          (Some (TUBase BT) :: env1) (Some (TUBase BT) :: env2) (Some (TUBase BT) :: env).
 
-Inductive EnvironmentDisjointCombinationN : list Env -> Env -> Prop :=
-  | EnvDisComb1 : forall env,
-      EnvironmentDisjointCombinationN [env] env
-  | EnvDisComb2 : forall env env1 env2,
-      EnvironmentDisjointCombination env1 env2 env ->
-      EnvironmentDisjointCombinationN [env1 ; env2] env
-  | EnvDisCombN : forall env env1 env2 env3 envList,
-      EnvironmentDisjointCombination env1 env2 env3 ->
-      EnvironmentDisjointCombinationN (env3 :: envList) env ->
-      EnvironmentDisjointCombinationN (env1 :: env2 :: envList) env.
+  Inductive EnvironmentDisjointCombinationN : list Env -> Env -> Prop :=
+    | EnvDisComb1 : forall env,
+        EnvironmentDisjointCombinationN [env] env
+    | EnvDisComb2 : forall env env1 env2,
+        EnvironmentDisjointCombination env1 env2 env ->
+        EnvironmentDisjointCombinationN [env1 ; env2] env
+    | EnvDisCombN : forall env env1 env2 env3 envList,
+        EnvironmentDisjointCombination env1 env2 env3 ->
+        EnvironmentDisjointCombinationN (env3 :: envList) env ->
+        EnvironmentDisjointCombinationN (env1 :: env2 :: envList) env.
 
-Definition returnEnvironment (env : Env) : Env := map_maybe returnUsage env.
-Definition secondEnvironment (env : Env) : Env := map_maybe secondUsage env.
+  Definition returnEnvironment (env : Env) : Env := map_maybe returnUsage env.
+  Definition secondEnvironment (env : Env) : Env := map_maybe secondUsage env.
 
-(** An environment is Base if it only contains base types *)
-Fixpoint BaseEnv (e : Env) : Prop :=
-  match e with
-  | nil => True
-  | (Some (TUBase _) :: env') => BaseEnv env'
-  | (None :: env') => BaseEnv env'
-  | _ => False
-  end.
+  (** An environment is Base if it only contains base types *)
+  Fixpoint BaseEnv (e : Env) : Prop :=
+    match e with
+    | nil => True
+    | (Some (TUBase _) :: env') => BaseEnv env'
+    | (None :: env') => BaseEnv env'
+    | _ => False
+    end.
 
-Definition CruftEnv : Env -> Prop :=
-  ForallMaybe TUCruft.
+  Definition CruftEnv : Env -> Prop :=
+    ForallMaybe TUCruft.
 
-Definition UnrestrictedEnv : Env -> Prop :=
-  ForallMaybe Unrestricted.
+  Definition UnrestrictedEnv : Env -> Prop :=
+    ForallMaybe Unrestricted.
 
-(** An empty environment contains only None as entries *)
-Definition EmptyEnv (e : Env) : Prop := Forall (fun x => x = None) e.
+  (** An empty environment contains only None as entries *)
+  Definition EmptyEnv (e : Env) : Prop := Forall (fun x => x = None) e.
 
-(** A singleton environment contains only a single type *)
-Fixpoint SingletonEnv (e : Env) (T : TUsage) : Prop :=
-  match e with
-  | nil => False
-  | None :: e' => SingletonEnv e' T
-  | (Some T') :: e' => if TUsage_eq_dec T T' then EmptyEnv e' else False
-  end.
+  (** A singleton environment contains only a single type *)
+  Fixpoint SingletonEnv (e : Env) (T : TUsage) : Prop :=
+    match e with
+    | nil => False
+    | None :: e' => SingletonEnv e' T
+    | (Some T') :: e' => if TUsage_eq_dec T T' then EmptyEnv e' else False
+    end.
 
-(** Creates an empty environment based on the size of the provided environment *)
-Fixpoint create_EmptyEnv (e : Env) : Env :=
-  match e with
-  | nil => nil
-  | t :: e' => None :: create_EmptyEnv e'
-  end.
+  (** Creates an empty environment based on the size of the provided environment *)
+  Fixpoint create_EmptyEnv (e : Env) : Env :=
+    match e with
+    | nil => nil
+    | t :: e' => None :: create_EmptyEnv e'
+    end.
 
 End environment_def.
 
@@ -189,280 +188,180 @@ Notation "[ Env1 ]+ₑ ~= Env" := (EnvironmentDisjointCombinationN Env1 Env) (at
 Notation "⌊ Env ⌋ₑ" := (returnEnvironment Env) (at level 0) : environment_scope.
 Notation "⌈ Env ⌉ₑ" := (secondEnvironment Env) (at level 0) : environment_scope.
 
-Section environment_test.
-
-Context `{M : IMessage Message}.
-
-(* This relation states that an environment can be split into two environments **)
-Inductive EnvironmentSplit : Env -> Env -> Env -> Prop :=
-  | EnvSplitNil : EnvironmentSplit nil nil nil
-  | EnvSplitNone : forall env1 env2 env,
-      EnvironmentSplit env1 env2 env ->
-      EnvironmentSplit (None :: env1) (None :: env2) (None :: env)
-  | EnvSplitLeft : forall env1 env2 env x,
-      EnvironmentSplit env1 env2 env ->
-      EnvironmentSplit (Some x :: env1) (None :: env2) (Some x :: env)
-  | EnvSplitRight : forall env1 env2 env x,
-      EnvironmentSplit env1 env2 env ->
-      EnvironmentSplit (None :: env1) (Some x :: env2) (Some x :: env).
-
-Inductive EnvironmentSplitN : list Env -> Env -> Prop :=
-  | EnvSplit2 : forall env env1 env2,
-      EnvironmentSplit env1 env2 env ->
-      EnvironmentSplitN [env1 ; env2] env
-  | EnvSplitN : forall env env1 env2 env3 envList,
-      EnvironmentSplit env1 env2 env3 ->
-      EnvironmentSplitN (env3 :: envList) env ->
-      EnvironmentSplitN (env1 :: env2 :: envList) env.
-
-
-Lemma EnvironmentSplit_elems : forall env env1 env2,
-  EnvironmentSplit env1 env2 env ->
-  forall x, In (Some x) env <-> (In (Some x) env1) \/ (In (Some x) env2).
-Proof.
-  intros * Split.
-  induction Split; simpl.
-  - intuition.
-  - simpl. intros x.
-    split.
-    + intros [xNone | xIn].
-      * discriminate xNone.
-      * apply IHSplit in xIn.
-        destruct xIn as [In1 | In2].
-        -- left. now right.
-        -- right. now right.
-    + intros [[xNone | xIn] | [xNone | xIn]];
-      try (now left).
-      * assert (In' : In (Some x) env1 \/ In (Some x) env2). now left.
-        rewrite <- IHSplit in In'.
-        now right.
-      * assert (In' : In (Some x) env1 \/ In (Some x) env2). now right.
-        rewrite <- IHSplit in In'.
-        now right.
-  - intros y; split.
-    + intros [ySome | yIn].
-      * left; now left.
-      * rewrite IHSplit in yIn.
-        destruct yIn as [In1 | In2]; intuition.
-    + intros [[ySome | yIn] | [yNone | yIn]].
-      * now left.
-      * assert (In' : In (Some y) env1 \/ In (Some y) env2). now left.
-        rewrite <- IHSplit in In'.
-        intuition.
-      * discriminate yNone.
-      * assert (In' : In (Some y) env1 \/ In (Some y) env2). now right.
-        rewrite <- IHSplit in In'.
-        intuition.
-  - intros y; split.
-    + intros [ySome | yIn].
-      * right; now left.
-      * rewrite IHSplit in yIn.
-        destruct yIn as [In1 | In2]; intuition.
-    + intros [[ySome | yIn] | [yNone | yIn]].
-      * now left.
-      * assert (In' : In (Some y) env1 \/ In (Some y) env2). now left.
-        rewrite <- IHSplit in In'.
-        intuition.
-      * now left.
-      * assert (In' : In (Some y) env1 \/ In (Some y) env2). now right.
-        rewrite <- IHSplit in In'.
-        intuition.
-Qed.
-
-End environment_test.
-
-Notation "Env1 ,, Env2 ~= Env" := (EnvironmentSplit Env1 Env2 Env) (at level 80) : environment_scope.
-
+(** ** Properties of environments *)
 Section environment_properties.
 
-Context `{M : IMessage Message}.
+  Context `{M : IMessage Message}.
 
-Lemma CruftEnv_EnvironmentSubtype_Empty : forall env,
-  CruftEnv env ->
-  exists env', EmptyEnv env' /\ env ≤ₑ env'.
-Proof.
-  induction env; intros CruftE.
-  - exists []; split; repeat constructor.
-  - inversion CruftE; subst.
-    generalize (IHenv H2).
-    intros [env' [Empty Sub]].
-    exists (None :: env'); split.
-    + now constructor.
-    + destruct a; try destruct t; try destruct u.
-      * repeat constructor; assumption.
-      * simpl in H1.
-        unfold Irrelevant in H1.
-        generalize (H1 SecondClass); intros Sub'.
-        eapply EnvSubtypeTrans with (env2 := Some (! 𝟙 ^^ ◦) :: env').
-        now constructor.
-        repeat constructor.
-      * easy.
-      * now constructor.
-Qed.
+  Lemma CruftEnv_EnvironmentSubtype_Empty : forall env,
+    CruftEnv env ->
+    exists env', EmptyEnv env' /\ env ≤ₑ env'.
+  Proof.
+    induction env; intros CruftE.
+    - exists []; split; repeat constructor.
+    - inversion CruftE; subst.
+      generalize (IHenv H2).
+      intros [env' [Empty Sub]].
+      exists (None :: env'); split.
+      + now constructor.
+      + destruct a; try destruct t; try destruct u.
+        * repeat constructor; assumption.
+        * simpl in H1.
+          unfold Irrelevant in H1.
+          generalize (H1 SecondClass); intros Sub'.
+          eapply EnvSubtypeTrans with (env2 := Some (! 𝟙 ^^ ◦) :: env').
+          now constructor.
+          repeat constructor.
+        * easy.
+        * now constructor.
+  Qed.
 
-Lemma EmptyEnv_implies_CruftEnv : forall env, EmptyEnv env -> CruftEnv env.
-Proof.
-  induction env; intros Empty.
-  - constructor.
-  - inversion Empty; subst.
-    constructor.
-    apply I.
-    now apply IHenv.
-Qed.
+  Lemma EmptyEnv_implies_CruftEnv : forall env, EmptyEnv env -> CruftEnv env.
+  Proof.
+    induction env; intros Empty.
+    - constructor.
+    - inversion Empty; subst.
+      constructor.
+      apply I.
+      now apply IHenv.
+  Qed.
 
-Lemma secondEnvironment_idem : forall env, ⌈ env ⌉ₑ = ⌈ ⌈ env ⌉ₑ ⌉ₑ.
-Proof.
-  induction env.
-  - easy.
-  - simpl. destruct a.
-    + simpl.
-      rewrite <- secondUsage_idem.
-      now f_equal.
-    + simpl. now f_equal.
-Qed.
+  Lemma secondEnvironment_idem : forall env, ⌈ env ⌉ₑ = ⌈ ⌈ env ⌉ₑ ⌉ₑ.
+  Proof.
+    induction env.
+    - easy.
+    - simpl. destruct a.
+      + simpl.
+        rewrite <- secondUsage_idem.
+        now f_equal.
+      + simpl. now f_equal.
+  Qed.
 
-Lemma EnvironmentSplit_EmptyEnv : forall env, EmptyEnv env -> env,, env ~= env.
-Proof.
-  induction env.
-  - constructor.
-  - intros Empty; inversion Empty; subst; constructor; now apply IHenv.
-Qed.
+  Lemma EmptyEnv_lookup : forall env, EmptyEnv env -> (forall x, lookup x env = None).
+  Proof.
+    induction env; simpl.
+    - intros Empty x; now destruct x.
+    - intros Empty x.
+      inversion Empty; subst.
+      destruct x; simpl.
+      + easy.
+      + rewrite lookup_successor; now apply IHenv.
+  Qed.
 
-Lemma EnvironmentSplit_create_EmptyEnv : forall env,
-  env,, create_EmptyEnv env ~= env.
-Proof.
-  induction env.
-  - constructor.
-  - simpl; destruct a.
-    + now apply EnvSplitLeft.
-    + now apply EnvSplitNone.
-Qed.
+  Lemma lookup_nil : forall {A} x, @lookup A x [] = None.
+  Proof.
+    now destruct x.
+  Qed.
 
-Lemma EmptyEnv_lookup : forall env, EmptyEnv env -> (forall x, lookup x env = None).
-Proof.
-  induction env; simpl.
-  - intros Empty x; now destruct x.
-  - intros Empty x.
-    inversion Empty; subst.
-    destruct x; simpl.
-    + easy.
-    + rewrite lookup_successor; now apply IHenv.
-Qed.
+  Lemma EnvironmentCombination_length : forall env1 env2 env3,
+    env1 ▷ₑ env2 ~= env3 ->
+    length env1 = length env3 /\ length env2 = length env3.
+  Proof.
+    intros * Comb.
+    induction Comb;
+    try (simpl; destruct IHComb as [IH1 IH2]; split; f_equal);
+    auto.
+  Qed.
 
-Lemma lookup_nil : forall {A} x, @lookup A x [] = None.
-Proof.
-  now destruct x.
-Qed.
+  Lemma EnvironmentDis_length : forall env1 env2 env3,
+    env1 +ₑ env2 ~= env3 ->
+    length env1 = length env3 /\ length env2 = length env3.
+  Proof.
+    intros * Comb.
+    induction Comb;
+    try (simpl; destruct IHComb as [IH1 IH2]; split; f_equal);
+    auto.
+  Qed.
 
-Lemma EnvironmentCombination_length : forall env1 env2 env3,
-  env1 ▷ₑ env2 ~= env3 ->
-  length env1 = length env3 /\ length env2 = length env3.
-Proof.
-  intros * Comb.
-  induction Comb;
-  try (simpl; destruct IHComb as [IH1 IH2]; split; f_equal);
-  auto.
-Qed.
+  Lemma create_EmptyEnv_EmptyEnv : forall env, EmptyEnv (create_EmptyEnv env).
+  Proof.
+    induction env.
+    - constructor.
+    - now constructor.
+  Qed.
 
-Lemma EnvironmentDis_length : forall env1 env2 env3,
-  env1 +ₑ env2 ~= env3 ->
-  length env1 = length env3 /\ length env2 = length env3.
-Proof.
-  intros * Comb.
-  induction Comb;
-  try (simpl; destruct IHComb as [IH1 IH2]; split; f_equal);
-  auto.
-Qed.
+  Lemma EnvironmentSubtype_length : forall env1 env2, env1 ≤ₑ env2 -> length env1 = length env2.
+  Proof.
+    intros * Sub.
+    induction Sub; simpl;
+    try (f_equal; try easy; fail).
+    rewrite IHSub1; now rewrite IHSub2.
+  Qed.
 
-Lemma create_EmptyEnv_EmptyEnv : forall env, EmptyEnv (create_EmptyEnv env).
-Proof.
-  induction env.
-  - constructor.
-  - now constructor.
-Qed.
+  Lemma create_EmptyEnv_length : forall env1 env2,
+    length env1 = length env2 ->
+    create_EmptyEnv env1 = create_EmptyEnv env2.
+  Proof.
+    induction env1, env2; intros Eq;
+    try discriminate Eq.
+    - easy.
+    - simpl in *; f_equal; apply IHenv1; eauto.
+  Qed.
 
-Lemma EnvironmentSubtype_length : forall env1 env2, env1 ≤ₑ env2 -> length env1 = length env2.
-Proof.
-  intros * Sub.
-  induction Sub; simpl;
-  try (f_equal; try easy; fail).
-  rewrite IHSub1; now rewrite IHSub2.
-Qed.
+  Lemma create_EmptyEnv_length_same : forall env,
+    length env = length (create_EmptyEnv env).
+  Proof.
+    induction env; simpl; auto.
+  Qed.
 
-Lemma create_EmptyEnv_length : forall env1 env2,
-  length env1 = length env2 ->
-  create_EmptyEnv env1 = create_EmptyEnv env2.
-Proof.
-  induction env1, env2; intros Eq;
-  try discriminate Eq.
-  - easy.
-  - simpl in *; f_equal; apply IHenv1; eauto.
-Qed.
+  Lemma EnvironmentSubtype_create_EmptyEnv : forall env1 env2,
+    env1 ≤ₑ env2 ->
+    create_EmptyEnv env1 ≤ₑ create_EmptyEnv env2.
+  Proof.
+    intros.
+    apply EnvironmentSubtype_length in H.
+    apply create_EmptyEnv_length in H.
+    rewrite H; constructor.
+  Qed.
 
-Lemma create_EmptyEnv_length_same : forall env,
-  length env = length (create_EmptyEnv env).
-Proof.
-  induction env; simpl; auto.
-Qed.
+  Lemma EmptyEnv_SubEnv_EmptyEnv : forall env1 env2,
+    EmptyEnv env1 -> env1 ≤ₑ env2 -> EmptyEnv env2.
+  Proof.
+    intros * Empty Sub; induction Sub; inversion Empty; subst;
+    try eauto; try discriminate.
+    constructor; try reflexivity; now apply IHSub.
+  Qed.
 
-Lemma EnvironmentSubtype_create_EmptyEnv : forall env1 env2,
-  env1 ≤ₑ env2 ->
-  create_EmptyEnv env1 ≤ₑ create_EmptyEnv env2.
-Proof.
-  intros.
-  apply EnvironmentSubtype_length in H.
-  apply create_EmptyEnv_length in H.
-  rewrite H; constructor.
-Qed.
+  Lemma UnrestrictedEnv_EmptyEnv : forall env, EmptyEnv env -> UnrestrictedEnv env.
+  Proof.
+    induction env.
+    - constructor.
+    - intros Empty.
+      inversion Empty; subst; constructor.
+      + easy.
+      + now apply IHenv.
+  Qed.
 
-Lemma EmptyEnv_SubEnv_EmptyEnv : forall env1 env2,
-  EmptyEnv env1 -> env1 ≤ₑ env2 -> EmptyEnv env2.
-Proof.
-  intros * Empty Sub; induction Sub; inversion Empty; subst;
-  try eauto; try discriminate.
-  constructor; try reflexivity; now apply IHSub.
-Qed.
+  Lemma SubEnv_EmptyEnv_create_EmptyEnv : forall env,
+    EmptyEnv env ->
+    env ≤ₑ create_EmptyEnv env.
+  Proof.
+    intros * Empty; induction env; simpl in *;
+    inversion Empty; subst; eauto with environment.
+  Qed.
 
-Lemma UnrestrictedEnv_EmptyEnv : forall env, EmptyEnv env -> UnrestrictedEnv env.
-Proof.
-  induction env.
-  - constructor.
-  - intros Empty.
-    inversion Empty; subst; constructor.
-    + easy.
-    + now apply IHenv.
-Qed.
+  (* This has to be here for now *)
+  Hint Resolve SubEnv_EmptyEnv_create_EmptyEnv : environment.
 
-Lemma SubEnv_EmptyEnv_create_EmptyEnv : forall env,
-  EmptyEnv env ->
-  env ≤ₑ create_EmptyEnv env.
-Proof.
-  intros * Empty; induction env; simpl in *;
-  inversion Empty; subst; eauto with environment.
-Qed.
+  Lemma EnvironmentSubtypeStrict_refl : forall env, env ≼ₑ env.
+  Proof.
+    induction env; eauto with environment.
+  Qed.
 
-(* This has to be here for now *)
-Hint Resolve SubEnv_EmptyEnv_create_EmptyEnv : environment.
+  Lemma EnvironmentSubtype_refl : forall env, env ≤ₑ env.
+  Proof.
+    induction env; eauto with environment.
+  Qed.
 
-Lemma EnvironmentSubtypeStrict_refl : forall env, env ≼ₑ env.
-Proof.
-  induction env; eauto with environment.
-Qed.
+  Lemma EnvironmentSubtype_trans : forall env1 env2 env3, env1 ≤ₑ env2 -> env2 ≤ₑ env3 -> env1 ≤ₑ env3.
+  Proof.
+    apply EnvSubtypeTrans.
+  Qed.
 
-Lemma EnvironmentSubtype_refl : forall env, env ≤ₑ env.
-Proof.
-  induction env; eauto with environment.
-Qed.
-
-Lemma EnvironmentSubtype_trans : forall env1 env2 env3, env1 ≤ₑ env2 -> env2 ≤ₑ env3 -> env1 ≤ₑ env3.
-Proof.
-  apply EnvSubtypeTrans.
-Qed.
-
-Lemma EnvironmentDis_implies_Comb : forall env1 env2 env, env1 +ₑ env2 ~= env -> env1 ▷ₑ env2 ~= env.
-Proof.
-  intros * Dis; induction Dis; now repeat constructor.
-Qed.
+  Lemma EnvironmentDis_implies_Comb : forall env1 env2 env, env1 +ₑ env2 ~= env -> env1 ▷ₑ env2 ~= env.
+  Proof.
+    intros * Dis; induction Dis; now repeat constructor.
+  Qed.
 
   Lemma EnvironmentDis_Comb_comm : forall env1 env2 env,
     env1 +ₑ env2 ~= env -> env2 +ₑ env1 ~= env.
@@ -1670,21 +1569,21 @@ Qed.
         repeat constructor; now apply IHenv.
   Qed.
 
-Lemma EnvironmentCombination_Second : forall env1 env2 env,
-  SecondEnv env ->
-  env1 ▷ₑ env2 ~= env ->
-  SecondEnv env1 /\ SecondEnv env2.
-Proof.
-  intros * S Comb.
-  induction Comb; inversion S as [| ? ? ? S']; subst;
-  try (apply IHComb in S'; destruct S' as [S1 S2]);
-  try now repeat constructor.
-  inversion H0; subst.
-  + inversion H; subst; now repeat constructor.
-  + inversion H; subst.
-    inversion H5; subst.
-    now repeat constructor.
-Qed.
+  Lemma EnvironmentCombination_Second : forall env1 env2 env,
+    SecondEnv env ->
+    env1 ▷ₑ env2 ~= env ->
+    SecondEnv env1 /\ SecondEnv env2.
+  Proof.
+    intros * S Comb.
+    induction Comb; inversion S as [| ? ? ? S']; subst;
+    try (apply IHComb in S'; destruct S' as [S1 S2]);
+    try now repeat constructor.
+    inversion H0; subst.
+    + inversion H; subst; now repeat constructor.
+    + inversion H; subst.
+      inversion H5; subst.
+      now repeat constructor.
+  Qed.
 
   Lemma lookup_EmptyEnv_None : forall env x,
     EmptyEnv env ->
@@ -2178,7 +2077,6 @@ Qed.
     env1 ▷ₑ env2 ~= env3 /\ env3 +ₑ env ~= env3.
   Proof.
     intros * Empty Dis1 Dis2 Comb.
-    Search (EmptyEnv).
     generalize (EnvDis_EmptyEnv_right _ _ _ Empty Dis1).
     generalize (EnvDis_EmptyEnv_right _ _ _ Empty Dis2).
     intros -> ->; split.
@@ -2190,7 +2088,7 @@ Qed.
     try apply IHComb; try assumption; try now inversion Empty; subst.
   Qed.
 
-  Lemma asdfefayx : forall x T1 T2 T env1 env2 env3,
+  Lemma EnvironmentCombination_raw_insert_insert : forall x T1 T2 T env1 env2 env3,
     T1 ▷ T2 ~= T ->
     raw_insert x None env1 ▷ₑ raw_insert x None env2 ~= raw_insert x None env3 ->
     insert x T1 env1 ▷ₑ insert x T2 env2 ~= insert x T env3.
@@ -2738,6 +2636,202 @@ Qed.
     - inversion Empty; inversion L; subst;
       destruct a; constructor;
       now apply IHenv1.
+  Qed.
+
+  Lemma EnvironmentSubtype_create_EmptyEnv_left : forall env1 env2,
+    env1 ≤ₑ env2 ->
+    env2 ≤ₑ create_EmptyEnv env2 ->
+    env1 ≤ₑ create_EmptyEnv env1.
+  Proof.
+    induction env1, env2; intros EnvSub1 EnvSub2; simpl in *.
+    - constructor.
+    - constructor.
+    - now apply EnvironmentSubtype_cons_nil in EnvSub1.
+    - destruct a, o.
+      + apply EnvironmentSubtype_Some_Some_inv in EnvSub1.
+        destruct EnvSub1 as [Sub EnvSub].
+        apply EnvironmentSubtype_Some_None_inv in EnvSub2.
+        destruct EnvSub2 as [T' [Unr [Sub' EnvSub2]]].
+        eapply EnvSubtypeTrans with (env2 := Some t0 :: env1).
+        * eauto with environment.
+        * eapply EnvSubtypeTrans with (env2 := Some T' :: env1);
+          eauto with environment.
+      + apply EnvironmentSubtype_Some_None_inv in EnvSub1.
+        destruct EnvSub1 as [T' [Unr [Sub' EnvSub1]]].
+        apply EnvironmentSubtype_None_None_inv in EnvSub2.
+        eauto using EnvSubtypeTrans with environment.
+      + now apply EnvironmentSubtype_None_Some in EnvSub1.
+      + apply EnvironmentSubtype_None_None_inv in EnvSub1, EnvSub2.
+        eauto using EnvSubtypeTrans with environment.
+  Qed.
+
+  Lemma EnvironmentSubtype_insert_Empty : forall x env1 env2 T1 T2,
+    insert x T1 env1 ≤ₑ insert x T2 env2 ->
+    env2 ≤ₑ create_EmptyEnv env2 ->
+    env1 ≤ₑ create_EmptyEnv env1.
+  Proof.
+    induction x; intros * EnvSubI EnvSub.
+    - repeat rewrite raw_insert_zero in EnvSubI.
+      apply EnvironmentSubtype_Some_Some_inv in EnvSubI.
+      destruct EnvSubI as [].
+      eauto using EnvironmentSubtype_create_EmptyEnv_left.
+    - repeat rewrite raw_insert_successor in EnvSubI.
+      destruct env1, env2.
+      + constructor.
+      + constructor.
+      + destruct o;
+        repeat rewrite lookup_zero in EnvSubI;
+        repeat rewrite lookup_nil in EnvSubI;
+        simpl in *.
+        * apply EnvironmentSubtype_Some_None_inv in EnvSubI.
+          destruct EnvSubI as [T' [Unr [Sub' EnvSubI]]].
+          eauto using EnvSubtypeTrans with environment.
+        * apply EnvironmentSubtype_None_None_inv in EnvSubI.
+          eauto with environment.
+      + destruct o, o0; simpl in *;
+        repeat rewrite lookup_zero in *;
+        repeat rewrite lookup_nil in *;
+        simpl in *.
+        * apply EnvironmentSubtype_Some_None_inv in EnvSub.
+          destruct EnvSub as [T' [Unr [Sub' EnvSub']]].
+          apply EnvironmentSubtype_Some_Some_inv in EnvSubI.
+          destruct EnvSubI as [Sub EnvSub].
+          eapply EnvSubtypeTrans with (env2 := Some t0 :: env1);
+          eauto using EnvSubtypeTrans with environment.
+        * apply EnvironmentSubtype_Some_None_inv in EnvSubI.
+          destruct EnvSubI as [T' [Unr [Sub' EnvSub']]].
+          apply EnvironmentSubtype_None_None_inv in EnvSub.
+          eauto using EnvSubtypeTrans with environment.
+        * now apply EnvironmentSubtype_None_Some in EnvSubI.
+        * apply EnvironmentSubtype_None_None_inv in EnvSubI, EnvSub.
+          eauto with environment.
+  Qed.
+
+  Lemma EnvironmentSubtype_SecondClass : forall env, env ≤ₑ ⌈ env ⌉ₑ.
+  Proof.
+    induction env.
+    - constructor.
+    - destruct a; simpl; constructor; try apply Subtype_SecondClass; assumption.
+  Qed.
+
+  Lemma secondEnvironment_raw_insert_None : forall x env1 env2,
+    ⌈ env1 ⌉ₑ = raw_insert x None env2 ->
+    env2 = ⌈ env2 ⌉ₑ.
+  Proof.
+    induction x; intros * Eq.
+    - rewrite raw_insert_zero in Eq.
+      induction env1.
+      + discriminate.
+      + destruct a.
+        * simpl in *.
+          discriminate.
+        * simpl in *.
+          inversion Eq.
+          now rewrite <- secondEnvironment_idem.
+    - destruct env1 as [| T1 env1'], env2 as [| T2 env2']; try easy;
+      rewrite raw_insert_successor in Eq;
+      rewrite lookup_zero in Eq;
+      simpl in *;
+      inversion Eq;
+      destruct T1; simpl in *;
+      try rewrite <- secondUsage_idem;
+      f_equal; now apply IHx with (env1 := env1').
+  Qed.
+
+  Lemma secondEnvironment_insert : forall x T env1 env2,
+    ⌈ env1 ⌉ₑ = insert x T env2 ->
+    env2 = ⌈ env2 ⌉ₑ /\ T = ⌈ T ⌉ⁿ.
+  Proof.
+    induction x; intros * Eq.
+    - rewrite raw_insert_zero in Eq.
+      destruct env1.
+      + simpl in *; discriminate.
+      + simpl in *.
+        inversion Eq.
+        destruct o.
+        * simpl in *; inversion H0.
+          rewrite <- secondEnvironment_idem.
+          now rewrite <- secondUsage_idem.
+        * now inversion H0.
+    - destruct env1 as [| T1 env1'], env2 as [| T2 env2']; try easy.
+      + rewrite raw_insert_successor in Eq.
+        rewrite lookup_nil in Eq. simpl in *.
+        inversion Eq.
+        now apply IHx in H1.
+      + rewrite raw_insert_successor in Eq.
+        rewrite lookup_zero in Eq.
+        inversion Eq.
+        apply IHx in H1.
+        destruct H1 as [Eq1 Eq2].
+        subst.
+        destruct T1; simpl in *.
+        * rewrite <- secondUsage_idem; split; try f_equal; auto.
+        * split; try f_equal; auto.
+  Qed.
+
+  Lemma secondEnvironment_nil : forall env,
+    ⌈ env ⌉ₑ = ⌈ [] ⌉ₑ -> env = [].
+  Proof.
+    destruct env; intros * Eq; now try inversion H.
+  Qed.
+
+  Lemma secondEnvironment_raw_insert_None_inv : forall x env1 env2,
+    ⌈ env1 ⌉ₑ = raw_insert x None ⌈ env2 ⌉ₑ ->
+    exists env2', env1 = raw_insert x None env2' /\ ⌈ env2' ⌉ₑ = ⌈ env2 ⌉ₑ.
+  Proof.
+    induction x; intros * Eq.
+    - rewrite raw_insert_zero in Eq.
+      destruct env1.
+      + discriminate.
+      + simpl in *.
+        inversion Eq.
+        destruct o; simpl in *.
+        * discriminate.
+        * exists env1; now rewrite raw_insert_zero.
+    - destruct env1 as [| T1 env1'], env2 as [| T2 env2']; try easy.
+      + rewrite raw_insert_successor in *; simpl in *.
+        rewrite lookup_nil in Eq.
+        inversion Eq.
+        destruct T1; try discriminate; simpl in *.
+        assert (Eq' : ⌈ env1' ⌉ₑ = raw_insert x None ⌈ [] ⌉ₑ) by auto.
+        apply IHx in Eq'.
+        destruct Eq' as [env2' [Eq1' Eq2']].
+        apply secondEnvironment_nil in Eq2'; subst.
+        setoid_rewrite raw_insert_successor.
+        exists []; rewrite lookup_nil; simpl; now f_equal.
+      + simpl in *.
+        rewrite raw_insert_successor in Eq.
+        rewrite lookup_zero in Eq.
+        simpl in *.
+        inversion Eq as [TEq].
+        apply IHx in H.
+        destruct H as [env2'' [Eq1' Eq2']].
+        subst.
+        destruct T1, T2; simpl in *; try (inversion Eq; discriminate).
+        * inversion TEq; subst.
+          exists (Some t :: env2'').
+          rewrite raw_insert_successor;
+          rewrite lookup_zero;
+          simpl.
+          now rewrite Eq2'.
+        * inversion TEq; subst.
+          exists (None :: env2'').
+          rewrite raw_insert_successor;
+          rewrite lookup_zero;
+          simpl.
+          now rewrite Eq2'.
+  Qed.
+
+  Lemma EnvironmentSubtype_insert_T : forall x env T T',
+    T' ≤ T -> insert x T' env ≤ₑ insert x T env.
+  Proof.
+    induction x; intros * Sub.
+    - repeat rewrite raw_insert_zero; eauto with environment.
+    - repeat rewrite raw_insert_successor.
+      destruct env.
+      + rewrite lookup_nil; eauto with environment.
+      + rewrite lookup_zero; simpl.
+        destruct o; eauto using Subtype_refl with environment.
   Qed.
 
 End environment_properties.

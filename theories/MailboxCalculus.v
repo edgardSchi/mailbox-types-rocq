@@ -1,5 +1,9 @@
-(** * Syntax of the Mailbox Calculus *)
+(** * Mailbox Calculus *)
 
+(**
+  This is an attempt of formalizing the mailbox calculus.
+  It is not finished and can be ignored!
+*)
 From MailboxTypes Require Import Types.
 From MailboxTypes Require Import Message.
 From MailboxTypes Require Import Util.
