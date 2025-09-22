@@ -1337,42 +1337,11 @@ Qed.
        (env1 = raw_insert x None env1' /\ env2 = insert x (TUBase c) env2') \/
        (env1 = insert x (TUBase c) env1' /\ env2 = insert x (TUBase c) env2')).
   Proof.
-    induction x; intros * Comb.
-    - rewrite raw_insert_zero in *.
-      inversion Comb; subst; exists env0, env3; split;
-      try assumption.
-      + left; now repeat rewrite raw_insert_zero.
-      + right; left; now repeat rewrite raw_insert_zero.
-      + inversion H4; subst; repeat right; now repeat rewrite raw_insert_zero.
-    - rewrite raw_insert_successor in *.
-      destruct env.
-      + rewrite lookup_nil in *; simpl in *.
-        inversion Comb; subst.
-        generalize (IHx c _ _ _ H2).
-        intros [env1' [env2' [Comb' [[-> ->] | [[-> ->] | [-> ->]]]]]];
-        inversion Comb'; subst; exists [], []; split; try assumption;
-        repeat rewrite raw_insert_successor;
-        repeat rewrite lookup_nil; simpl; auto.
-      + rewrite lookup_zero in Comb; simpl in *.
-        inversion Comb; subst.
-        * generalize (IHx c _ _ _ H2).
-          intros [env1' [env2' [Comb' [[-> ->] | [[-> ->] | [-> ->]]]]]];
-          exists (None :: env1'), (None :: env2'); split; try (constructor; assumption);
-          repeat rewrite raw_insert_successor; repeat rewrite lookup_zero; simpl; auto.
-        * generalize (IHx c _ _ _ H2).
-          intros [env1' [env2' [Comb' [[-> ->] | [[-> ->] | [-> ->]]]]]];
-          exists (Some T :: env1'), (None :: env2'); split; try (constructor; assumption);
-          repeat rewrite raw_insert_successor; repeat rewrite lookup_zero; simpl; auto.
-        * generalize (IHx c _ _ _ H2).
-          intros [env1' [env2' [Comb' [[-> ->] | [[-> ->] | [-> ->]]]]]];
-          exists (None :: env1'), (Some T :: env2'); split; try (constructor; assumption);
-          repeat rewrite raw_insert_successor; repeat rewrite lookup_zero; simpl; auto.
-        * generalize (IHx c _ _ _ H3).
-          intros [env1' [env2' [Comb' [[-> ->] | [[-> ->] | [-> ->]]]]]];
-          exists (Some T1 :: env1'), (Some T2 :: env2'); split; try (constructor; assumption);
-          repeat rewrite raw_insert_successor; repeat rewrite lookup_zero; simpl; auto.
+    intros * Comb.
+    generalize (EnvironmentCombination_insert x env1 env2 env _ Comb).
+    intros [env1' [env2' [L1 [L2 [Comb' [[Eq1 Eq2] | [[Eq1 Eq2] | [T1 [T2 [Eq1 [Eq2 TComb]]]]]]]]]]];
+    try (inversion TComb); subst; exists env1', env2'; eauto.
   Qed.
-
 
   Lemma EnvironmentDis_raw_insert_None : forall x env1 env2 env,
     env1 +ₑ env2 ~= raw_insert x None env ->

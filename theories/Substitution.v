@@ -29,7 +29,7 @@ Section subs_def.
     | v' => v'
     end.
 
-Fixpoint traverse_Term (f : nat -> nat -> Value) l t :=
+  Fixpoint traverse_Term (f : nat -> nat -> Value) l t :=
     match t with
     | TValue v => TValue (traverse_Value f l v)
     | TLet t1 t2  => TLet (traverse_Term f l t1) (traverse_Term f (1 + l) t2)
@@ -873,7 +873,6 @@ Fixpoint traverse_Term (f : nat -> nat -> Value) l t :=
       );
     intros; subst; try discriminate;
     try (now apply insert_EmptyEnv in e).
-    (*induction WT1; intros; subst; try discriminate.*)
     - eapply subst_lemma_TValue; try eassumption.
       apply insert_EmptyEnv_injective in HeqE1.
       + destruct HeqE1 as [-> [-> Empty]].
@@ -1085,6 +1084,34 @@ Fixpoint traverse_Term (f : nat -> nat -> Value) l t :=
                            apply EnvironmentDisjointCombination_insert_Base;
                            eauto with environment.
     - rewrite subst_TSpawn. admit.
+      (*generalize (secondEnvironment_insert x A env env1 HeqE1).*)
+      (*intros [Eq1 Eq2].*)
+      (*rewrite Eq1 in *.*)
+      (*apply secondEnvironment_insert_inv in HeqE1.*)
+      (*destruct HeqE1 as [env2' [T' [Eq3 [Sub' Eq4]]]].*)
+      (*assert (exists env0', env2' +ₑ env2 ~= env0') by admit.*)
+      (*destruct H1 as [env0' Comb'].*)
+      (*eapply SPAWN; auto.*)
+      (*+ eapply IHWT1.*)
+      (*  * eassumption.*)
+      (*  * eassumption.*)
+      (*  * eapply Subtype_trans; eassumption.*)
+      (*  * rewrite <- Eq4 in H0.*)
+      (*    apply Comb'.*)
+      (*+ admit.*)
+      (**)
+      (*eapply SPAWN; auto.*)
+      (*assert (exists env' T, env = insert x T ⌈ env' ⌉ₑ) by admit.*)
+      (*destruct H1 as [env' [T Eq]].*)
+      (*assert (A ≤ T) by admit.*)
+      (*econstructor.*)
+      (*+ eapply IHWT1.*)
+      (*  * eassumption.*)
+      (*  * eassumption.*)
+      (*  * eapply Subtype_trans; eassumption.*)
+      (*  * admit.*)
+      (*+ admit.*)
+
     - rewrite subst_TSend.
       generalize (EnvironmentDisCombination_insert _ _ _ _ _ e0).
       intros [env1' [env2' [L1 [L2 [Dis' [[Eq1 Eq2] | [[Eq1 Eq2] | [BT [Eq1 Eq2]]]]]]]]];

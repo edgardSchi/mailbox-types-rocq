@@ -99,7 +99,8 @@ Inductive WellTypedDefinition (prog : Prog) : FunctionDefinition -> Prop :=
 Inductive WellTypedProgram (prog : Prog) : Prop :=
   PROG :
     (forall def, WellTypedDefinition prog (definitions prog def)) ->
-    WellTypedTerm prog nil (initialTerm prog) (TUBase BTUnit) -> WellTypedProgram prog.
+    WellTypedTerm prog [] (initialTerm prog) (TUBase BTUnit) ->
+    WellTypedProgram prog.
 
   Scheme WellTypedTerm_ind3 := Induction for WellTypedTerm Sort Prop
     with WellTypedGuards_ind3 := Induction for WellTypedGuards Sort Prop
@@ -457,6 +458,34 @@ Definition Cruftless {p : Prog} (env : Env) (m : Term) :=
 (*        apply EnvironmentSubtype_diff_Sub_Singleton; assumption.*)
 (*        assumption.*)
 (*Qed.*)
+
+Lemma Subtype_SecondClass : forall T, T ≤ ⌈ T ⌉ⁿ.
+Proof.
+  destruct T; simpl.
+  - constructor.
+  - destruct u.
+    + apply Subtype_refl.
+    + destruct m; repeat constructor; reflexivity.
+Qed.
+
+Lemma EnvironmentSubtype_SecondClass : forall env, env ≤ₑ ⌈ env ⌉ₑ.
+Proof.
+  induction env.
+  - constructor.
+  - destruct a; simpl; constructor; try apply Subtype_SecondClass; assumption.
+Qed.
+
+(*Lemma WellTypedTerm_TValue_Subtype_SecondClass : forall p env v T,*)
+(*  WellTypedTerm p env (TValue v) T ->*)
+(*  WellTypedTerm p ⌈ env ⌉ₑ (TValue v) T.*)
+(*Proof.*)
+(*  intros * WT.*)
+(*  eapply SUB.*)
+(*  - apply EnvironmentSubtype_SecondClass.*)
+(*  - apply Subtype_refl.*)
+(*  - *)
+(*  generalize (SUB).*)
+
 
 Lemma WellTypedEnvSub_TValue :
   forall p env v T,
