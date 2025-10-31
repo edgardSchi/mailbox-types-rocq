@@ -815,4 +815,15 @@ Section mailbox_types_properties.
       + destruct m; repeat constructor; reflexivity.
   Qed.
 
+  Lemma SecondClass_eq : forall T,
+    T = ⌈ T ⌉ⁿ ->
+    (exists b, T = (TUBase b)) \/ (exists T', T = (TUUsage ◦ T')).
+  Proof.
+    destruct T; simpl; intros Eq.
+    - eauto.
+    - right.
+      inversion Eq; subst.
+      now exists m.
+  Qed.
+
 End mailbox_types_properties.

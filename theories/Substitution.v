@@ -469,6 +469,51 @@ Section subs_properties.
     intros; now simpl_subst_goal.
   Qed.
 
+  Lemma subst_GReceive' : forall m t v x,
+    subst v x (GReceive m t) = GReceive m (subst (shift 2 v) (2 + x) t).
+  Proof.
+    intros.
+    simpl_subst_goal; simpl; simpl_subst_goal.
+    f_equal.
+    generalize (traverse_relative (fun l x0 : nat => subst_idx (lift l 0 v) (l + x) x0) (fun l x0 => subst_idx (lift l 0 (shift 2 v)) (l + S (S x)) x0) 2 t).
+    intros H.
+    apply H; try reflexivity.
+    intros l y.
+    unfold subst_idx.
+    dblib_by_cases; try reflexivity.
+    simpl_lift_goal; simpl; simpl_lift_goal.
+    generalize (traverse_functorial (fun l0 x0 : nat => ValueVar (shift (l0 + 2) x0)) (fun l0 x0 : nat => ValueVar (lift l (l0 + 0) x0)) v 0).
+    simpl; intros ->.
+    generalize (traverse_relative (fun l0 x0 : nat => ValueVar (lift (l + 2) (l0 + 0) x0)) (fun l0 x0 : nat => ValueVar (lift l (l0 + 0) (shift (l0 + 2) x0))) 0 v).
+    intros Eq.
+    generalize (Eq 0 0).
+    intros Eq'.
+    assert (H' : forall l0 x : nat, ValueVar (lift (l + 2) (l0 + 0 + 0) x) = ValueVar (lift l (l0 + 0) (shift (l0 + 2) x))).
+    {
+      intros l' x'; f_equal; repeat rewrite <- plus_n_O.
+      destruct (Compare_dec.le_gt_dec l' x') as [L | L].
+      - simpl_lift_goal.
+        Search lift.
+        assert (A : shift (l' + 2) x' = l' + 2 + x').
+        {
+          rewrite lift_idx_old.
+          simpl_lift_goal. simpl.
+        }
+
+        by now simpl_lift_goal.
+        rewrite A.
+        assert (B : lift l l' (2 + x') = l + 2 + x') by (simpl_lift_goal; lia).
+        now rewrite B.
+      - rewrite lift_idx_recent by assumption.
+        assert (A : lift 2 l' x' = x') by (now rewrite lift_idx_recent).
+        rewrite A.
+        assert (B : lift l l' x' = x') by (now rewrite lift_idx_recent).
+        now rewrite B.
+    }
+    Check traverse_relative.
+    Check traverse_functorial.
+  Admitted.
+
   Lemma subst_GReceive : forall m t v x,
     subst v x (GReceive m t) = GReceive m (subst (lift 2 0 v) (2 + x) t).
   Proof.
@@ -908,7 +953,16 @@ Section subs_properties.
                            constructor.
                            apply EnvironmentDisjointCombination_insert_Base;
                            eauto with environment.
-    - rewrite subst_TSpawn. admit.
+    - rewrite subst_TSpawn.
+      (*generalize (secondEnvironment_insert _ _ _ _ HeqE1).*)
+      (*intros [Idem Sec].*)
+      (*apply SecondClass_eq in Sec.*)
+      (*destruct Sec as [[b ->] | [T' Eq]].*)
+      (*+ inversion H; subst.*)
+      (*  apply SPAWN with (env := env1).*)
+      (*  * eapply IHWT1.*)
+      (*    -- *)
+      admit.
     - rewrite subst_TSend.
       generalize (EnvironmentDisCombination_insert _ _ _ _ _ e0).
       intros [env1' [env2' [L1 [L2 [Dis' [[Eq1 Eq2] | [[Eq1 Eq2] | [BT [Eq1 Eq2]]]]]]]]];
@@ -1031,6 +1085,30 @@ Section subs_properties.
       eapply FREE.
       generalize G. now simpl_subst_goal.
     - rewrite subst_GReceive.
+      destruct o.
+      + eapply RECEIVE.
+        * reflexivity.
+        * now left.
+        * repeat rewrite raw_insert_zero in *.
+          eapply IHWT1 with
+            (*(v := lift 2 0 v)*)
+            (env1 := Some ⌈ signature p m ⌉ :: Some (? e ^^ •) :: env1')
+            (env2 := None :: None :: env2).
+          -- simpl.
+             repeat rewrite raw_insert_successor.
+             simpl.
+             now repeat rewrite lookup_zero.
+          -- Search (TValue (lift _ _ _)).
+             replace (None :: None :: env2) with (raw_insert 2 None env2).
+             ++ generalize (WellTypedTerm_TValue_raw_insert_None _ _ _ 2 _ H0).
+                Search (shift).
+                simpl_lift_goal. simpl.
+                admit.
+             ++ rewrite raw_insert_successor.
+          -- eassumption.
+          -- now repeat constructor.
+      +
+
       eapply RECEIVE.
       + reflexivity.
       + destruct o.

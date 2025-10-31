@@ -2834,6 +2834,32 @@ Section environment_properties.
         destruct o; eauto using Subtype_refl with environment.
   Qed.
 
+  Lemma BaseEnv_insert : forall x T env,
+    BaseEnv (insert x T env) ->
+    exists b, T = TUBase b /\ BaseEnv env.
+  Proof.
+    induction x; intros * Base.
+    - rewrite raw_insert_zero in Base.
+      simpl in Base.
+      destruct T.
+      + now exists b.
+      + now exfalso.
+    - rewrite raw_insert_successor in Base.
+      destruct env.
+      + rewrite lookup_nil in Base.
+        simpl in Base.
+        now apply IHx.
+      + rewrite lookup_zero in Base.
+        simpl in Base.
+        destruct o.
+        * destruct t.
+          -- apply IHx in Base.
+             destruct Base as [b' [Eq Base]].
+             now exists b'.
+          -- now exfalso.
+        * now simpl; apply IHx.
+  Qed.
+
 End environment_properties.
 
 Hint Resolve create_EmptyEnv_EmptyEnv : environment.
