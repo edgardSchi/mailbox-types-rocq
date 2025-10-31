@@ -1,10 +1,10 @@
 (** * Definition of messages *)
 
-Require Import Setoid.
-Require Import Sets.Multiset.
-Require Import Classes.Morphisms.
-Require Import List.
-Require Import Permutation.
+From Stdlib Require Import Setoid.
+From Stdlib Require Import Sets.Multiset.
+From Stdlib Require Import Classes.Morphisms.
+From Stdlib Require Import List.
+From Stdlib Require Import Permutation.
 
 Generalizable All Variables.
 
@@ -175,7 +175,7 @@ Section MessageConfig_props.
 End MessageConfig_props.
 
 (** ** Strings as messages *)
-Require Import String.
+From Stdlib Require Import String.
 Section StringMessages.
 
   Global Instance StringMessage : IMessage string :=
