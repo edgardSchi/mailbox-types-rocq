@@ -2955,51 +2955,6 @@ Section environment_properties.
         * now subst; exists (None :: env2').
   Qed.
 
-
-  Lemma secondEnvironment_insert_exists_nonsecond : forall x T env1 env2,
-    ⌈ env1 ⌉ₑ = insert x T env2 ->
-    exists env2' T', env1 = insert x T' env2' /\ T' ≤ T.
-  Proof.
-    induction x; intros * Eq.
-    - rewrite raw_insert_zero in *.
-      destruct env1.
-      + discriminate.
-      + simpl in *.
-        destruct o.
-        * simpl in *.
-          inversion Eq; subst.
-          assert (env1 = []) by admit.
-          rewrite H.
-          exists [], t.
-          rewrite raw_insert_zero.
-          eauto using Subtype_SecondClass.
-        * discriminate.
-    - rewrite raw_insert_successor in *.
-      destruct env1.
-      + discriminate.
-      + simpl in Eq.
-        destruct o.
-        * simpl in *.
-          inversion Eq; subst.
-          setoid_rewrite raw_insert_successor.
-          specialize (IHx _ _ _ H1).
-          destruct IHx as [env2' [T' [Eq' Sub]]].
-          exists (Some t :: env2'), T'.
-          split.
-          -- subst. now rewrite lookup_zero.
-          -- assumption.
-        * simpl in *.
-          inversion Eq; subst.
-          setoid_rewrite raw_insert_successor.
-          specialize (IHx _ _ _ H1).
-          destruct IHx as [env2' [T' [Eq' Sub]]].
-          exists (None :: env2'), T'.
-          split.
-          -- subst. now rewrite lookup_zero.
-          -- assumption.
-  Admitted.
-
-
   Lemma secondEnvironment_nil : forall env,
     ⌈ env ⌉ₑ = ⌈ [] ⌉ₑ -> env = [].
   Proof.
@@ -3304,27 +3259,14 @@ Section environment_properties.
         f_equal; now apply IHx.
   Qed.
 
-
-
-  (*Lemma EnvDisComb_insert_length : forall x env1 env2 env3 T,*)
-  (*  insert x T env1 +ₑ raw_insert x None env2 ~= insert x T env3 ->*)
-  (*  length env1 = length env2.*)
-  (*Proof.*)
-  (*  induction x; intros * Dis.*)
-  (*  - repeat rewrite raw_insert_zero in Dis.*)
-  (*    inversion Dis; subst.*)
-  (*    generalize (EnvDisComb_length env1 env2 env3 H0).*)
-  (*    intros []; assumption.*)
-  (*  - repeat rewrite raw_insert_successor in Dis.*)
-  (*    destruct env1, env2, env3;*)
-  (*    repeat rewrite lookup_nil in Dis;*)
-  (*    repeat rewrite lookup_zero in Dis;*)
-  (*    simpl in *; auto.*)
-  (*    + inversion Dis; subst.*)
-  (*      Search (_ +ₑ _ ~= _ ).*)
-  (*      apply IHx in H1.*)
-  (*      simpl in *.*)
-  (*    inversion Dis; subst. + *)
+  Lemma SecondEnvironment_length : forall env1 env2,
+    ⌈ env1 ⌉ₑ = env2 -> length env1 = length env2.
+  Proof.
+    induction env1, env2; intros Eq; try easy.
+    simpl; f_equal.
+    apply IHenv1.
+    now simpl in Eq; injection Eq as _ Eq.
+  Qed.
 
 End environment_properties.
 

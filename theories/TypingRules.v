@@ -190,6 +190,22 @@ Section well_typed_properties.
     now rewrite H.
   Qed.
 
+  Lemma WellTypedValue_EmptyEnv_BaseType : forall p env v T,
+    EmptyEnv env ->
+    WellTypedTerm p env (TValue v) T ->
+    exists b, T = TUBase b.
+  Proof.
+    intros * Empty WT.
+    remember (TValue v) as V.
+    revert v HeqV Empty.
+    induction WT; intros; subst; try discriminate; eauto.
+    - specialize (insert_EmptyEnv env T x) as C.
+      contradiction.
+    - specialize (EmptyEnv_SubEnv_EmptyEnv _ _ Empty H) as Empty2.
+      specialize (IHWT v eq_refl Empty2) as (b & ->).
+      inversion H0; subst; eauto.
+  Qed.
+
   Lemma weak_BTUnit_2 : forall p env T,
     WellTypedTerm p env (TValue ValueUnit) T ->
     env ≤ₑ create_EmptyEnv env.
