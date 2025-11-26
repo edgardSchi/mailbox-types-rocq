@@ -578,6 +578,21 @@ Section environment_properties.
     lookup (S x) (e :: env) = lookup x env.
   Proof. reflexivity. Qed.
 
+  (** Tactic for simplifying insert and lookup *)
+  Ltac simpl_insert :=
+    repeat (match goal with
+      | [H: context[raw_insert 0 ?T ?env] |- _] => rewrite raw_insert_zero in H
+      | [ |- context[raw_insert 0 ?T ?env] ] => rewrite raw_insert_zero
+      | [H: context[raw_insert (S ?x) ?T ?env] |- _] => rewrite raw_insert_successor in H
+      | [ |- context[raw_insert (S ?x) ?T ?env] ] => rewrite raw_insert_successor
+      | [H: context[lookup 0 (_ :: ?env)] |- _] => rewrite lookup_zero in H
+      | [ |- context[lookup 0 (_ :: ?env)] ] => rewrite lookup_zero
+      | [H: context[lookup 0 []] |- _] => rewrite lookup_nil in H
+      | [ |- context[lookup 0 []] ] => rewrite lookup_nil
+      end;
+      (* Simplify the results *)
+      simpl in *).
+
   Lemma insert_EmptyEnv : forall env T x,
     ~ EmptyEnv (insert x T env).
   Proof.
@@ -3062,6 +3077,42 @@ Section environment_properties.
           now rewrite Eq2'.
   Qed.
 
+  Lemma EnvironmentSubtype_insert_T_Sub : forall x env1 env2 T1 T2,
+    insert x T1 env1 ≤ₑ insert x T1 env2 ->
+    T1 ≤ T2 ->
+    insert x T1 env1 ≤ₑ insert x T2 env2.
+  Proof.
+    induction x; intros * ESub TSub.
+    - simpl_insert.
+      simpl_SubEnv.
+      + discriminate.
+      + injection Eq as EqT EqE; subst.
+        now constructor.
+    - destruct env1, env2; simpl_insert; try simpl_SubEnv.
+      + injection Eq as EqE; subst.
+        constructor.
+        eapply IHx; eassumption.
+      + injection Eq as EqE; subst.
+        constructor.
+        eapply IHx; eassumption.
+      + destruct o.
+        * specialize (EnvironmentSubtype_Some_None_inv _ _ _ ESub) as (T' & Unr & SubT & SubE).
+          eapply EnvironmentSubtype_trans with (env2 := Some T' :: insert x T1 env1).
+          -- constructor; eauto with environment.
+          -- constructor; eauto.
+        * apply EnvironmentSubtype_None_None_inv in ESub.
+          constructor; eauto.
+      + destruct o, o0.
+        * apply EnvironmentSubtype_Some_Some_inv in ESub as (TSub2 & ESub).
+          constructor; eauto.
+        * apply EnvironmentSubtype_Some_None_inv in ESub as (T' & Unr & TSub2 & ESub2).
+          eapply EnvironmentSubtype_trans with (Some T' :: insert x T1 env1); 
+          eauto with environment.
+        * now apply EnvironmentSubtype_None_Some in ESub.
+        * apply EnvironmentSubtype_None_None_inv in ESub.
+          constructor; eauto.
+  Qed.
+
   Lemma EnvironmentSubtype_insert_T : forall x env T T',
     T' ≤ T -> insert x T' env ≤ₑ insert x T env.
   Proof.
@@ -3166,20 +3217,6 @@ Section environment_properties.
       now rewrite <- Eq1, Eq2; constructor.
   Qed.
 
-  Ltac simpl_insert :=
-    repeat (match goal with
-      | [H: context[raw_insert 0 ?T ?env] |- _] => rewrite raw_insert_zero in H
-      | [ |- context[raw_insert 0 ?T ?env] ] => rewrite raw_insert_zero
-      | [H: context[raw_insert (S ?x) ?T ?env] |- _] => rewrite raw_insert_successor in H
-      | [ |- context[raw_insert (S ?x) ?T ?env] ] => rewrite raw_insert_successor
-      | [H: context[lookup 0 (_ :: ?env)] |- _] => rewrite lookup_zero in H
-      | [ |- context[lookup 0 (_ :: ?env)] ] => rewrite lookup_zero
-      | [H: context[lookup 0 []] |- _] => rewrite lookup_nil in H
-      | [ |- context[lookup 0 []] ] => rewrite lookup_nil
-      end;
-      (* Simplify the results *)
-      simpl in *).
-
   Lemma secondEnvironment_insert_Type : forall x T1 T2 env,
     ⌈ insert x T1 env ⌉ₑ = insert x T2 ⌈ env ⌉ₑ ->
     ⌈ T1 ⌉ⁿ = T2.
@@ -3266,6 +3303,47 @@ Section environment_properties.
     simpl; f_equal.
     apply IHenv1.
     now simpl in Eq; injection Eq as _ Eq.
+  Qed.
+
+  Lemma BaseEnv_EmptyEnv : forall env,
+    EmptyEnv env ->
+    BaseEnv env.
+  Proof.
+    induction env; intros Empty.
+    - constructor.
+    - inversion Empty; subst; now apply IHenv.
+  Qed.
+
+  Lemma BaseEnv_Singleton : forall x env b,
+    EmptyEnv env ->
+    BaseEnv (insert x (TUBase b) env).
+  Proof.
+    induction x; intros * Empty; simpl_insert.
+    - now apply BaseEnv_EmptyEnv.
+    - destruct env; simpl_insert.
+      + now apply IHx.
+      + inversion Empty; subst.
+        now apply IHx.
+  Qed.
+
+  Lemma EnvironmentDis_Comb_BaseEnv_shared : forall env1 env2 env3 env2' env3' env' env,
+    BaseEnv env1 ->
+    env2 +ₑ env3 ~= env' ->
+    env1 +ₑ env' ~= env ->
+    env1 +ₑ env2 ~= env2' ->
+    env1 +ₑ env3 ~= env3' ->
+    env2' +ₑ env3' ~= env.
+  Proof.
+    intros * Base Dis1.
+    revert env1 env2' env3' env Base.
+    induction Dis1; intros * Base Dis2 Dis3 Dis4;
+    try (
+      inversion Dis2; subst;
+      inversion Dis3; subst;
+      inversion Dis4; subst;
+      simpl in Base; subst;
+      try(destruct T; try contradiction); constructor; eapply IHDis1; eassumption
+    ).
   Qed.
 
 End environment_properties.
